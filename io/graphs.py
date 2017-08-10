@@ -4,6 +4,7 @@
 import os
 import numpy as np
 import networkx as nx
+import matplotlib.pyplot as plt
 
 def read_features(line):
     degree, area, centroid0, centroid1, centroid2, normal0, normal1, normal2 = line.split(" ")
@@ -16,11 +17,13 @@ def read(filename):
     with open(filename, 'r') as file:
         lines = list(file)
         faces = [read_features(face) for face in lines[:len(lines)/2]]
-        return (faces, read_graph(lines[len(lines)/2:-1]).edges())
+        return (faces, read_graph(lines[len(lines)/2:-1]))
 
 def main():
     root_path = '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs'
-    print read(os.path.join(root_path, '3078.txt'))
+    print read(os.path.join(root_path, '3078.txt'))[0]
+    nx.draw(read(os.path.join(root_path, '3078.txt'))[1])
+    plt.show()
 
 if __name__ == '__main__':
     main()
