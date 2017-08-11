@@ -3,6 +3,8 @@
 import numpy as np
 import networkx as nx
 
+from graph import compute_weight
+
 class DirectProductKernel(object):
     """
     Direct Product graph kernel.
@@ -14,5 +16,5 @@ class DirectProductKernel(object):
 
     def compare(self, attribute):
         product = nx.cartesian_product(self.g1, self.g2)
-        map(lambda x, y, data, product=product : data = product.node[x][attribute] * product.node[x][attribute])
+        compute_weight(product, attribute)
         return None
