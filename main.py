@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: <utf-8> -*-
 
-from pkg.io import graphs
+from graphs import read
 
 def main():
     return None
