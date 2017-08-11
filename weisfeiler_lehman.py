@@ -1,3 +1,5 @@
+# -*- coding: <utf-8> -*-
+
 """Weisfeiler_Lehman graph kernel.
 
 Python implementation based on: "Weisfeiler-Lehman Graph Kernels", by:
@@ -44,22 +46,13 @@ class GK_WL():
         """
         self.graphs = graph_list
         n = len(graph_list)
-        lists = [0] * n
         k = [0] * (h + 1)
-        n_nodes = 0
-        n_max = 0
 
         # Compute adjacency lists and n_nodes, the total number of
         # nodes in the dataset.
-        for i in range(n):
-            lists[i] = graph_list[i].adjacency_list()
-            n_nodes = n_nodes + graph_list[i].number_of_nodes()
-
-            # Computing the maximum number of nodes in the graphs. It
-            # will be used in the computation of vectorial
-            # representation.
-            if(n_max < graph_list[i].number_of_nodes()):
-                n_max = graph_list[i].number_of_nodes()
+        lists = [graph.adjacency_list() for graph in graph_list]
+        n_nodes = reduce(lambda x,y: x.number_of_nodes() + y.number_of_nodes(), graph_list)
+        n_max = reduce(lambda x,y: max( x.number_of_nodes(), y.number_of_nodes()), graph_list)
 
         phi = np.zeros((n_max, n), dtype=np.uint64)
 
