@@ -2,3 +2,8 @@
 
 # Python Binaries
 *.pyc
+
+# Python package build
+build
+dist
+qualcity.egg-info

@@ -1,1 +1,1 @@
-# qualify.buildings
+# qualcity

@@ -3,7 +3,7 @@
 import numpy as np
 import networkx as nx
 
-from qualify.buildings.graphs.weights import compute_weight
+from qualcity.graphs.weights import compute_weight
 
 class DirectProductKernel(object):
     """

@@ -3,7 +3,7 @@
 import networkx as nx
 import numpy as np
 
-from qualify.buildings.graphs.weights import compute_weight
+from qualcity.graphs.weights import compute_weight
 
 def laplacian_eigen_vectors(graph, attribute):
     compute_weight(graph, attribute)
