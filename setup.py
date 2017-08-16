@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: <utf-8> -*-
 
+from setuptools import setup
+
 def readme():
     """
     Longer description from readme.
