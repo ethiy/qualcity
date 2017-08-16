@@ -23,13 +23,3 @@ def read(filename):
         nx.set_node_attributes(G, 'centroid', {idx : faces[idx][2] for idx in range(len(faces))})
         nx.set_node_attributes(G, 'normal', {idx : faces[idx][3] for idx in range(len(faces))})
         return G
-
-def main():
-    root_path = '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs'
-    print read(os.path.join(root_path, '3078.txt')).node[1]
-
-    nx.draw(read(os.path.join(root_path, '3078.txt')))
-    plt.show()
-
-if __name__ == '__main__':
-    main()
