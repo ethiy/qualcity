@@ -3,7 +3,7 @@
 import numpy as np
 import networkx as nx
 
-from graph import compute_weight
+from graph_util import compute_weight
 
 class DirectProductKernel(object):
     """
