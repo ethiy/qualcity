@@ -5,10 +5,12 @@ import networkx as nx
 
 from graph_util import compute_weight
 
+
 class DirectProductKernel(object):
     """
     Direct Product graph kernel.
     """
+
     def __init__(self, g1, g2):
         super(DirectProductKernel, self).__init__()
         self.g1 = g1

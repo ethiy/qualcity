@@ -19,6 +19,7 @@ class GK_WL():
     """
     Weisfeiler_Lehman graph kernel.
     """
+
     def compare_list(self, graph_list, h=1, node_label=True):
         """Compute the all-pairs kernel values for a list of graphs.
 
@@ -51,8 +52,10 @@ class GK_WL():
         # Compute adjacency lists and n_nodes, the total number of
         # nodes in the dataset.
         lists = [graph.adjacency_list() for graph in graph_list]
-        n_nodes = reduce(lambda x,y: x.number_of_nodes() + y.number_of_nodes(), graph_list)
-        n_max = reduce(lambda x,y: max( x.number_of_nodes(), y.number_of_nodes()), graph_list)
+        n_nodes = reduce(lambda x, y: x.number_of_nodes() +
+                         y.number_of_nodes(), graph_list)
+        n_max = reduce(lambda x, y: max(x.number_of_nodes(),
+                                        y.number_of_nodes()), graph_list)
 
         phi = np.zeros((n_max, n), dtype=np.uint64)
 
@@ -115,7 +118,7 @@ class GK_WL():
 
                     long_label = np.concatenate((np.array([labels[i][v]]),
                                                  np.sort(labels[i]
-                                                 [lists[i][v]])))
+                                                         [lists[i][v]])))
                     long_label_string = str(long_label)
                     # if the multiset label has not yet occurred, add it to the
                     # lookup table and assign a number to it
