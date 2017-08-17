@@ -31,7 +31,8 @@ setup(
             'networkx',
             'numpy',
             'matplotlib',
-            'scipy'
+            'scipy',
+            'pyshp'
     ],
     include_package_data=True,
     zip_safe=False

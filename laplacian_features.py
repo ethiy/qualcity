@@ -17,4 +17,10 @@ def laplacian_eigen_vectors(graph, attribute, operation):
 
 
 def laplacian_features(graphs, attribute, operation):
-    return None
+    lapeigs = [laplacian_eigen_vectors(
+        graph, 'area', operation) for graph in graphs]
+    size = reduce(
+            lambda x, y: min(x, y),
+            [lapeig.shape[1] for lapeig in lapeigs]
+        )
+    return [lapeig.flatten('F') for lapeig in lapeigs]
