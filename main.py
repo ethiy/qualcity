@@ -17,7 +17,7 @@ def main():
 
     lapeigs = [laplacian_eigen_vectors(graph, 'area', operations[2]) for graph in graphs]
     size = reduce(lambda x, y: min(x, y), [lapeig.shape[1] for lapeig in lapeigs])
-    features = [lapeig[:,-2:] for lapeig in lapeigs]
+    features = [lapeig[:,-size:] for lapeig in lapeigs]
 
 
 if __name__ == '__main__':
