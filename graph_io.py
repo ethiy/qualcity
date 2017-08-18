@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 
 def read_features(line):
-    degree, area, centroid0, centroid1, centroid2, normal0, normal1, normal2 = line.split(
+    face_id, degree, area, centroid0, centroid1, centroid2, normal0, normal1, normal2 = line.split(
         " ")
-    return (int(degree), float(area), np.array([float(centroid0), float(centroid1), float(centroid2)]), np.array([float(normal0), float(normal1), float(normal2)]))
+    return (int(face_id), int(degree), float(area), np.array([float(centroid0), float(centroid1), float(centroid2)]), np.array([float(normal0), float(normal1), float(normal2)]))
 
 
 def read_graph(lines):
