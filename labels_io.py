@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 
-import operator
-
 import os
 import fnmatch
 
@@ -13,27 +11,38 @@ import shapefile
 SHAPEFILE = "ESRI Shapefile"
 
 ERROR_DICTIONARY = {
-    'over_segmentation': ['over_segmentation', 'over'],
-    'under_segmentation': ['under_segmentation', 'under'],
-    'mis_segmentation': ['mis_segmentation'],
+    'over_segmentation': [
+        'over_segmentation',
+        'over',
+        'over_segmantation',
+        'over_segermentation',
+        'oversegmentation',
+        'over_segmentationover_segmentation'
+    ],
+    'under_segmentation': ['under_segmentation', 'under', 'unde_segmentation'],
+    'mis_segmentation': ['mis_segmentation', 'missegmentation', 'mis'],
     'slope': ['slope'],
-    'footprint': ['footprint'],
+    'footprint': ['footprint', 'footprint_error'],
+    'too_low': ['too_low'],
     'None': ['None', ''],
-    'half_building': ['half_building'],
+    'half_building': ['half_building', 'half_bulding'],
     'changed': ['changed'],
+    'Unknown': ['Unknown'],
     'occlusion': ['occlusion', 'vegetation']
 }
 
 UNQUALIFIED_ERROR_LIST = [
     'half_building',
     'changed',
-    'occlusion'
+    'occlusion',
+    'Unknown'
 ]
 
 BUILDING_ERROR_LIST = [
     'over_segmentation',
     'under_segmentation',
-    'footprint'
+    'footprint',
+    'too_low'
 ]
 
 FACET_ERROR_LIST = [
@@ -54,6 +63,13 @@ ERROR_CATEGORY_INDEX = {
     'Building': 1,
     'Facet': 2
 }
+
+
+def entry(error):
+    for _error, synonyms in ERROR_DICTIONARY.iteritems():
+        if error in synonyms:
+            return _error
+    raise LookupError
 
 
 def set_score(error):
@@ -90,9 +106,18 @@ def read(filename):
     )
 
 
+def lint(errors):
+    linted = {
+        error: score
+        for error, score in errors.iteritems()
+        if error not in ERROR_DICTIONARY['None']
+    }
+    return linted if linted != {} else 'None'
+
+
 def unify_errors(filename):
     unique_errors = map(lambda t: list(set(t)), read(filename))
-    return map(
+    max_score_errors = map(
         lambda _unique_errors: {
             error: reduce(
                 max,
@@ -109,17 +134,33 @@ def unify_errors(filename):
         },
         unique_errors
     )
+    return map(
+        lint,
+        max_score_errors
+    )
 
 
-# def errors_per_building(filename):
-#     map(
-#         ,
-#         unique_errors
-#     )
-#     return
+def errors_per_building(filename):
+    return map(
+        lambda _unified_errors: {
+            error: reduce(
+                max,
+                [
+                    _unified_errors[synonym]
+                    for synonym in ERROR_DICTIONARY[error]
+                    if synonym in _unified_errors.keys()
+                ]
+            )
+            for error in set(
+                [entry(key) for key in _unified_errors.keys()]
+            )
+        }
+        if _unified_errors != 'None' else 'None',
+        unify_errors(filename)
+    )
 
 
-def errors_per_building(filename, error_category):
+def get_category_errors(filename, error_category):
     return errors_per_building(filename)[
         ERROR_CATEGORY_INDEX[error_category]
     ]
@@ -130,14 +171,6 @@ def error_couple(filename):
         errors_per_building(filename, 'Building'),
         errors_per_building(filename, 'Facet')
     )
-
-
-def lint(errors):
-    linted = filter(
-        lambda error: error not in ERROR_DICTIONARY['None'],
-        errors
-    )
-    return linted if linted != [] else 'None'
 
 
 def list_category_errors(error_category, labels_dir, files):
@@ -235,7 +268,7 @@ def main():
     # )
 
     print({
-        _file: unify_errors(os.path.join(labels_dir, _file))
+        _file: errors_per_building(os.path.join(labels_dir, _file))
         for _file in files
     })
 
