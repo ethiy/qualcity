@@ -82,7 +82,11 @@ def lint(errors):
 def errors_statistics(error, error_category, labels_dir, files):
     category_errors = filter(
         lambda _error: _error not in ERROR_DICTIONARY['None'],
-        [errors_per_building(os.path.join(labels_dir, f), error_category) for f in files]
+        [
+            errors_per_building(os.path.join(labels_dir, f), error_category)
+            for f
+            in files
+        ]
     )
     errors = filter(
         lambda _error: reduce(
@@ -92,30 +96,49 @@ def errors_statistics(error, error_category, labels_dir, files):
         category_errors
     )
 
+    return (
+        len(errors) / float(len(category_errors)),
+        len(errors) / float(len(files))
+    )
+
+
+def print_statistics(error, error_category, labels_dir, files):
+    x, y = errors_statistics(error, error_category, labels_dir, files)
     print(
         'ratio of \'',
         error,
         '\' error :\n   - among \'',
         error_category,
         '\' errors: ',
-        len(errors) / float(len(category_errors)),
+        x,
         '\n   - among all files: ',
-        len(errors) / float(len(files))
+        y
     )
 
 
+def summarize_statistics():
+    pass
+
+
 def main():
-    labels_dir = '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels'
+    labels_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
+        'export-3DS/_labels'
+    )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    map(
-        lambda error: errors_statistics(
-            error,
-            'Facet',
-            labels_dir,
-            files
-        ),
-        ERROR_CATEGORY_DICTIONARY['Facet']
+    print('Facet:', ERROR_CATEGORY_DICTIONARY['Facet'])
+    print(
+        'Facet:',
+        map(
+            lambda error: errors_statistics(
+                error,
+                'Facet',
+                labels_dir,
+                files
+            ),
+            ERROR_CATEGORY_DICTIONARY['Facet']
+        )
     )
 
 
