@@ -3,6 +3,8 @@
 
 from __future__ import print_function
 
+import operator
+
 import os
 import fnmatch
 
@@ -168,8 +170,47 @@ def get_category_errors(filename, error_category):
 
 def error_couple(filename):
     return (
-        errors_per_building(filename, 'Building'),
-        errors_per_building(filename, 'Facet')
+        get_category_errors(filename, 'Building'),
+        get_category_errors(filename, 'Facet')
+    )
+
+
+def similtaneous_errors_list(labels_dir, files):
+    return filter(
+        lambda couple: couple[0] not in ERROR_DICTIONARY['None']
+        and couple[1] not in ERROR_DICTIONARY['None'],
+        [error_couple(os.path.join(labels_dir, f)) for f in files]
+    )
+
+
+def similtaneous_errors_scores(labels_dir, files):
+    return [
+        (max(dic_couple[0].values()), max(dic_couple[1].values()))
+        for dic_couple in similtaneous_errors_list(labels_dir, files)
+    ]
+
+
+def score_similtaneous_errors(labels_dir, files):
+    return float(
+        reduce(
+            lambda x, y: x + y,
+            [
+                min(couple)
+                for couple in similtaneous_errors_scores(labels_dir, files)
+            ]
+        )
+    ) / 10.
+
+
+def print_similtaneous_summary(labels_dir, files):
+    joint = score_similtaneous_errors(labels_dir, files)
+    print(
+        'Facet errors and Building errors joint probability: ',
+        joint / float(len(files)),
+        '\nFacet errors probability knowing Building errors',
+        joint / score_category_errors('Building', labels_dir, files),
+        '\nBuilding errors  knowing no Facet errors',
+        
     )
 
 
@@ -177,26 +218,53 @@ def list_category_errors(error_category, labels_dir, files):
     return filter(
         lambda _error: _error not in ERROR_DICTIONARY['None'],
         [
-            errors_per_building(os.path.join(labels_dir, f), error_category)
+            get_category_errors(os.path.join(labels_dir, f), error_category)
             for f
             in files
         ]
     )
 
 
+def score_category_errors(error_category, labels_dir, files):
+    return float(
+        reduce(
+            operator.add,
+            [
+                max(dic.values())
+                for dic in list_category_errors(
+                    error_category,
+                    labels_dir,
+                    files
+                )
+            ]
+        )
+    ) / 10.
+
+
 def errors_statistics(error, error_category, labels_dir, files):
     category_errors = list_category_errors(error_category, labels_dir, files)
+    number_of_category_errors = score_category_errors(
+        error_category,
+        labels_dir,
+        files
+    )
     errors = filter(
-        lambda _error: reduce(
+        lambda _errors: reduce(
             lambda x, y: x or y,
-            [e in _error for e in ERROR_DICTIONARY[error]]
+            [error in _errors.keys()]
         ),
         category_errors
     )
+    number_of_errors = float(
+        reduce(
+            operator.add,
+            [max(dic.values()) for dic in errors]
+        )
+    ) / 10.
 
     return (
-        len(errors) / float(len(category_errors)),
-        len(errors) / float(len(files))
+        number_of_errors / number_of_category_errors,
+        number_of_errors / float(len(files))
     )
 
 
@@ -219,9 +287,7 @@ def print_statistics_summury(error_category, labels_dir, files):
         'ratio of \'',
         error_category,
         '\' errors among all errors:',
-        len(
-            list_category_errors(error_category, labels_dir, files)
-        )
+        score_category_errors(error_category, labels_dir, files)
         /
         float(len(files))
     )
@@ -267,10 +333,7 @@ def main():
     #     ERROR_CATEGORY_INDEX.keys()
     # )
 
-    print({
-        _file: errors_per_building(os.path.join(labels_dir, _file))
-        for _file in files
-    })
+    print_similtaneous_summary(labels_dir, files)
 
 
 if __name__ == '__main__':
