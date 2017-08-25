@@ -33,6 +33,7 @@ setup(
             'matplotlib',
             'scipy',
             'pyshp'
+            'repoze.lru'
     ],
     include_package_data=True,
     zip_safe=False

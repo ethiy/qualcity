@@ -3,6 +3,8 @@
 
 from __future__ import print_function
 
+import operator
+
 import os
 import fnmatch
 
@@ -54,20 +56,79 @@ ERROR_CATEGORY_INDEX = {
 }
 
 
+def set_score(error):
+    raw = error.split(': ')
+    if len(raw) == 2:
+        return (raw[0], int(raw[1]))
+    elif len(raw) == 1:
+        return (raw[0], 10)
+    else:
+        raise IOError
+
+
+def list_errors(errors):
+    return [set_score(error) for error in errors.split(', ')]
+
+
+def get_errors(feature):
+    return (
+        list_errors(feature[-3]),
+        list_errors(feature[-2]),
+        list_errors(feature[-1])
+    )
+
+
 def read(filename):
     records = shapefile.Reader(filename).records()
-    return [(feature[-3], feature[-2], feature[-1]) for feature in records]
+    return reduce(
+        lambda lhs, rhs: (
+            lhs[0] + rhs[0],
+            lhs[1] + rhs[1],
+            lhs[2] + rhs[2]
+        ),
+        [get_errors(feature) for feature in records]
+    )
 
 
-def simplify_errors_per_building(filename):
-    return map(lambda t: list(set(t)), zip(*read(filename)))
+def unify_errors(filename):
+    unique_errors = map(lambda t: list(set(t)), read(filename))
+    return map(
+        lambda _unique_errors: {
+            error: reduce(
+                max,
+                [
+                    _couple[1]
+                    for _couple
+                    in filter(
+                        lambda couple: couple[0] == error,
+                        _unique_errors
+                    )
+                ]
+            )
+            for error in dict(_unique_errors).keys()
+        },
+        unique_errors
+    )
+
+
+# def errors_per_building(filename):
+#     map(
+#         ,
+#         unique_errors
+#     )
+#     return
 
 
 def errors_per_building(filename, error_category):
-    return lint(
-        simplify_errors_per_building(filename)[
-            ERROR_CATEGORY_INDEX[error_category]
-        ]
+    return errors_per_building(filename)[
+        ERROR_CATEGORY_INDEX[error_category]
+    ]
+
+
+def error_couple(filename):
+    return (
+        errors_per_building(filename, 'Building'),
+        errors_per_building(filename, 'Facet')
     )
 
 
@@ -166,12 +227,17 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    map(
-        lambda error_category: print_statistics_summury(
-            error_category, labels_dir, files
-        ),
-        ERROR_CATEGORY_INDEX.keys()
-    )
+    # map(
+    #     lambda error_category: print_statistics_summury(
+    #         error_category, labels_dir, files
+    #     ),
+    #     ERROR_CATEGORY_INDEX.keys()
+    # )
+
+    print({
+        _file: unify_errors(os.path.join(labels_dir, _file))
+        for _file in files
+    })
 
 
 if __name__ == '__main__':
