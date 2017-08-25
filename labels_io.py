@@ -79,8 +79,8 @@ def lint(errors):
     return linted if linted != [] else 'None'
 
 
-def errors_statistics(error, error_category, labels_dir, files):
-    category_errors = filter(
+def list_category_errors(error_category, labels_dir, files):
+    return filter(
         lambda _error: _error not in ERROR_DICTIONARY['None'],
         [
             errors_per_building(os.path.join(labels_dir, f), error_category)
@@ -88,6 +88,10 @@ def errors_statistics(error, error_category, labels_dir, files):
             in files
         ]
     )
+
+
+def errors_statistics(error, error_category, labels_dir, files):
+    category_errors = list_category_errors(error_category, labels_dir, files)
     errors = filter(
         lambda _error: reduce(
             lambda x, y: x or y,
@@ -116,8 +120,43 @@ def print_statistics(error, error_category, labels_dir, files):
     )
 
 
-def summarize_statistics():
-    pass
+def print_statistics_summury(error_category, labels_dir, files):
+    print(
+        'ratio of \'',
+        error_category,
+        '\' errors among all errors:',
+        len(
+            list_category_errors(error_category, labels_dir, files)
+        )
+        /
+        float(len(files))
+    )
+    map(
+        lambda error: print_statistics(
+            error,
+            error_category,
+            labels_dir,
+            files
+        ),
+        ERROR_CATEGORY_DICTIONARY[error_category]
+    )
+
+
+def summarize_statistics(error_category, labels_dir, files):
+    print(error_category, ':', ERROR_CATEGORY_DICTIONARY[error_category])
+    print(
+        error_category,
+        ':',
+        map(
+            lambda error: errors_statistics(
+                error,
+                error_category,
+                labels_dir,
+                files
+            ),
+            ERROR_CATEGORY_DICTIONARY[error_category]
+        )
+    )
 
 
 def main():
@@ -127,18 +166,11 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    print('Facet:', ERROR_CATEGORY_DICTIONARY['Facet'])
-    print(
-        'Facet:',
-        map(
-            lambda error: errors_statistics(
-                error,
-                'Facet',
-                labels_dir,
-                files
-            ),
-            ERROR_CATEGORY_DICTIONARY['Facet']
-        )
+    map(
+        lambda error_category: print_statistics_summury(
+            error_category, labels_dir, files
+        ),
+        ERROR_CATEGORY_INDEX.keys()
     )
 
 
