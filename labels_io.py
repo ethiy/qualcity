@@ -168,49 +168,54 @@ def get_category_errors(filename, error_category):
     ]
 
 
-def error_couple(filename):
+def error_couple(filename, first, second):
     return (
-        get_category_errors(filename, 'Building'),
-        get_category_errors(filename, 'Facet')
+        get_category_errors(filename, first),
+        get_category_errors(filename, second)
     )
 
 
-def similtaneous_errors_list(labels_dir, files):
+def similtaneous_errors_list(labels_dir, files, first, second):
     return filter(
         lambda couple: couple[0] not in ERROR_DICTIONARY['None']
         and couple[1] not in ERROR_DICTIONARY['None'],
-        [error_couple(os.path.join(labels_dir, f)) for f in files]
+        [
+            error_couple(os.path.join(labels_dir, f), first, second)
+            for f in files
+        ]
     )
 
 
-def similtaneous_errors_scores(labels_dir, files):
+def similtaneous_errors_scores(labels_dir, files, first, second):
     return [
         (max(dic_couple[0].values()), max(dic_couple[1].values()))
-        for dic_couple in similtaneous_errors_list(labels_dir, files)
+        for dic_couple
+        in similtaneous_errors_list(labels_dir, files, first, second)
     ]
 
 
-def score_similtaneous_errors(labels_dir, files):
+def score_similtaneous_errors(labels_dir, files, first, second):
     return float(
         reduce(
             lambda x, y: x + y,
             [
                 min(couple)
-                for couple in similtaneous_errors_scores(labels_dir, files)
+                for couple
+                in similtaneous_errors_scores(labels_dir, files, first, second)
             ]
         )
     ) / 10.
 
 
 def print_similtaneous_summary(labels_dir, files):
-    joint = score_similtaneous_errors(labels_dir, files)
+    joint = score_similtaneous_errors(labels_dir, files, 'Building', 'Facet')
     print(
         'Facet errors and Building errors joint probability: ',
         joint / float(len(files)),
         '\nFacet errors probability knowing Building errors',
         joint / score_category_errors('Building', labels_dir, files),
         '\nBuilding errors  knowing no Facet errors',
-        
+
     )
 
 
