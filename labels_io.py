@@ -335,23 +335,14 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    print(
-        {
-            f: get_category_errors(os.path.join(labels_dir, f), 'Facet')
-            for f
-            in files
-            if 'slope' in get_category_errors(os.path.join(labels_dir, f), 'Facet')
-        }
+    map(
+        lambda error_category: print_statistics_summary(
+            error_category, labels_dir, files
+        ),
+        ERROR_CATEGORY_INDEX.keys()
     )
 
-    # map(
-    #     lambda error_category: print_statistics_summary(
-    #         error_category, labels_dir, files
-    #     ),
-    #     ERROR_CATEGORY_INDEX.keys()
-    # )
-    #
-    # print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
+    print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
 
 
 if __name__ == '__main__':
