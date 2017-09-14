@@ -186,6 +186,10 @@ def similtaneous_errors_list(labels_dir, files, first, second):
     )
 
 
+def similtaneous_errors_lists():
+    pass
+
+
 def similtaneous_errors_scores(labels_dir, files, first, second):
     return [
         (max(dic_couple[0].values()), max(dic_couple[1].values()))
@@ -207,13 +211,13 @@ def score_similtaneous_errors(labels_dir, files, first, second):
     ) / 10.
 
 
-def print_similtaneous_summary(labels_dir, files):
-    joint = score_similtaneous_errors(labels_dir, files, 'Building', 'Facet')
+def print_similtaneous_summary(labels_dir, files, first, second):
+    joint = score_similtaneous_errors(labels_dir, files, first, second)
     print(
-        'Facet errors and Building errors joint probability: ',
+        second + ' errors and ' + first + ' errors joint probability: ',
         joint / float(len(files)),
-        '\nFacet errors probability knowing Building errors',
-        joint / score_category_errors('Building', labels_dir, files),
+        '\n' + second + ' errors probability knowing ' + first + ' errors: ',
+        joint / score_category_errors(first, labels_dir, files),
         '\nBuilding errors  knowing no Facet errors',
 
     )
@@ -287,7 +291,7 @@ def print_statistics(error, error_category, labels_dir, files):
     )
 
 
-def print_statistics_summury(error_category, labels_dir, files):
+def print_statistics_summary(error_category, labels_dir, files):
     print(
         'ratio of \'',
         error_category,
@@ -331,14 +335,23 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
+    print(
+        {
+            f: get_category_errors(os.path.join(labels_dir, f), 'Facet')
+            for f
+            in files
+            if 'slope' in get_category_errors(os.path.join(labels_dir, f), 'Facet')
+        }
+    )
+
     # map(
-    #     lambda error_category: print_statistics_summury(
+    #     lambda error_category: print_statistics_summary(
     #         error_category, labels_dir, files
     #     ),
     #     ERROR_CATEGORY_INDEX.keys()
     # )
-
-    print_similtaneous_summary(labels_dir, files)
+    #
+    # print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
 
 
 if __name__ == '__main__':
