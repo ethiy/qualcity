@@ -61,19 +61,39 @@ def get_graph(filename):
     )
 
 
+def stats(features):
+    return [min(features), max(features), mean(features), median(features)]
+
+
 def degree_statistics(faces):
-    degrees = [face[1] for face in faces]
-    return [min(degrees), max(degrees), mean(degrees), median(degrees)]
+    return stats([face[1] for face in faces])
 
 
 def area_statistics(faces):
-    areas = [face[2] for face in faces]
-    return [min(areas), max(areas), mean(areas), median(areas)]
+    return stats([face[2] for face in faces])
+
+
+def centroid_statistics(faces):
+    distances = [
+        np.linalg.norm(face[3] - _face[3])
+        for face in faces
+        for _face in faces
+        if face != _face
+    ]
+    return stats(distances)
 
 
 def feature_vector(filename):
     faces = get_faces(filename)
-    return [len(faces)] + degree_statistics(faces) + area_statistics(faces)
+    return (
+        [len(faces)]
+        +
+        degree_statistics(faces)
+        +
+        area_statistics(faces)
+        +
+        centroid_statistics(faces)
+    )
 
 
 def read(filename):
