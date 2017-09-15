@@ -64,7 +64,8 @@ def get_graph(filename):
 
 
 def get_relations(filename):
-    return
+    i, j = np.where(get_adjacency_matrix(filename) == 1)
+    return filter(lambda x: x[0] != x[1], zip(*[i, j]))
 
 
 def stats(features):
@@ -91,6 +92,7 @@ def centroid_statistics(faces):
 
 def feature_vector(filename):
     faces = get_faces(filename).values()
+    get_relations(filename)
     return (
         [len(faces)]
         +
