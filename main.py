@@ -21,19 +21,37 @@ def graph_files(directory):
 
 
 def main():
-    root_path = os.path.join(
+    graph_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
         'dual_graphs'
+    )
+    labels_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
+        'export-3DS/_labels'
     )
 
     features = np.vstack(
         [
             np.array(
-                graph_io.feature_vector(graph_file)
+                graph_io.feature_vector(graph)
             )
-            for graph_file in graph_files(root_path)
+            for graph in graph_files(graph_dir)
         ]
     )
+    labels = [
+        labels_io.errors_per_building(os.path.join(labels_dir, graph))
+        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
+    ]
+
+    binary_labels = np.array(
+        [
+            label == ['None', 'None', 'None']
+            for label in labels
+        ]
+    )
+
+    print binary_labels
+
     reduced_features = skd.PCA(n_components=3).fit_transform(features)
     x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
 
