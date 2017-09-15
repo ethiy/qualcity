@@ -104,8 +104,28 @@ def centroid_statistics(faces, relations=[]):
     return stats(distances)
 
 
+def angle_statistics(faces, relations=[]):
+    if len(relations) == 0:
+        relations = [
+            (idx, _idx)
+            for idx in faces.keys()
+            for _idx in faces.keys()
+            if idx != _idx
+        ]
+    angles = [
+        np.arctan2(
+            np.linalg.norm(np.cross(faces[idx][3], faces[idx][3])),
+            np.dot(faces[idx][3], faces[idx][3])
+        )
+        for idx, _idx in relations
+    ]
+    print angles
+    return
+
+
 def feature_vector(filename):
     faces = get_faces(filename)
+    angle_statistics(faces)
     return (
         [len(faces)]
         +
