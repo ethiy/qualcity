@@ -21,9 +21,12 @@ def main():
         'dual_graphs'
     )
 
-    graphs = [
-        graph_io.read(graph_file) for graph_file in graph_files(root_path)
+    features = [
+        graph_io.feature_vector(graph_file)
+        for graph_file in graph_files(root_path)
     ]
+
+    print features
 
 
 if __name__ == '__main__':
