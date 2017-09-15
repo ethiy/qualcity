@@ -32,7 +32,8 @@ setup(
             'numpy',
             'matplotlib',
             'scipy',
-            'pyshp'
+            'pyshp',
+            'scikit-learn',
             'repoze.lru'
     ],
     include_package_data=True,
