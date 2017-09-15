@@ -134,8 +134,6 @@ def feature_vector(filename):
         +
         area_statistics(faces)
         +
-        centroid_statistics(faces)
-        +
         centroid_statistics(faces, get_relations(filename))
         +
         angle_statistics(faces)
