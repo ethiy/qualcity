@@ -13,21 +13,23 @@ def read_features(line):
         " ")
     return (
         int(face_id),
-        int(degree),
-        float(area),
-        np.array(
-            [
-                float(centroid0),
-                float(centroid1),
-                float(centroid2)
-            ]
-        ),
-        np.array(
-            [
-                float(normal0),
-                float(normal1),
-                float(normal2)
-            ]
+        (
+            int(degree),
+            float(area),
+            np.array(
+                [
+                    float(centroid0),
+                    float(centroid1),
+                    float(centroid2)
+                ]
+            ),
+            np.array(
+                [
+                    float(normal0),
+                    float(normal1),
+                    float(normal2)
+                ]
+            )
         )
     )
 
@@ -40,7 +42,7 @@ def get_lines(filename):
 
 def get_faces(filename):
     lines = get_lines(filename)
-    return [read_features(face) for face in lines[:len(lines) / 2]]
+    return dict([read_features(face) for face in lines[:len(lines) / 2]])
 
 
 def get_adjacency_matrix(filename):
@@ -61,21 +63,25 @@ def get_graph(filename):
     )
 
 
+def get_relations(filename):
+    return
+
+
 def stats(features):
     return [min(features), max(features), mean(features), median(features)]
 
 
 def degree_statistics(faces):
-    return stats([face[1] for face in faces])
+    return stats([face[0] for face in faces])
 
 
 def area_statistics(faces):
-    return stats([face[2] for face in faces])
+    return stats([face[1] for face in faces])
 
 
 def centroid_statistics(faces):
     distances = [
-        np.linalg.norm(face[3] - _face[3])
+        np.linalg.norm(face[2] - _face[2])
         for face in faces
         for _face in faces
         if face != _face
@@ -84,7 +90,7 @@ def centroid_statistics(faces):
 
 
 def feature_vector(filename):
-    faces = get_faces(filename)
+    faces = get_faces(filename).values()
     return (
         [len(faces)]
         +
