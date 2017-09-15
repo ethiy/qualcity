@@ -97,11 +97,12 @@ def centroid_statistics(faces, relations=[]):
             for _idx in faces.keys()
             if idx != _idx
         ]
-    distances = [
-        np.linalg.norm(faces[idx][2] - faces[_idx][2])
-        for idx, _idx in relations
-    ]
-    return stats(distances)
+    return stats(
+        [
+            np.linalg.norm(faces[idx][2] - faces[_idx][2])
+            for idx, _idx in relations
+        ]
+    )
 
 
 def angle_statistics(faces, relations=[]):
@@ -112,15 +113,15 @@ def angle_statistics(faces, relations=[]):
             for _idx in faces.keys()
             if idx != _idx
         ]
-    angles = [
-        np.arctan2(
-            np.linalg.norm(np.cross(faces[idx][3], faces[idx][3])),
-            np.dot(faces[idx][3], faces[idx][3])
-        )
-        for idx, _idx in relations
-    ]
-    print angles
-    return
+    return stats(
+        [
+            np.arctan2(
+                np.linalg.norm(np.cross(faces[idx][3], faces[_idx][3])),
+                np.dot(faces[idx][3], faces[_idx][3])
+            ) * 180 / np.pi
+            for idx, _idx in relations
+        ]
+    )
 
 
 def feature_vector(filename):
@@ -136,6 +137,10 @@ def feature_vector(filename):
         centroid_statistics(faces)
         +
         centroid_statistics(faces, get_relations(filename))
+        +
+        angle_statistics(faces)
+        +
+        angle_statistics(faces, get_relations(filename))
     )
 
 
