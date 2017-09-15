@@ -73,26 +73,30 @@ def stats(features):
 
 
 def degree_statistics(faces):
-    return stats([face[0] for face in faces])
+    return stats([face[0] for face in faces.values()])
 
 
 def area_statistics(faces):
-    return stats([face[1] for face in faces])
+    return stats([face[1] for face in faces.values()])
 
 
-def centroid_statistics(faces):
+def centroid_statistics(faces, relations=[]):
+    if len(relations) == 0:
+        relations = [
+            (idx, _idx)
+            for idx in faces.keys()
+            for _idx in faces.keys()
+            if idx != _idx
+        ]
     distances = [
-        np.linalg.norm(face[2] - _face[2])
-        for face in faces
-        for _face in faces
-        if face != _face
+        np.linalg.norm(faces[idx][2] - faces[_idx][2])
+        for idx, _idx in relations
     ]
     return stats(distances)
 
 
 def feature_vector(filename):
-    faces = get_faces(filename).values()
-    get_relations(filename)
+    faces = get_faces(filename)
     return (
         [len(faces)]
         +
@@ -101,6 +105,8 @@ def feature_vector(filename):
         area_statistics(faces)
         +
         centroid_statistics(faces)
+        +
+        centroid_statistics(faces, get_relations(filename))
     )
 
 
