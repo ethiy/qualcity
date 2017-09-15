@@ -9,8 +9,17 @@ from utils import median, mean
 
 
 def read_features(line):
-    face_id, degree, area, centroid0, centroid1, centroid2, normal0, normal1, normal2 = line.split(
-        " ")
+    (
+        face_id,
+        degree,
+        area,
+        centroid0,
+        centroid1,
+        centroid2,
+        normal0,
+        normal1,
+        normal2
+    ) = line.split(" ")
     return (
         int(face_id),
         (
