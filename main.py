@@ -13,6 +13,14 @@ import graph_io
 import labels_io
 
 
+CLASSES = {
+    0: 'None',
+    1: 'Unqualified',
+    2: 'Building',
+    3: 'Facet'
+}
+
+
 def graph_files(directory):
     return fnmatch.filter(
         [os.path.join(directory, file) for file in os.listdir(directory)],
@@ -42,6 +50,13 @@ def main():
         labels_io.errors_per_building(os.path.join(labels_dir, graph))
         for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
     ]
+
+    labels_classes = [
+        labels_io.error_classes(os.path.join(labels_dir, graph), 5)
+        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
+    ]
+
+    print labels_classes
 
     binary_labels = np.array(
         [

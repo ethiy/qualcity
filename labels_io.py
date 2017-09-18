@@ -142,6 +142,10 @@ def unify_errors(filename):
     )
 
 
+def class_error(errors):
+    return 0 if errors == 'None' else max(errors.values())
+
+
 def errors_per_building(filename):
     return map(
         lambda _unified_errors: {
@@ -160,6 +164,25 @@ def errors_per_building(filename):
         if _unified_errors != 'None' else 'None',
         unify_errors(filename)
     )
+
+
+def error_class_score(filename):
+    return [
+        class_error(error)
+        for error in errors_per_building(filename)
+    ]
+
+
+def error_classes(filename, threshold):
+    unq, bul, fac = error_class_score(filename)
+    if unq > threshold:
+        return 'Unqualified'
+    elif bul > threshold:
+        return 'Building'
+    elif fac > threshold:
+        return 'Facet'
+    else:
+        return 'None'
 
 
 def get_category_errors(filename, error_category):
