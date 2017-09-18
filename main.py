@@ -50,14 +50,38 @@ def main():
         ]
     )
 
-    print binary_labels
+    clean_building_labels = [
+        couple[0]
+        for couple
+        in filter(
+            lambda x: x[1],
+            zip(
+                range(len(labels)),
+                binary_labels
+            )
+        )
+    ]
 
-    reduced_features = skd.PCA(n_components=3).fit_transform(features)
-    x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
+    separated_features = [
+        [
+            features[index]
+            for index in clean_building_labels
+        ],
+        [
+            features[index]
+            for index in range(len(features))
+            if index not in clean_building_labels
+        ]
+    ]
 
     fig = plt.figure()
     ax = Axes3D(fig)
-    ax.scatter(x, y, z)
+
+    for col, mark, feat in zip(['r', 'b'], ['o', '^'], separated_features):
+        reduced_features = skd.PCA(n_components=3).fit_transform(feat)
+        x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
+        ax.scatter(x, y, z, c=col, marker=mark)
+
     plt.show()
 
 
