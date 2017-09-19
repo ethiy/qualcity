@@ -143,15 +143,29 @@ def main():
         ),
         get_dsms(DSM_DIR)
     )
+    diff = altimetric_difference(
+        os.path.join(
+            RASTER_DIR,
+            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+        ),
+        DSM_DIR
+    )
+
+    hist, bins = np.histogram(diff, bins=50)
 
     plt.close('all')
     figure = plt.figure()
-    figure.add_subplot(121)
+    figure.add_subplot(221)
     plt.imshow(projected_building)
     plt.colorbar()
-    figure.add_subplot(122)
+    figure.add_subplot(222)
     plt.imshow(dsm_building)
     plt.colorbar()
+    figure.add_subplot(223)
+    plt.imshow(diff)
+    plt.colorbar()
+    figure.add_subplot(224)
+    plt.plot(bins[1:], hist)
     plt.show()
 
 
