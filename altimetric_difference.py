@@ -16,27 +16,21 @@ import matplotlib.pyplot as plt
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 RASTER_DIR = os.path.join(
-    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
-    'rasters/'
+    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1247-13705',
+    'export-3DS'
 )
 
 
 def bounding_box(dsm):
     dataset = gdal.Open(dsm, gdalconst.GA_ReadOnly)
-    geotrans = dataset.GetGeoTransform()
+    Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
     return (
+        (Ox, Oy),
         (
-            geotrans[0],
-            geotrans[3]
+            Ox + px * dataset.RasterXSize,
+            Oy + py * dataset.RasterYSize
         ),
-        (
-            geotrans[0] + geotrans[1] * dataset.RasterXSize,
-            geotrans[3] + geotrans[5] * dataset.RasterYSize
-        ),
-        (
-            0.06,
-            -0.06
-        )
+        (px, py)
     )
 
 
@@ -106,9 +100,32 @@ def read(filename):
     return dataset.GetRasterBand(1).ReadAsArray().astype(np.float)
 
 
+def get_dsms(dsm_dir):
+    return
+
+
+def find_building(filename, dsms):
+    return
+
+
+def altimetric_difference(filename, dsm_dir):
+    return find_building(filename, get_dsms(dsm_dir)) - read(filename)
+
+
 def main():
-    projected_building = read(os.path.join(RASTER_DIR, '669.tiff'))
+    projected_building = read(
+        os.path.join(
+            RASTER_DIR,
+            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+        )
+    )
     print projected_building.shape
+    print bounding_box(
+        os.path.join(
+            RASTER_DIR,
+            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+        )
+    )
     plt.imshow(projected_building)
     plt.show()
 
