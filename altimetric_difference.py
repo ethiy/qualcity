@@ -2,6 +2,7 @@
 # -*- coding: <utf-8> -*-
 
 import os
+import fnmatch
 
 import math
 
@@ -36,8 +37,10 @@ def bounding_box(dsm):
 
 def intersection(dsm, building):
     dsm_bb = bounding_box(dsm)
-    building_bb = bounding_box(building)
-    intersection = overlap(dsm_bb, building_bb)
+    intersection = overlap(
+        dsm_bb,
+        bounding_box(building)
+    )
     if (
         intersection[1][0] < intersection[0][0]
         or intersection[1][1] > intersection[0][1]
@@ -101,11 +104,25 @@ def read(filename):
 
 
 def get_dsms(dsm_dir):
-    return
+    return fnmatch.filter(
+        [os.path.join(dsm_dir, filename) for filename in os.listdir(dsm_dir)],
+        '*.geotiff'
+    )
+
+
+def building_intersections(filename, dsms):
+    return {
+        dsm: intersection(dsm, filename)
+        for dsm in dsms
+        if intersection(dsm, filename) is not None
+    }
 
 
 def find_building(filename, dsms):
-    return
+    return [
+        crop(dsm, bb)
+        for dsm, bb in building_intersections(filename, dsms).iteritems()
+    ][0]
 
 
 def altimetric_difference(filename, dsm_dir):
@@ -119,14 +136,22 @@ def main():
             'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
         )
     )
-    print projected_building.shape
-    print bounding_box(
+    dsm_building = find_building(
         os.path.join(
             RASTER_DIR,
             'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
-        )
+        ),
+        get_dsms(DSM_DIR)
     )
+
+    plt.close('all')
+    figure = plt.figure()
+    figure.add_subplot(121)
     plt.imshow(projected_building)
+    plt.colorbar()
+    figure.add_subplot(122)
+    plt.imshow(dsm_building)
+    plt.colorbar()
     plt.show()
 
 
