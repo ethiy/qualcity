@@ -20,6 +20,8 @@ CLASSES = {
     3: 'Facet'
 }
 
+INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
+
 
 def graph_files(directory):
     return fnmatch.filter(
@@ -52,51 +54,44 @@ def main():
     ]
 
     labels_classes = [
-        labels_io.error_classes(os.path.join(labels_dir, graph), 5)
+        INV_CLASSES[
+            labels_io.error_classes(
+                os.path.join(labels_dir, graph),
+                5
+            )
+        ]
         for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
     ]
 
-    print labels_classes
-
-    binary_labels = np.array(
+    features_per_errors = [
         [
-            label == ['None', 'None', 'None']
-            for label in labels
-        ]
-    )
-
-    clean_building_labels = [
-        couple[0]
-        for couple
-        in filter(
-            lambda x: x[1],
-            zip(
-                range(len(labels)),
-                binary_labels
+            features[couple[0]]
+            for couple
+            in filter(
+                lambda x: x[1] == cat,
+                zip(
+                    range(len(labels)),
+                    labels_classes
+                )
             )
-        )
-    ]
-
-    separated_features = [
-        [
-            features[index]
-            for index in clean_building_labels
-        ],
-        [
-            features[index]
-            for index in range(len(features))
-            if index not in clean_building_labels
         ]
+        for cat in CLASSES.keys()
     ]
 
     fig = plt.figure()
     ax = Axes3D(fig)
 
-    for col, mark, feat in zip(['r', 'b'], ['o', '^'], separated_features):
+    for (col, mark, label, feat) in zip(
+        ['g', 'r', 'b', 'm'],
+        ['o', '^', ',', 'd'],
+        CLASSES.values(),
+        features_per_errors
+    ):
         reduced_features = skd.PCA(n_components=3).fit_transform(feat)
         x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
-        ax.scatter(x, y, z, c=col, marker=mark)
+        ax.scatter(x, y, z, label=label, c=col, marker=mark)
 
+    ax.legend()
     plt.show()
 
 
