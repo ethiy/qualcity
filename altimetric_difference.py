@@ -1,12 +1,24 @@
 #! /usr/bin/env python
 # -*- coding: <utf-8> -*-
 
+import os
+
 import math
 
 import numpy as np
 
 import gdal
 import gdalconst
+
+import matplotlib.pyplot as plt
+
+
+DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
+
+RASTER_DIR = os.path.join(
+    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
+    'rasters/'
+)
 
 
 def bounding_box(dsm):
@@ -89,8 +101,16 @@ def crop(filename, roi):
     ).astype(np.float)
 
 
+def read(filename):
+    dataset = gdal.Open(filename, gdalconst.GA_ReadOnly)
+    return dataset.GetRasterBand(1).ReadAsArray().astype(np.float)
+
+
 def main():
-    return
+    projected_building = read(os.path.join(RASTER_DIR, '669.tiff'))
+    print projected_building.shape
+    plt.imshow(projected_building)
+    plt.show()
 
 
 if __name__ == '__main__':
