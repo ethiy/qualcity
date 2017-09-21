@@ -4,8 +4,14 @@
 import os
 import fnmatch
 
-import sklearn.decomposition as skd
+import operator
+
+import sklearn.decomposition as skdecomp
+import sklearn.ensemble as skens
+import sklearn.tree as sktree
+
 import numpy as np
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
@@ -81,18 +87,53 @@ def main():
     fig = plt.figure()
     ax = Axes3D(fig)
 
-    for (col, mark, label, feat) in zip(
-        ['g', 'r', 'b', 'm'],
-        ['o', '^', ',', 'd'],
-        CLASSES.values(),
-        features_per_errors
-    ):
-        reduced_features = skd.PCA(n_components=3).fit_transform(feat)
-        x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
-        ax.scatter(x, y, z, label=label, c=col, marker=mark)
+    # for (col, mark, label, feat) in zip(
+    #     ['g', 'r', 'b', 'm'],
+    #     ['o', '^', ',', 'd'],
+    #     CLASSES.values(),
+    #     features_per_errors
+    # ):
+    #     reduced_features = skdecomp.PCA(n_components=3).fit_transform(feat)
+    #     x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
+    #     ax.scatter(x, y, z, label=label, c=col, marker=mark)
+    #
+    # ax.legend()
+    # plt.show()
 
-    ax.legend()
-    plt.show()
+    classifier = skens.RandomForestClassifier()
+    classifier.fit(features, labels)
+    feature_importance = zip(
+        range(len(classifier.feature_importances_)),
+        classifier.feature_importances_
+    )
+    feature_importance.sort(key=operator.itemgetter(1))
+    print feature_importance
+
+    for idx, tree_in_forest in zip(
+        range(len(classifier.estimators_)),
+        classifier.estimators_
+    ):
+        sktree.export_graphviz(
+            tree_in_forest,
+            out_file=(
+                './ressources/output/randomforest/trees/'
+                +
+                'tree' + str(idx) + '.dot'
+            ),
+            filled=True,
+            rounded=True
+        )
+        os.system(
+            'dot -Tpng ./ressources/output/randomforest/trees/tree-'
+            +
+            str(idx)
+            +
+            '.dot -o ./ressources/output/randomforest/trees/tree'
+            +
+            str(idx)
+            +
+            '.png'
+        )
 
 
 if __name__ == '__main__':
