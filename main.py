@@ -118,7 +118,7 @@ def main():
             out_file=(
                 './ressources/output/randomforest/trees/'
                 +
-                'tree' + str(idx) + '.dot'
+                'tree-' + str(idx) + '.dot'
             ),
             filled=True,
             rounded=True
@@ -128,7 +128,7 @@ def main():
             +
             str(idx)
             +
-            '.dot -o ./ressources/output/randomforest/trees/tree'
+            '.dot -o ./ressources/output/randomforest/trees/tree-'
             +
             str(idx)
             +
