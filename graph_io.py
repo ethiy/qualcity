@@ -130,8 +130,6 @@ def feature_vector(filename):
     return (
         [len(faces)]
         +
-        degree_statistics(faces)
-        +
         area_statistics(faces)
         +
         centroid_statistics(faces, get_relations(filename))
