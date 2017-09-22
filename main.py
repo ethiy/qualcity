@@ -109,6 +109,36 @@ def main():
         for cat in CLASSES.keys()
     ]
 
+    classifier = skens.RandomForestClassifier(
+        n_estimators=500,
+        min_impurity_decrease=.1
+    )
+    classifier.fit(features, labels_classes)
+    feature_importance = zip(
+        range(len(classifier.feature_importances_)),
+        classifier.feature_importances_
+    )
+    feature_importance.sort(key=operator.itemgetter(1), reverse=True)
+    print feature_importance
+
+    map(
+        lambda couple: vizualize_tree(couple[0], couple[1]),
+        zip(
+            range(len(classifier.estimators_)),
+            classifier.estimators_
+        )
+    )
+
+    print "Multiclass random forest"
+    print skmodsel.cross_validate(classifier, features, labels_classes, cv=10)
+    print "Binary random forest"
+    print skmodsel.cross_validate(
+        classifier,
+        features,
+        [int(label != 0) for label in labels_classes],
+        cv=10
+    )
+
     fig = plt.figure()
     ax = Axes3D(fig)
 
@@ -124,23 +154,6 @@ def main():
 
     ax.legend()
     plt.show()
-
-    classifier = skens.RandomForestClassifier()
-    classifier.fit(features, labels)
-    feature_importance = zip(
-        range(len(classifier.feature_importances_)),
-        classifier.feature_importances_
-    )
-    feature_importance.sort(key=operator.itemgetter(1))
-    print feature_importance
-
-    map(
-        lambda couple: vizualize_tree(couple[0], couple[1]),
-        zip(
-            range(len(classifier.estimators_)),
-            classifier.estimators_
-        )
-    )
 
 
 if __name__ == '__main__':
