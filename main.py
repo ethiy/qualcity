@@ -48,17 +48,6 @@ def vizualize_tree(idx, tree):
         filled=True,
         rounded=True
     )
-    os.system(
-        'dot -Tpng ./ressources/output/randomforest/trees/tree-'
-        +
-        str(idx)
-        +
-        '.dot -o ./ressources/output/randomforest/trees/tree-'
-        +
-        str(idx)
-        +
-        '.png'
-    )
 
 
 def main():
@@ -111,9 +100,12 @@ def main():
 
     classifier = skens.RandomForestClassifier(
         n_estimators=500,
-        min_impurity_decrease=.1
+        class_weight="balanced",
+        max_depth=6,
+        oob_score=True,
+        n_jobs=-1
     )
-    classifier.fit(features, labels_classes)
+    classifier.fit(features, [int(label != 0) for label in labels_classes])
     feature_importance = zip(
         range(len(classifier.feature_importances_)),
         classifier.feature_importances_
