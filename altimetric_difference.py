@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 RASTER_DIR = os.path.join(
-    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1247-13705',
-    'export-3DS'
+    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
+    'export-3DS/rasters'
 )
 
 
@@ -133,20 +133,20 @@ def main():
     projected_building = read(
         os.path.join(
             RASTER_DIR,
-            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+            '23584.tiff'
         )
     )
     dsm_building = find_building(
         os.path.join(
             RASTER_DIR,
-            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+            '23584.tiff'
         ),
         get_dsms(DSM_DIR)
     )
     diff = altimetric_difference(
         os.path.join(
             RASTER_DIR,
-            'Export_Matis_EXPORT_1247-13705_T748_projected_xy.tiff'
+            '23584.tiff'
         ),
         DSM_DIR
     )
@@ -156,13 +156,13 @@ def main():
     plt.close('all')
     figure = plt.figure()
     figure.add_subplot(221)
-    plt.imshow(projected_building)
+    plt.imshow(projected_building, cmap='viridis')
     plt.colorbar()
     figure.add_subplot(222)
     plt.imshow(dsm_building)
     plt.colorbar()
     figure.add_subplot(223)
-    plt.imshow(diff)
+    plt.imshow(diff, cmap='viridis')
     plt.colorbar()
     figure.add_subplot(224)
     plt.plot(bins[1:], hist)
