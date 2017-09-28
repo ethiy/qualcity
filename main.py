@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: <utf-8> -*-
 
+import time
+
 import os
 import fnmatch
 
@@ -124,9 +126,9 @@ def main():
     )
 
     classifier = skens.RandomForestClassifier(
-        n_estimators=500,
+        n_estimators=1000,
         class_weight="balanced",
-        max_depth=6,
+        max_depth=4,
         oob_score=True,
         n_jobs=-1
     )
@@ -149,6 +151,7 @@ def main():
         )
     )
 
+    start = time.time()
     print "Multiclass random forest"
     print skmodsel.cross_validate(
         classifier,
@@ -156,6 +159,8 @@ def main():
         qualified_labels,
         cv=10
     )
+    print "Time taken =", time.time() - start, 'sec'
+    start = time.time()
     print "Binary random forest"
     print skmodsel.cross_validate(
         classifier,
@@ -163,6 +168,7 @@ def main():
         [int(label != 0) for label in qualified_labels],
         cv=10
     )
+    print "Time taken =", time.time() - start, 'sec'
 
     fig = plt.figure()
     ax = Axes3D(fig)
