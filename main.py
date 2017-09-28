@@ -30,11 +30,33 @@ CLASSES = {
 INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
 
 
-def graph_files(directory):
-    return fnmatch.filter(
-        [os.path.join(directory, file) for file in os.listdir(directory)],
-        '*.txt'
-    )
+def geometric_features(directory):
+    return {
+        os.path.splitext(graph)[0]: np.array(
+            graph_io.feature_vector(
+                os.path.join(directory, graph)
+            )
+        )
+        for graph in fnmatch.filter(
+            os.listdir(directory),
+            '*.txt'
+        )
+    }
+
+
+def labels_map(directory):
+    return {
+        os.path.splitext(shape)[0]: INV_CLASSES[
+                labels_io.error_classes(
+                    os.path.join(directory, shape),
+                    5
+                )
+            ]
+        for shape in fnmatch.filter(
+            os.listdir(directory),
+            '*.shp'
+        )
+    }
 
 
 def vizualize_tree(idx, tree):
@@ -60,27 +82,19 @@ def main():
         'export-3DS/_labels'
     )
 
-    features = np.vstack(
-        [
-            np.array(
-                graph_io.feature_vector(graph)
-            )
-            for graph in graph_files(graph_dir)
-        ]
-    )
-    labels = [
-        labels_io.errors_per_building(os.path.join(labels_dir, graph))
-        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
+    features = [
+        feature
+        for _, feature in sorted(
+            geometric_features(graph_dir).iteritems(),
+            key=operator.itemgetter(0)
+        )
     ]
-
-    labels_classes = [
-        INV_CLASSES[
-            labels_io.error_classes(
-                os.path.join(labels_dir, graph),
-                5
-            )
-        ]
-        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
+    labels = [
+        label
+        for _, label in sorted(
+            labels_map(labels_dir).iteritems(),
+            key=operator.itemgetter(0)
+        )
     ]
 
     features_per_errors = [
@@ -88,15 +102,26 @@ def main():
             features[idx]
             for idx, _
             in filter(
-                lambda x: x[1] == cat,
-                zip(
-                    range(len(labels_classes)),
-                    labels_classes
-                )
+                lambda (_, label): label == cat,
+                enumerate(labels)
             )
         ]
         for cat in CLASSES.keys()
+        if cat != 1
     ]
+
+    qualified_features = [
+        features[idx]
+        for idx, _
+        in filter(
+            lambda (_, label): label != 1,
+            enumerate(labels)
+        )
+    ]
+    qualified_labels = filter(
+        lambda label: label != 1,
+        labels
+    )
 
     classifier = skens.RandomForestClassifier(
         n_estimators=500,
@@ -105,7 +130,10 @@ def main():
         oob_score=True,
         n_jobs=-1
     )
-    classifier.fit(features, [int(label != 0) for label in labels_classes])
+    classifier.fit(
+        qualified_features,
+        [int(label != 0) for label in qualified_labels]
+    )
     feature_importance = zip(
         range(len(classifier.feature_importances_)),
         classifier.feature_importances_
@@ -114,7 +142,7 @@ def main():
     print feature_importance
 
     map(
-        lambda couple: vizualize_tree(couple[0], couple[1]),
+        lambda (idx, tree): vizualize_tree(idx, tree),
         zip(
             range(len(classifier.estimators_)),
             classifier.estimators_
@@ -122,12 +150,17 @@ def main():
     )
 
     print "Multiclass random forest"
-    print skmodsel.cross_validate(classifier, features, labels_classes, cv=10)
+    print skmodsel.cross_validate(
+        classifier,
+        qualified_features,
+        qualified_labels,
+        cv=10
+    )
     print "Binary random forest"
     print skmodsel.cross_validate(
         classifier,
-        features,
-        [int(label != 0) for label in labels_classes],
+        qualified_features,
+        [int(label != 0) for label in qualified_labels],
         cv=10
     )
 
@@ -135,9 +168,9 @@ def main():
     ax = Axes3D(fig)
 
     for (col, mark, label, feat) in zip(
-        ['g', 'r', 'b', 'm'],
-        ['o', '^', ',', 'd'],
-        CLASSES.values(),
+        ['g', 'r', 'b'],
+        ['o', '^', ','],
+        [CLASSES.values()[0]] + CLASSES.values()[2:],
         features_per_errors
     ):
         reduced_features = skdecomp.PCA(n_components=3).fit_transform(feat)
