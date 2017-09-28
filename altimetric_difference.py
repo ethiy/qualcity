@@ -5,6 +5,7 @@ import os
 import fnmatch
 
 import math
+import operator
 
 import numpy as np
 
@@ -119,54 +120,36 @@ def building_intersections(filename, dsms):
 
 
 def find_building(filename, dsms):
-    return [
+    crops = [
         crop(dsm, bb)
         for dsm, bb in building_intersections(filename, dsms).iteritems()
-    ][0]
+    ]
+    idx, _ = max(
+        enumerate([crp.shape for crp in crops]),
+        key=operator.itemgetter(1)
+    )
+    return crops[idx]
 
 
 def altimetric_difference(filename, dsm_dir):
-    return find_building(filename, get_dsms(dsm_dir)) - read(filename)
+    if read(filename).shape == find_building(filename, get_dsms(dsm_dir)).shape:
+        return find_building(filename, get_dsms(dsm_dir)) - read(filename)
+    else:
+        return None
 
 
 def main():
-    projected_building = read(
-        os.path.join(
-            RASTER_DIR,
-            '23584.tiff'
-        )
-    )
-    dsm_building = find_building(
-        os.path.join(
-            RASTER_DIR,
-            '23584.tiff'
-        ),
-        get_dsms(DSM_DIR)
-    )
-    diff = altimetric_difference(
-        os.path.join(
-            RASTER_DIR,
-            '23584.tiff'
-        ),
-        DSM_DIR
+    rasters = fnmatch.filter(
+        [
+            os.path.join(RASTER_DIR, filename)
+            for filename in os.listdir(RASTER_DIR)
+        ],
+        '*.tiff'
     )
 
-    hist, bins = np.histogram(diff, bins=50)
+    diffs = {raster: altimetric_difference(raster, DSM_DIR) for raster in rasters}
 
-    plt.close('all')
-    figure = plt.figure()
-    figure.add_subplot(221)
-    plt.imshow(projected_building, cmap='viridis')
-    plt.colorbar()
-    figure.add_subplot(222)
-    plt.imshow(dsm_building)
-    plt.colorbar()
-    figure.add_subplot(223)
-    plt.imshow(diff, cmap='viridis')
-    plt.colorbar()
-    figure.add_subplot(224)
-    plt.plot(bins[1:], hist)
-    plt.show()
+    print [raster for raster, value in diffs.iteritems() if value is None]
 
 
 if __name__ == '__main__':

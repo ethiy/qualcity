@@ -85,12 +85,12 @@ def main():
 
     features_per_errors = [
         [
-            features[couple[0]]
-            for couple
+            features[idx]
+            for idx, _
             in filter(
                 lambda x: x[1] == cat,
                 zip(
-                    range(len(labels)),
+                    range(len(labels_classes)),
                     labels_classes
                 )
             )
