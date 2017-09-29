@@ -14,6 +14,8 @@ import gdalconst
 
 import matplotlib.pyplot as plt
 
+import labels_io
+
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
@@ -132,13 +134,15 @@ def find_building(filename, dsms):
 
 
 def altimetric_difference(filename, dsm_dir):
-    if read(filename).shape == find_building(filename, get_dsms(dsm_dir)).shape:
-        return find_building(filename, get_dsms(dsm_dir)) - read(filename)
-    else:
-        return None
+    return find_building(filename, get_dsms(dsm_dir)) - read(filename)
 
 
 def main():
+    labels_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
+        'export-3DS/_labels'
+    )
+
     rasters = fnmatch.filter(
         [
             os.path.join(RASTER_DIR, filename)
@@ -147,9 +151,21 @@ def main():
         '*.tiff'
     )
 
-    diffs = {raster: altimetric_difference(raster, DSM_DIR) for raster in rasters}
+    labels = {
+        graph: labels_io.error_classes(
+            os.path.join(labels_dir, graph),
+            5
+        )
+        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
+    }
 
-    print [raster for raster, value in diffs.iteritems() if value is None]
+    diffs = {
+        raster: altimetric_difference(raster, DSM_DIR)
+        for raster in rasters
+        if labels[
+            os.path.splitext(os.path.basename(raster))[0] + '.shp'
+        ] != 'Unqualified'
+    }
 
 
 if __name__ == '__main__':
