@@ -203,7 +203,7 @@ def histograms(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
     }
 
 
-def feature_histograms(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
+def histogram_features(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
     return {
         os.path.splitext(raster)[0]: histogram
         for raster, (histogram, _)

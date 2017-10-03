@@ -18,7 +18,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-import graph_io
+import geometry_io
 import utils
 import labels_io
 
@@ -33,15 +33,15 @@ CLASSES = {
 INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
 
 
-def geometric_features(directory):
+def building_features(directory):
     return {
-        os.path.splitext(graph)[0]: np.array(
-            graph_io.feature_vector(
-                os.path.join(directory, graph),
-                ['area', 'centroid', 'centroid_bis', 'angle', 'angle_bis']
+        os.path.splitext(building)[0]: np.array(
+            geometry_io.geometric_features(
+                os.path.join(directory, building),
+                ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
             )
         )
-        for graph in fnmatch.filter(
+        for building in fnmatch.filter(
             os.listdir(directory),
             '*.txt'
         )
@@ -145,9 +145,13 @@ def vizualize_tree(idx, tree):
 
 
 def main():
+    raster_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
+        'export-3DS/rasters'
+    )
     graph_dir = os.path.join(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
-        'dual_graphs'
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
+        'export-3DS/dual_graphs'
     )
     labels_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
@@ -157,7 +161,7 @@ def main():
     features = [
         feature
         for _, feature in sorted(
-            geometric_features(graph_dir).iteritems(),
+            building_features(graph_dir).iteritems(),
             key=operator.itemgetter(0)
         )
     ]
@@ -240,25 +244,17 @@ def main():
     )
     print "Time taken =", time.time() - start, 'sec'
 
-    start = time.time()
-    (min_rf, max_rf, median_rf) = random_forests_stats(
-        range(1, 11),
-        [25 * sz for sz in range(1, 41)],
-        qualified_features,
-        qualified_labels,
-        10
-    )
-    print "Time taken =", time.time() - start, 'sec'
-
-    # np.savetxt(
-    #     './ressources/output/randomforest/matrix_rf.csv',
-    #     np.dstack(
-    #         [min_rf, max_rf, median_rf]
-    #     ),
-    #     delimiter=','
+    # start = time.time()
+    # (min_rf, max_rf, median_rf) = random_forests_stats(
+    #     range(1, 11),
+    #     [25 * sz for sz in range(1, 41)],
+    #     qualified_features,
+    #     qualified_labels,
+    #     10
     # )
+    # print "Time taken =", time.time() - start, 'sec'
 
-    plot_rf_stats(min_rf, max_rf, median_rf)
+    # plot_rf_stats(min_rf, max_rf, median_rf)
 
     fig = plt.figure()
     ax = Axes3D(fig)
