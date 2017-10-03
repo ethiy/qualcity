@@ -124,19 +124,28 @@ def angle_statistics(faces, relations=[]):
     )
 
 
-def feature_vector(filename):
-    faces = get_faces(filename)
-    angle_statistics(faces)
-    return (
-        [len(faces)]
-        +
-        area_statistics(faces)
-        +
-        centroid_statistics(faces, get_relations(filename))
-        +
-        angle_statistics(faces)
-        +
-        angle_statistics(faces, get_relations(filename))
+def statistics(filename, geom_attrib):
+    return {
+        'degree': degree_statistics,
+        'area': area_statistics,
+        'centroid': centroid_statistics,
+        'centroid_bis': lambda faces: centroid_statistics(
+            faces,
+            get_relations(filename)
+        ),
+        'angle': angle_statistics,
+        'angles_bis': lambda faces: angles_statistics(
+            faces,
+            get_relations(filename)
+        )
+    }[geom_attrib](get_faces(filename))
+
+
+def feature_vector(filename, geom_attribs):
+    return reduce(
+        lambda _list, geom_attrib: _list + statistics(filename, geom_attrib),
+        geom_attribs,
+        [len(get_faces(filename))]
     )
 
 
@@ -160,7 +169,10 @@ def main():
         'dual_graphs'
     )
     print read(os.path.join(root_path, '3078.txt')).node[1]
-    print feature_vector(os.path.join(root_path, '3078.txt'))
+    print feature_vector(
+        os.path.join(root_path, '3078.txt'),
+        ['degree', 'area']
+    )
 
     nx.draw(read(os.path.join(root_path, '3078.txt')))
     plt.show()
