@@ -19,11 +19,6 @@ import labels_io
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
-RASTER_DIR = os.path.join(
-    '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
-    'export-3DS/rasters'
-)
-
 
 def bounding_box(dsm):
     dataset = gdal.Open(dsm, gdalconst.GA_ReadOnly)
@@ -137,35 +132,114 @@ def altimetric_difference(filename, dsm_dir):
     return find_building(filename, get_dsms(dsm_dir)) - read(filename)
 
 
-def main():
-    labels_dir = os.path.join(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
-        'export-3DS/_labels'
+def histogram_bins(diffs, near_zero_gran, big_gran):
+    sorted_diffs = sorted(
+        np.hstack(
+            tuple([diff.flatten() for diff in diffs])
+        )
+    )
+    min_max, max_min, _ = max(
+        [
+            (a, b, a - b)
+            for a, b in zip(
+                sorted_diffs[1:],
+                sorted_diffs[:-1]
+            )
+        ],
+        key=operator.itemgetter(2)
     )
 
+    return np.hstack(
+        (
+            np.linspace(
+                math.floor(sorted_diffs[0]),
+                math.ceil(max_min),
+                near_zero_gran
+            ),
+            np.linspace(
+                math.floor(min_max),
+                math.ceil(sorted_diffs[-1]),
+                big_gran
+            )
+        )
+    )
+
+
+def qualified_building_diffs(raster_dir, labels_dir, dsm_dir):
     rasters = fnmatch.filter(
-        [
-            os.path.join(RASTER_DIR, filename)
-            for filename in os.listdir(RASTER_DIR)
-        ],
+        os.listdir(raster_dir),
         '*.tiff'
     )
 
     labels = {
-        graph: labels_io.error_classes(
+        os.path.splitext(graph)[0]: labels_io.error_classes(
             os.path.join(labels_dir, graph),
             5
         )
         for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
     }
 
-    diffs = {
-        raster: altimetric_difference(raster, DSM_DIR)
+    return {
+        raster: altimetric_difference(
+            os.path.join(raster_dir, raster),
+            dsm_dir
+        )
         for raster in rasters
         if labels[
-            os.path.splitext(os.path.basename(raster))[0] + '.shp'
+            os.path.splitext(raster)[0]
         ] != 'Unqualified'
     }
+
+
+def histograms(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
+    diffs = qualified_building_diffs(raster_dir, labels_dir, dsm_dir)
+    bins = histogram_bins(diffs.values(), low_gran, big_gran)
+    return {
+        raster: np.histogram(
+            diff.flatten(),
+            bins
+        )
+        for raster, diff in diffs.iteritems()
+    }
+
+
+def feature_histograms(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
+    return {
+        os.path.splitext(raster)[0]: histogram
+        for raster, (histogram, _)
+        in histograms(
+            raster_dir,
+            labels_dir,
+            dsm_dir,
+            low_gran,
+            big_gran
+        ).iteritems()
+    }
+
+
+def main():
+    raster_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
+        'export-3DS/rasters'
+    )
+    labels_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
+        'export-3DS/_labels'
+    )
+
+    hists = histograms(raster_dir, labels_dir, DSM_DIR, 100, 100)
+
+    print feature_histograms(raster_dir, labels_dir, DSM_DIR, 100, 100)
+
+    plt.clf()
+    map(
+        lambda ((hist, bins), color): plt.step(bins[1:], hist, c=color),
+        zip(
+            hists.values(),
+            plt.cm.rainbow(np.linspace(0, 1, len(hists)))
+        )
+    )
+    plt.show()
 
 
 if __name__ == '__main__':
