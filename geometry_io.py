@@ -141,7 +141,7 @@ def statistics(filename, geom_attrib):
     }[geom_attrib](get_faces(filename))
 
 
-def feature_vector(filename, geom_attribs):
+def geometric_features(filename, geom_attribs):
     return reduce(
         lambda _list, geom_attrib: _list + statistics(filename, geom_attrib),
         geom_attribs,
