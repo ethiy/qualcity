@@ -134,7 +134,7 @@ def statistics(filename, geom_attrib):
             get_relations(filename)
         ),
         'angle': angle_statistics,
-        'angles_bis': lambda faces: angles_statistics(
+        'angle_bis': lambda faces: angle_statistics(
             faces,
             get_relations(filename)
         )

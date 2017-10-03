@@ -37,7 +37,8 @@ def geometric_features(directory):
     return {
         os.path.splitext(graph)[0]: np.array(
             graph_io.feature_vector(
-                os.path.join(directory, graph)
+                os.path.join(directory, graph),
+                ['area', 'centroid', 'centroid_bis', 'angle', 'angle_bis']
             )
         )
         for graph in fnmatch.filter(
