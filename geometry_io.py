@@ -2,9 +2,14 @@
 # -*- coding: <utf-8> -*-
 
 import os
+import fnmatch
+
 import numpy as np
+
 import networkx as nx
+
 import matplotlib.pyplot as plt
+
 from utils import median, mean
 
 
@@ -77,8 +82,8 @@ def get_relations(filename):
     return filter(lambda x: x[0] != x[1], zip(*[i, j]))
 
 
-def stats(features):
-    return [min(features), max(features), mean(features), median(features)]
+def stats(attribute):
+    return [min(attribute), max(attribute), mean(attribute), median(attribute)]
 
 
 def degree_statistics(faces):
@@ -141,12 +146,27 @@ def statistics(filename, geom_attrib):
     }[geom_attrib](get_faces(filename))
 
 
-def geometric_features(filename, geom_attribs):
+def features(filename, geom_attribs):
     return reduce(
         lambda _list, geom_attrib: _list + statistics(filename, geom_attrib),
         geom_attribs,
         [len(get_faces(filename))]
     )
+
+
+def geometric_features(graph_dir, geom_attribs):
+    return {
+        os.path.splitext(graph)[0]: np.array(
+            features(
+                os.path.join(graph_dir, graph),
+                ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
+            )
+        )
+        for graph in fnmatch.filter(
+            os.listdir(graph_dir),
+            '*.txt'
+        )
+    }
 
 
 def read(filename):
@@ -164,17 +184,17 @@ def read(filename):
 
 
 def main():
-    root_path = os.path.join(
+    graph_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
         'dual_graphs'
     )
-    print read(os.path.join(root_path, '3078.txt')).node[1]
-    print feature_vector(
-        os.path.join(root_path, '3078.txt'),
+    print read(os.path.join(graph_dir, '3078.txt')).node[1]
+    print features(
+        os.path.join(graph_dir, '3078.txt'),
         ['degree', 'area']
     )
 
-    nx.draw(read(os.path.join(root_path, '3078.txt')))
+    nx.draw(read(os.path.join(graph_dir, '3078.txt')))
     plt.show()
 
 
