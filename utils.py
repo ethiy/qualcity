@@ -4,14 +4,15 @@
 
 def median(iterable):
     length = len(iterable)
+    sorted_iterable = sorted(iterable)
     if length == 0:
         raise LookupError
     elif length % 2 == 1:
-        return sorted(iterable).__getitem__(length // 2)
+        return sorted_iterable.__getitem__(length // 2)
     else:
         return (
-            sorted(iterable).__getitem__(length // 2 - 1) +
-            sorted(iterable).__getitem__(length // 2)
+            sorted_iterable.__getitem__(length // 2 - 1) +
+            sorted_iterable.__getitem__(length // 2)
         ) / 2.
 
 
