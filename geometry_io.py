@@ -159,7 +159,7 @@ def geometric_features(graph_dir, geom_attribs):
         os.path.splitext(graph)[0]: np.array(
             features(
                 os.path.join(graph_dir, graph),
-                ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
+                geom_attribs
             )
         )
         for graph in fnmatch.filter(
