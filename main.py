@@ -8,16 +8,16 @@ import fnmatch
 
 import operator
 
-import sklearn.decomposition as skdecomp
-import sklearn.ensemble as skens
-import sklearn.tree as sktree
-import sklearn.model_selection as skmodsel
+import sklearn.decomposition
+import sklearn.ensemble
+import sklearn.tree
+import sklearn.model_selection
+import sklearn.svm
 
 import numpy as np
 
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as mtpl_grid
+from mpl_toolkits.mplot3d import Axes3D
 
 
 import geometry_io
@@ -66,8 +66,8 @@ def labels_stats(labels):
 def random_forests_stats(depths, number_of_estimators, features, labels, cv):
     depth_vs_nbr = [
         [
-            skmodsel.cross_validate(
-                skens.RandomForestClassifier(
+            sklearn.model_selection.cross_validate(
+                sklearn.ensemble.RandomForestClassifier(
                     n_estimators=size,
                     class_weight="balanced",
                     max_depth=depth,
@@ -118,24 +118,22 @@ def random_forests_stats(depths, number_of_estimators, features, labels, cv):
 
 
 def plot_rf_stats(min_rf, max_rf, median_rf, figure):
-    grid = gridspec.GridSpec(1, 3)
-    figure.subplots(131)
-    ax1 = figure.subplot(grid[0])
+    ax1 = figure.add_subplot(131)
     min_plt = ax1.imshow(min_rf, cmap='jet')
     ax1.set_title('minimum')
     figure.colorbar(min_plt, ax=ax1)
-    ax2 = figure.subplot(grid[1])
+    ax2 = figure.add_subplot(132)
     max_plt = ax2.imshow(max_rf, cmap='jet')
     figure.colorbar(max_plt, ax=ax2)
     ax2.set_title('maximum')
-    ax3 = figure.subplot(grid[2])
+    ax3 = figure.add_subplot(133)
     median_plt = ax3.imshow(median_rf, cmap='jet')
     figure.colorbar(median_plt, ax=ax3)
     ax3.set_title('median')
 
 
 def vizualize_tree(idx, tree):
-    sktree.export_graphviz(
+    sklearn.tree.export_graphviz(
         tree,
         out_file=(
             './ressources/output/randomforest/trees/'
@@ -150,19 +148,11 @@ def vizualize_tree(idx, tree):
 def detect_unqualified_buildings(classifier, features, binary_labels, cv):
     start = time.time()
     print "Binary classification detecting unqualified buildings"
-    print skmodsel.cross_validate(
+    print sklearn.model_selection.cross_validate(
         classifier,
         features,
         binary_labels,
-        cv=cv,
-        scoring=[
-            'accuracy',
-            'f1_weighted',
-            'average_precision',
-            'precision',
-            'recall',
-            'roc_auc'
-        ]
+        cv=cv
     )
     print "Time taken =", time.time() - start, 'sec'
 
@@ -170,16 +160,11 @@ def detect_unqualified_buildings(classifier, features, binary_labels, cv):
 def coarse_classification_buildings(classifier, features, binary_labels, cv):
     start = time.time()
     print "Coarse Classification"
-    print skmodsel.cross_validate(
+    print sklearn.model_selection.cross_validate(
         classifier,
         features,
         binary_labels,
-        cv=cv,
-        scoring=[
-            'accuracy',
-            'precision_weighted',
-            'recall_weighted'
-        ]
+        cv=cv
     )
     print "Time taken =", time.time() - start, 'sec'
 
@@ -202,9 +187,53 @@ def feature_impotance_eval(classifier, features, labels, geom_attribs):
     )
 
 
+def evaluate_rf(classifier, qualified_features, qualified_labels):
+    feat_import = feature_impotance_eval(
+        classifier,
+        qualified_features,
+        qualified_labels,
+        ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
+    )
+
+    print feat_import
+
+    camembert_fig = plt.figure(2)
+    ax = camembert_fig.add_subplot(111)
+    ax.pie(
+        map(operator.itemgetter(1), feat_import),
+        labels=map(operator.itemgetter(0), feat_import),
+        explode=len(feat_import) * [.1],
+        startangle=90
+    )
+    ax.axis('equal')
+    camembert_fig.show()
+
+    start = time.time()
+    (min_rf, max_rf, median_rf) = random_forests_stats(
+        range(1, 11),
+        [25 * sz for sz in range(1, 101)],
+        qualified_features,
+        qualified_labels,
+        10
+    )
+    print "Time taken =", time.time() - start, 'sec'
+
+    np.dstack((min_rf, max_rf, median_rf)).tofile(
+        './ressources/output/randomforest/rf_stats_alt_geom.csv',
+        sep=',',
+        format='%10.5f'
+    )
+
+    fig_stat = plt.figure(3)
+    plot_rf_stats(min_rf, max_rf, median_rf, fig_stat)
+    fig_stat.show()
+
+
 def visualize_feature(ax, color, marker, label, features, dims):
     if dims is None:
-        reduced = skdecomp.PCA(n_components=3).fit_transform(features)
+        reduced = sklearn.decomposition.PCA(n_components=3).fit_transform(
+            features
+        )
     elif type(dims) is list and len(dims) == 3:
         reduced = features[:, dims]
     else:
@@ -219,6 +248,68 @@ def visualize_feature(ax, color, marker, label, features, dims):
         ]
     )
     ax.scatter(x, y, z, label=label, c=color, marker=marker)
+
+
+def error_detection(labels, features, classifier):
+    print "Label statistics: ", labels_stats(labels)
+
+    detect_unqualified_buildings(
+        classifier,
+        features[0],
+        [int(label == 1) for label in labels],
+        10
+    )
+
+    filtered_whole_features = [
+        features[0][idx]
+        for idx, _
+        in filter(
+            lambda (_, label): label != 1,
+            enumerate(labels)
+        )
+    ]
+
+    qualified_features = [
+        np.hstack(
+            feats
+        )
+        for feats
+        in zip(
+            filtered_whole_features,
+            features[1]
+        )
+    ]
+
+    qualified_labels = filter(
+        lambda label: label != 1,
+        labels
+    )
+
+    viz_fig = plt.figure(1)
+    visualize_features(
+        qualified_features,
+        qualified_labels,
+        viz_fig
+    )
+    viz_fig.show()
+
+    print "Qualified label statistics: ", labels_stats(qualified_labels)
+
+    coarse_classification_buildings(
+        classifier,
+        qualified_features,
+        qualified_labels,
+        10
+    )
+
+    {
+        sklearn.ensemble.forest.RandomForestClassifier: evaluate_rf(
+            classifier,
+            qualified_features,
+            qualified_labels
+        ),
+        sklearn.svm.classes.SVC: None
+    }[type(classifier)]
 
 
 def visualize_features(features, labels, figure, dims=None):
@@ -304,103 +395,17 @@ def main():
         )
     ]
 
-    print "Label statistics: ", labels_stats(labels)
-
-    classifier = skens.RandomForestClassifier(
-        n_estimators=1000,
-        class_weight="balanced",
-        max_depth=4,
-        oob_score=True
-    )
-
-    detect_unqualified_buildings(
-        classifier,
-        geometric_features,
-        [int(label == 1) for label in labels],
-        10
-    )
-
-    qualified_geometric_features = [
-        geometric_features[idx]
-        for idx, _
-        in filter(
-            lambda (_, label): label != 1,
-            enumerate(labels)
+    error_detection(
+        labels,
+        (geometric_features, altimetric_features),
+        sklearn.ensemble.RandomForestClassifier(
+            n_estimators=1000,
+            class_weight="balanced",
+            max_depth=4,
+            oob_score=True
         )
-    ]
-
-    qualified_features = [
-        np.hstack(
-            feats
-        )
-        for feats
-        in zip(
-            qualified_geometric_features,
-            altimetric_features
-        )
-    ]
-
-    qualified_labels = filter(
-        lambda label: label != 1,
-        labels
     )
-
-    print "Qualified label statistics: ", labels_stats(qualified_labels)
-
-    coarse_classification_buildings(
-        classifier,
-        qualified_features,
-        qualified_labels,
-        10
-    )
-
-    feat_import = feature_impotance_eval(
-        classifier,
-        qualified_features,
-        qualified_labels,
-        ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
-    )
-
-    print feat_import
-
-    camembert_fig = plt.figure(1)
-    ax = camembert_fig.add_subplot(111)
-    ax.pie(
-        map(operator.itemgetter(1), feat_import),
-        labels=map(operator.itemgetter(0), feat_import),
-        explode=len(feat_import) * [.1],
-        startangle=90
-    )
-    ax.axis('equal')
-    camembert_fig.show()
-
-    viz_fig = plt.figure(2)
-    visualize_features(
-        qualified_features,
-        qualified_labels,
-        viz_fig
-    )
-    viz_fig.show()
-
-    start = time.time()
-    (min_rf, max_rf, median_rf) = random_forests_stats(
-        range(1, 11),
-        [25 * sz for sz in range(1, 21)],
-        qualified_features,
-        qualified_labels,
-        10
-    )
-    print "Time taken =", time.time() - start, 'sec'
-
-    np.dstack((min_rf, max_rf, median_rf)).tofile(
-        './ressources/output/randomforest/rf_stats_alt_geom.csv',
-        sep=',',
-        format='%10.5f'
-    )
-
-    fig_stat = plt.figure(3)
-    plot_rf_stats(min_rf, max_rf, median_rf, fig_stat)
-    fig_stat.show()
+    plt.show()
 
 
 if __name__ == '__main__':
