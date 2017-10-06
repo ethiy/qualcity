@@ -19,6 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 import geometry_io
+import altimetric_difference
 import utils
 import labels_io
 
@@ -31,21 +32,6 @@ CLASSES = {
 }
 
 INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
-
-
-def building_features(directory):
-    return {
-        os.path.splitext(building)[0]: np.array(
-            geometry_io.geometric_features(
-                os.path.join(directory, building),
-                ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
-            )
-        )
-        for building in fnmatch.filter(
-            os.listdir(directory),
-            '*.txt'
-        )
-    }
 
 
 def labels_map(directory):
@@ -144,6 +130,111 @@ def vizualize_tree(idx, tree):
     )
 
 
+def detect_unqualified_buildings(classifier, features, binary_labels, cv):
+    start = time.time()
+    print "Binary classification detecting unqualified buildings"
+    print skmodsel.cross_validate(
+        classifier,
+        features,
+        binary_labels,
+        cv=cv,
+        scoring=[
+            'accuracy',
+            'f1_weighted',
+            'average_precision',
+            'precision',
+            'recall'
+        ]
+    )
+    print "Time taken =", time.time() - start, 'sec'
+
+
+def coarse_classification_buildings(classifier, features, binary_labels, cv):
+    start = time.time()
+    print "Coarse Classification"
+    print skmodsel.cross_validate(
+        classifier,
+        features,
+        binary_labels,
+        cv=cv,
+        scoring=[
+            'accuracy',
+            'precision_weighted',
+            'recall_weighted'
+        ]
+    )
+    print "Time taken =", time.time() - start, 'sec'
+
+
+def feature_impotance_eval(classifier, features, labels):
+    classifier.fit(features, labels)
+    feature_importance = zip(
+        range(len(classifier.feature_importances_)),
+        classifier.feature_importances_
+    )
+    feature_importance.sort(key=operator.itemgetter(1), reverse=True)
+    return feature_importance
+
+
+def visualize_feature(ax, color, marker, label, features, dims):
+    if dims is None:
+        reduced = skdecomp.PCA(n_components=3).fit_transform(features)
+    elif type(dims) is list and len(dims) == 3:
+        reduced = features[:, dims]
+    else:
+        LookupError
+    x, y, z = zip(
+        *[
+            list(couple)
+            for couple
+            in list(
+                reduced
+            )
+        ]
+    )
+    ax.scatter(x, y, z, label=label, c=color, marker=marker)
+
+
+def visualize_features(features, labels, dims=None):
+    fig = plt.figure()
+    ax = Axes3D(fig)
+
+    features_per_errors = [
+        np.array(
+            [
+                features[idx]
+                for idx, _
+                in filter(
+                    lambda (_, label): label == cat,
+                    enumerate(labels)
+                )
+            ]
+        )
+        for cat in CLASSES.keys()
+        if cat != 1
+    ]
+
+    map(
+        lambda (color, marker, label, features): visualize_feature(
+            ax,
+            color,
+            marker,
+            label,
+            features,
+            dims
+        ),
+        zip(
+            ['g', 'r', 'b'],
+            ['o', '^', ','],
+            [CLASSES.values()[0]] + CLASSES.values()[2:],
+            features_per_errors
+        )
+    )
+
+    ax.legend()
+    plt.show()
+
+
 def main():
     raster_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
@@ -158,13 +249,30 @@ def main():
         'export-3DS/_labels'
     )
 
-    features = [
+    altimetric_features = [
         feature
         for _, feature in sorted(
-            building_features(graph_dir).iteritems(),
+            altimetric_difference.histogram_features(
+                raster_dir,
+                labels_dir,
+                altimetric_difference.DSM_DIR,
+                100,
+                100
+            ).iteritems(),
             key=operator.itemgetter(0)
         )
     ]
+    geometric_features = [
+        feature
+        for _, feature in sorted(
+            geometry_io.geometric_features(
+                graph_dir,
+                ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
+            ).iteritems(),
+            key=operator.itemgetter(0)
+        )
+    ]
+
     labels = [
         label
         for _, label in sorted(
@@ -173,104 +281,83 @@ def main():
         )
     ]
 
-    features_per_errors = [
-        [
-            features[idx]
-            for idx, _
-            in filter(
-                lambda (_, label): label == cat,
-                enumerate(labels)
-            )
-        ]
-        for cat in CLASSES.keys()
-        if cat != 1
-    ]
+    classifier = skens.RandomForestClassifier(
+        n_estimators=1000,
+        class_weight="balanced",
+        max_depth=4,
+        oob_score=True
+    )
 
-    qualified_features = [
-        features[idx]
+    detect_unqualified_buildings(
+        classifier,
+        geometric_features,
+        [int(label == 1) for label in labels],
+        10
+    )
+
+    qualified_geometric_features = [
+        geometric_features[idx]
         for idx, _
         in filter(
             lambda (_, label): label != 1,
             enumerate(labels)
         )
     ]
+
+    qualified_features = [
+        np.hstack(
+            feats
+        )
+        for feats
+        in zip(
+            qualified_geometric_features,
+            altimetric_features
+        )
+    ]
+
     qualified_labels = filter(
         lambda label: label != 1,
         labels
     )
 
-    classifier = skens.RandomForestClassifier(
-        n_estimators=1000,
-        class_weight="balanced",
-        max_depth=4,
-        oob_score=True,
-        n_jobs=-1
-    )
-    classifier.fit(
-        qualified_features,
-        [int(label != 0) for label in qualified_labels]
-    )
-    feature_importance = zip(
-        range(len(classifier.feature_importances_)),
-        classifier.feature_importances_
-    )
-    feature_importance.sort(key=operator.itemgetter(1), reverse=True)
-    print feature_importance
-
-    map(
-        lambda (idx, tree): vizualize_tree(idx, tree),
-        zip(
-            range(len(classifier.estimators_)),
-            classifier.estimators_
-        )
-    )
-
-    start = time.time()
-    print "Multiclass random forest"
-    print skmodsel.cross_validate(
+    coarse_classification_buildings(
         classifier,
         qualified_features,
         qualified_labels,
-        cv=10
+        10
     )
-    print "Time taken =", time.time() - start, 'sec'
-    start = time.time()
-    print "Binary random forest"
-    print skmodsel.cross_validate(
+
+    print feature_impotance_eval(
         classifier,
         qualified_features,
-        [int(label != 0) for label in qualified_labels],
-        cv=10
+        qualified_labels
+    )
+
+    visualize_features(
+        qualified_features,
+        qualified_labels,
+        [
+            idx
+            for idx, _
+            in feature_impotance_eval(
+                classifier,
+                qualified_features,
+                qualified_labels
+            )[:3]
+        ]
+    )
+
+    start = time.time()
+    (min_rf, max_rf, median_rf) = random_forests_stats(
+        range(1, 21),
+        [25 * sz for sz in range(1, 101)],
+        qualified_features,
+        qualified_labels,
+        10
     )
     print "Time taken =", time.time() - start, 'sec'
 
-    # start = time.time()
-    # (min_rf, max_rf, median_rf) = random_forests_stats(
-    #     range(1, 11),
-    #     [25 * sz for sz in range(1, 41)],
-    #     qualified_features,
-    #     qualified_labels,
-    #     10
-    # )
-    # print "Time taken =", time.time() - start, 'sec'
-
-    # plot_rf_stats(min_rf, max_rf, median_rf)
-
-    fig = plt.figure()
-    ax = Axes3D(fig)
-
-    for (col, mark, label, feat) in zip(
-        ['g', 'r', 'b'],
-        ['o', '^', ','],
-        [CLASSES.values()[0]] + CLASSES.values()[2:],
-        features_per_errors
-    ):
-        reduced_features = skdecomp.PCA(n_components=3).fit_transform(feat)
-        x, y, z = zip(*[list(couple) for couple in list(reduced_features)])
-        ax.scatter(x, y, z, label=label, c=col, marker=mark)
-
-    ax.legend()
-    plt.show()
+    plot_rf_stats(min_rf, max_rf, median_rf)
 
 
 if __name__ == '__main__':
