@@ -4,6 +4,8 @@
 import os
 import fnmatch
 
+import operator
+
 import numpy as np
 
 import networkx as nx
@@ -151,6 +153,21 @@ def features(filename, geom_attribs):
         lambda _list, geom_attrib: _list + statistics(filename, geom_attrib),
         geom_attribs,
         [len(get_faces(filename))]
+    )
+
+
+def features_anntotations(geom_attribs):
+    return enumerate(
+        reduce(
+            operator.add,
+            [
+                [
+                    attrib + '_' + stat
+                    for stat in ['min', 'max', 'mean', 'median']
+                ]
+                for attrib in geom_attribs
+            ]
+        )
     )
 
 

@@ -17,6 +17,8 @@ import numpy as np
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as mtpl_grid
+
 
 import geometry_io
 import altimetric_difference
@@ -47,6 +49,18 @@ def labels_map(directory):
             '*.shp'
         )
     }
+
+
+def labels_stats(labels):
+    return [
+        len(
+            filter(
+                lambda label: label == cat,
+                labels
+            )
+        ) / float(len(labels)) * 100
+        for cat in set(labels)
+    ]
 
 
 def random_forests_stats(depths, number_of_estimators, features, labels, cv):
@@ -103,18 +117,21 @@ def random_forests_stats(depths, number_of_estimators, features, labels, cv):
         )
 
 
-def plot_rf_stats(min_rf, max_rf, median_rf):
-    f, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey='row')
+def plot_rf_stats(min_rf, max_rf, median_rf, figure):
+    grid = gridspec.GridSpec(1, 3)
+    figure.subplots(131)
+    ax1 = figure.subplot(grid[0])
     min_plt = ax1.imshow(min_rf, cmap='jet')
     ax1.set_title('minimum')
-    f.colorbar(min_plt, ax=ax1)
+    figure.colorbar(min_plt, ax=ax1)
+    ax2 = figure.subplot(grid[1])
     max_plt = ax2.imshow(max_rf, cmap='jet')
-    f.colorbar(max_plt, ax=ax2)
+    figure.colorbar(max_plt, ax=ax2)
     ax2.set_title('maximum')
+    ax3 = figure.subplot(grid[2])
     median_plt = ax3.imshow(median_rf, cmap='jet')
-    f.colorbar(median_plt, ax=ax3)
+    figure.colorbar(median_plt, ax=ax3)
     ax3.set_title('median')
-    f.show()
 
 
 def vizualize_tree(idx, tree):
@@ -143,7 +160,8 @@ def detect_unqualified_buildings(classifier, features, binary_labels, cv):
             'f1_weighted',
             'average_precision',
             'precision',
-            'recall'
+            'recall',
+            'roc_auc'
         ]
     )
     print "Time taken =", time.time() - start, 'sec'
@@ -166,14 +184,22 @@ def coarse_classification_buildings(classifier, features, binary_labels, cv):
     print "Time taken =", time.time() - start, 'sec'
 
 
-def feature_impotance_eval(classifier, features, labels):
+def feature_impotance_eval(classifier, features, labels, geom_attribs):
     classifier.fit(features, labels)
-    feature_importance = zip(
-        range(len(classifier.feature_importances_)),
-        classifier.feature_importances_
+    feature_importance = enumerate(classifier.feature_importances_)
+    geom_attr_map = dict(geometry_io.features_anntotations(geom_attribs))
+    feature_importance = map(
+        lambda (idx, impor):  (geom_attr_map[idx], impor)
+        if idx < len(geom_attribs) * 4
+        else (idx, impor),
+        feature_importance
     )
     feature_importance.sort(key=operator.itemgetter(1), reverse=True)
-    return feature_importance
+
+    return filter(
+        lambda (_, impor): impor > 0,
+        feature_importance
+    )
 
 
 def visualize_feature(ax, color, marker, label, features, dims):
@@ -195,9 +221,8 @@ def visualize_feature(ax, color, marker, label, features, dims):
     ax.scatter(x, y, z, label=label, c=color, marker=marker)
 
 
-def visualize_features(features, labels, dims=None):
-    fig = plt.figure()
-    ax = Axes3D(fig)
+def visualize_features(features, labels, figure, dims=None):
+    ax = Axes3D(figure)
 
     features_per_errors = [
         np.array(
@@ -230,9 +255,7 @@ def visualize_features(features, labels, dims=None):
             features_per_errors
         )
     )
-
     ax.legend()
-    plt.show()
 
 
 def main():
@@ -281,6 +304,8 @@ def main():
         )
     ]
 
+    print "Label statistics: ", labels_stats(labels)
+
     classifier = skens.RandomForestClassifier(
         n_estimators=1000,
         class_weight="balanced",
@@ -320,6 +345,8 @@ def main():
         labels
     )
 
+    print "Qualified label statistics: ", labels_stats(qualified_labels)
+
     coarse_classification_buildings(
         classifier,
         qualified_features,
@@ -327,37 +354,53 @@ def main():
         10
     )
 
-    print feature_impotance_eval(
+    feat_import = feature_impotance_eval(
         classifier,
         qualified_features,
-        qualified_labels
+        qualified_labels,
+        ['degree', 'area', 'centroid_bis', 'angle', 'angle_bis']
     )
 
+    print feat_import
+
+    camembert_fig = plt.figure(1)
+    ax = camembert_fig.add_subplot(111)
+    ax.pie(
+        map(operator.itemgetter(1), feat_import),
+        labels=map(operator.itemgetter(0), feat_import),
+        explode=len(feat_import) * [.1],
+        startangle=90
+    )
+    ax.axis('equal')
+    camembert_fig.show()
+
+    viz_fig = plt.figure(2)
     visualize_features(
         qualified_features,
         qualified_labels,
-        [
-            idx
-            for idx, _
-            in feature_impotance_eval(
-                classifier,
-                qualified_features,
-                qualified_labels
-            )[:3]
-        ]
+        viz_fig
     )
+    viz_fig.show()
 
     start = time.time()
     (min_rf, max_rf, median_rf) = random_forests_stats(
-        range(1, 21),
-        [25 * sz for sz in range(1, 101)],
+        range(1, 11),
+        [25 * sz for sz in range(1, 21)],
         qualified_features,
         qualified_labels,
         10
     )
     print "Time taken =", time.time() - start, 'sec'
 
-    plot_rf_stats(min_rf, max_rf, median_rf)
+    np.dstack((min_rf, max_rf, median_rf)).tofile(
+        './ressources/output/randomforest/rf_stats_alt_geom.csv',
+        sep=',',
+        format='%10.5f'
+    )
+
+    fig_stat = plt.figure(3)
+    plot_rf_stats(min_rf, max_rf, median_rf, fig_stat)
+    fig_stat.show()
 
 
 if __name__ == '__main__':
