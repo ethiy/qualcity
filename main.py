@@ -242,9 +242,9 @@ def evaluate_svm(features, labels):
                 labels,
                 cv=10
             )['test_score']
-            for constant in [pow(10., g/5.) for g in range(-10, 11)]
+            for constant in [pow(10., g/5.) for g in range(-10, 101)]
         ]
-        for gam in [pow(10., g/5.) for g in range(-100, 101)]
+        for gam in [pow(10., g/5.) for g in range(-75, 2)]
     ]
 
     min_C_vs_g = np.array(
