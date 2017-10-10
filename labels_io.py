@@ -185,6 +185,35 @@ def error_classes(filename, threshold):
         return 'None'
 
 
+def exists(sub_error, error_type, errors, threshold):
+    print (ERROR_CATEGORY_INDEX[error_type])
+    print (errors[ERROR_CATEGORY_INDEX[error_type]])
+    if errors[ERROR_CATEGORY_INDEX[error_type]] is None:
+        return 0
+    elif sub_error not in errors[ERROR_CATEGORY_INDEX[error_type]].keys():
+        return 0
+    else:
+        return int(
+            errors[ERROR_CATEGORY_INDEX[error_type]][sub_error] > threshold
+        )
+
+
+def error_array(filename, threshold, error_type):
+    errs = errors_per_building(filename)
+    return map(
+        lambda sub_error: exists(sub_error, error_type, errs, threshold),
+        ERROR_CATEGORY_DICTIONARY[error_type]
+    )
+
+
+def error_arrays(filename, threshold):
+    [
+        error_array(filename, threshold, error_type)
+        for error_type in ERROR_CATEGORY_DICTIONARY.keys()
+    ]
+    return
+
+
 def get_category_errors(filename, error_category):
     return errors_per_building(filename)[
         ERROR_CATEGORY_INDEX[error_category]
@@ -358,14 +387,16 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    map(
-        lambda error_category: print_statistics_summary(
-            error_category, labels_dir, files
-        ),
-        ERROR_CATEGORY_INDEX.keys()
-    )
-
-    print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
+    print (errors_per_building(os.path.join(labels_dir, files[0])))
+    print (error_arrays(os.path.join(labels_dir, files[0]), 5))
+    # map(
+    #     lambda error_category: print_statistics_summary(
+    #         error_category, labels_dir, files
+    #     ),
+    #     ERROR_CATEGORY_INDEX.keys()
+    # )
+    #
+    # print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
 
 
 if __name__ == '__main__':
