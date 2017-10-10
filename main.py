@@ -117,17 +117,17 @@ def random_forests_stats(depths, number_of_estimators, features, labels, cv):
         )
 
 
-def plot_rf_stats(min_rf, max_rf, median_rf, figure):
+def plot_cv_stats(min_cv, max_cv, median_cv, figure):
     ax1 = figure.add_subplot(131)
-    min_plt = ax1.imshow(min_rf, cmap='jet')
+    min_plt = ax1.imshow(min_cv, cmap='jet')
     ax1.set_title('minimum')
     figure.colorbar(min_plt, ax=ax1)
     ax2 = figure.add_subplot(132)
-    max_plt = ax2.imshow(max_rf, cmap='jet')
+    max_plt = ax2.imshow(max_cv, cmap='jet')
     figure.colorbar(max_plt, ax=ax2)
     ax2.set_title('maximum')
     ax3 = figure.add_subplot(133)
-    median_plt = ax3.imshow(median_rf, cmap='jet')
+    median_plt = ax3.imshow(median_cv, cmap='jet')
     figure.colorbar(median_plt, ax=ax3)
     ax3.set_title('median')
 
@@ -225,8 +225,60 @@ def evaluate_rf(classifier, qualified_features, qualified_labels):
     )
 
     fig_stat = plt.figure(3)
-    plot_rf_stats(min_rf, max_rf, median_rf, fig_stat)
+    plot_cv_stats(min_rf, max_rf, median_rf, fig_stat)
     fig_stat.show()
+
+
+def evaluate_svm(features, labels):
+    start = time.time()
+    C_vs_g = [
+        [
+            sklearn.model_selection.cross_validate(
+                sklearn.svm.SVC(
+                    C=constant,
+                    gamma=gam
+                ),
+                features,
+                labels,
+                cv=10
+            )['test_score']
+            for constant in [pow(10., g/5.) for g in range(-10, 11)]
+        ]
+        for gam in [pow(10., g/5.) for g in range(-100, 101)]
+    ]
+
+    min_C_vs_g = np.array(
+        [
+            [
+                min(values)
+                for values in row
+            ]
+            for row in C_vs_g
+        ]
+    )
+    max_C_vs_g = np.array(
+        [
+            [
+                max(values)
+                for values in row
+            ]
+            for row in C_vs_g
+        ]
+    )
+    median_C_vs_g = np.array(
+        [
+            [
+                utils.median(values)
+                for values in row
+            ]
+            for row in C_vs_g
+        ]
+    )
+    print "Time taken =", time.time() - start, 'sec'
+
+    svm_stats = plt.figure(2)
+    plot_cv_stats(min_C_vs_g, max_C_vs_g, median_C_vs_g, svm_stats)
+    svm_stats.show()
 
 
 def visualize_feature(ax, color, marker, label, features, dims):
@@ -302,14 +354,17 @@ def error_detection(labels, features, classifier):
         10
     )
 
-    {
-        sklearn.ensemble.forest.RandomForestClassifier: evaluate_rf(
+    if type(classifier) is sklearn.ensemble.forest.RandomForestClassifier:
+        evaluate_rf(
             classifier,
             qualified_features,
             qualified_labels
-        ),
-        sklearn.svm.classes.SVC: None
-    }[type(classifier)]
+        )
+    elif type(classifier) is sklearn.svm.classes.SVC:
+        evaluate_svm(
+            qualified_features,
+            qualified_labels
+        )
 
 
 def visualize_features(features, labels, figure, dims=None):
@@ -398,11 +453,9 @@ def main():
     error_detection(
         labels,
         (geometric_features, altimetric_features),
-        sklearn.ensemble.RandomForestClassifier(
-            n_estimators=1000,
-            class_weight="balanced",
-            max_depth=4,
-            oob_score=True
+        sklearn.svm.SVC(
+            C=10,
+            gamma='auto'
         )
     )
     plt.show()
