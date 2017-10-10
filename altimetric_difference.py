@@ -4,10 +4,15 @@
 import os
 import fnmatch
 
+import time
+
 import math
 import operator
 
 import numpy as np
+
+import sklearn.cluster
+import sklearn.model_selection
 
 import gdal
 import gdalconst
@@ -15,6 +20,7 @@ import gdalconst
 import matplotlib.pyplot as plt
 
 import labels_io
+import main
 
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
@@ -229,8 +235,6 @@ def main():
 
     hists = histograms(raster_dir, labels_dir, DSM_DIR, 100, 100)
 
-    print feature_histograms(raster_dir, labels_dir, DSM_DIR, 100, 100)
-
     plt.clf()
     map(
         lambda ((hist, bins), color): plt.step(bins[1:], hist, c=color),
@@ -240,6 +244,38 @@ def main():
         )
     )
     plt.show()
+
+    labels = [
+        label
+        for _, label in sorted(
+            main.labels_map(labels_dir).iteritems(),
+            key=operator.itemgetter(0)
+        )
+        if label != 1
+    ]
+
+    altimetric_features = [
+        feature
+        for _, feature in sorted(
+            histogram_features(
+                raster_dir,
+                labels_dir,
+                DSM_DIR,
+                100,
+                100
+            ).iteritems(),
+            key=operator.itemgetter(0)
+        )
+    ]
+
+    start = time.time()
+    print sklearn.model_selection.cross_validate(
+        sklearn.cluster.k_means(n_clusters=9, verbose=True),
+        altimetric_features,
+        labels,
+        cv=10
+    )
+    print 'Time taken = ', time.time() - start, 'sec'
 
 
 if __name__ == '__main__':
