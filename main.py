@@ -26,31 +26,6 @@ import utils
 import labels_io
 
 
-CLASSES = {
-    0: 'None',
-    1: 'Unqualified',
-    2: 'Building',
-    3: 'Facet'
-}
-
-INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
-
-
-def labels_map(directory):
-    return {
-        os.path.splitext(shape)[0]: INV_CLASSES[
-                labels_io.error_classes(
-                    os.path.join(directory, shape),
-                    5
-                )
-            ]
-        for shape in fnmatch.filter(
-            os.listdir(directory),
-            '*.shp'
-        )
-    }
-
-
 def labels_stats(labels):
     return [
         len(
@@ -242,7 +217,7 @@ def evaluate_svm(features, labels):
                 labels,
                 cv=10
             )['test_score']
-            for constant in [pow(10., g/5.) for g in range(-10, 101)]
+            for constant in [pow(10., g/5.) for g in range(-10, 50)]
         ]
         for gam in [pow(10., g/5.) for g in range(-75, 2)]
     ]
@@ -381,7 +356,7 @@ def visualize_features(features, labels, figure, dims=None):
                 )
             ]
         )
-        for cat in CLASSES.keys()
+        for cat in labels_io.CLASSES.keys()
         if cat != 1
     ]
 
@@ -397,7 +372,7 @@ def visualize_features(features, labels, figure, dims=None):
         zip(
             ['g', 'r', 'b'],
             ['o', '^', ','],
-            [CLASSES.values()[0]] + CLASSES.values()[2:],
+            [labels_io.CLASSES.values()[0]] + labels_io.CLASSES.values()[2:],
             features_per_errors
         )
     )
@@ -445,7 +420,7 @@ def main():
     labels = [
         label
         for _, label in sorted(
-            labels_map(labels_dir).iteritems(),
+            labels_io.labels_map(labels_dir).iteritems(),
             key=operator.itemgetter(0)
         )
     ]
