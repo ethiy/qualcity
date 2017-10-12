@@ -18,9 +18,9 @@ import gdal
 import gdalconst
 
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 import labels_io
-import main
 
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
@@ -223,6 +223,22 @@ def histogram_features(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
     }
 
 
+def visualize_feature(ax, color, features):
+    if features.shape[0] > 1:
+        x, y, z = zip(
+            *[
+                list(couple)
+                for couple
+                in list(
+                    sklearn.decomposition.PCA(n_components=3).fit_transform(
+                        features
+                    )
+                )
+            ]
+        )
+        ax.scatter(x, y, z, c=color)
+
+
 def main():
     raster_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
@@ -243,12 +259,11 @@ def main():
             plt.cm.rainbow(np.linspace(0, 1, len(hists)))
         )
     )
-    plt.show()
 
     labels = [
         label
         for _, label in sorted(
-            main.labels_map(labels_dir).iteritems(),
+            labels_io.labels_map(labels_dir).iteritems(),
             key=operator.itemgetter(0)
         )
         if label != 1
@@ -268,14 +283,52 @@ def main():
         )
     ]
 
+    centers = 7
     start = time.time()
-    print sklearn.model_selection.cross_validate(
-        sklearn.cluster.k_means(n_clusters=9, verbose=True),
-        altimetric_features,
-        labels,
-        cv=10
+    print 'Spectral Clustering: ', centers
+    cluster_labels = sklearn.cluster.SpectralClustering(
+        n_clusters=centers,
+        n_jobs=1
+    ).fit_predict(
+        altimetric_features
     )
+
     print 'Time taken = ', time.time() - start, 'sec'
+
+    figure = plt.figure()
+    ax = Axes3D(figure)
+
+    features_per_clusters = [
+        np.array(
+            [
+                altimetric_features[idx]
+                for idx, _
+                in filter(
+                    lambda (_, label): label == cluster,
+                    enumerate(cluster_labels)
+                )
+            ]
+        )
+        for cluster in set(cluster_labels)
+    ]
+
+    for cl in features_per_clusters:
+        print cl.shape
+
+    map(
+        lambda (color, features): visualize_feature(
+            ax,
+            color,
+            features
+        ),
+        zip(
+            plt.cm.rainbow(np.linspace(0, 1, centers)),
+            features_per_clusters
+        )
+    )
+    ax.legend()
+
+    plt.show()
 
 
 if __name__ == '__main__':
