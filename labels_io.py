@@ -66,6 +66,30 @@ ERROR_CATEGORY_INDEX = {
     'Facet': 2
 }
 
+CLASSES = {
+    0: 'None',
+    1: 'Unqualified',
+    2: 'Building',
+    3: 'Facet'
+}
+
+INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
+
+
+def labels_map(directory):
+    return {
+        os.path.splitext(shape)[0]: INV_CLASSES[
+                error_classes(
+                    os.path.join(directory, shape),
+                    5
+                )
+            ]
+        for shape in fnmatch.filter(
+            os.listdir(directory),
+            '*.shp'
+        )
+    }
+
 
 def entry(error):
     for _error, synonyms in ERROR_DICTIONARY.iteritems():
@@ -175,26 +199,24 @@ def error_class_score(filename):
 
 def error_classes(filename, threshold):
     unq, bul, fac = error_class_score(filename)
-    if unq > threshold:
+    if unq >= threshold:
         return 'Unqualified'
-    elif bul > threshold:
+    elif bul >= threshold:
         return 'Building'
-    elif fac > threshold:
+    elif fac >= threshold:
         return 'Facet'
     else:
         return 'None'
 
 
 def exists(sub_error, error_type, errors, threshold):
-    print (ERROR_CATEGORY_INDEX[error_type])
-    print (errors[ERROR_CATEGORY_INDEX[error_type]])
-    if errors[ERROR_CATEGORY_INDEX[error_type]] is None:
+    if errors[ERROR_CATEGORY_INDEX[error_type]] == 'None':
         return 0
     elif sub_error not in errors[ERROR_CATEGORY_INDEX[error_type]].keys():
         return 0
     else:
         return int(
-            errors[ERROR_CATEGORY_INDEX[error_type]][sub_error] > threshold
+            errors[ERROR_CATEGORY_INDEX[error_type]][sub_error] >= threshold
         )
 
 
@@ -207,11 +229,10 @@ def error_array(filename, threshold, error_type):
 
 
 def error_arrays(filename, threshold):
-    [
+    return [
         error_array(filename, threshold, error_type)
-        for error_type in ERROR_CATEGORY_DICTIONARY.keys()
+        for error_type in ['Unqualified', 'Building', 'Facet']
     ]
-    return
 
 
 def get_category_errors(filename, error_category):
@@ -389,14 +410,6 @@ def main():
 
     print (errors_per_building(os.path.join(labels_dir, files[0])))
     print (error_arrays(os.path.join(labels_dir, files[0]), 5))
-    # map(
-    #     lambda error_category: print_statistics_summary(
-    #         error_category, labels_dir, files
-    #     ),
-    #     ERROR_CATEGORY_INDEX.keys()
-    # )
-    #
-    # print_similtaneous_summary(labels_dir, files, 'Building', 'Facet')
 
 
 if __name__ == '__main__':
