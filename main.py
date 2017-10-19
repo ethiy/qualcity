@@ -3,6 +3,8 @@
 
 import time
 
+import pdb
+
 import os
 import fnmatch
 
@@ -13,6 +15,10 @@ import sklearn.ensemble
 import sklearn.tree
 import sklearn.model_selection
 import sklearn.svm
+import sklearn.cluster
+import sklearn.kernel_approximation
+import sklearn.preprocessing
+import sklearn.manifold
 
 import numpy as np
 
@@ -172,7 +178,7 @@ def evaluate_rf(classifier, qualified_features, qualified_labels):
 
     print feat_import
 
-    camembert_fig = plt.figure(2)
+    camembert_fig = plt.figure(3)
     ax = camembert_fig.add_subplot(111)
     ax.pie(
         map(operator.itemgetter(1), feat_import),
@@ -199,7 +205,7 @@ def evaluate_rf(classifier, qualified_features, qualified_labels):
         format='%10.5f'
     )
 
-    fig_stat = plt.figure(3)
+    fig_stat = plt.figure(4)
     plot_cv_stats(min_rf, max_rf, median_rf, fig_stat)
     fig_stat.show()
 
@@ -256,28 +262,20 @@ def evaluate_svm(features, labels):
     svm_stats.show()
 
 
-def visualize_feature(ax, color, marker, label, features, dims):
-    if dims is None:
-        reduced = sklearn.decomposition.PCA(n_components=3).fit_transform(
-            features
-        )
-    elif type(dims) is list and len(dims) == 3:
-        reduced = features[:, dims]
-    else:
-        LookupError
+def visualize_feature(ax, color, marker, label, features):
     x, y, z = zip(
         *[
             list(couple)
             for couple
             in list(
-                reduced
+                features
             )
         ]
     )
     ax.scatter(x, y, z, label=label, c=color, marker=marker)
 
 
-def error_detection(labels, features, classifier):
+def error_detection(labels, features, classifier, clusterer):
     print "Label statistics: ", labels_stats(labels)
 
     detect_unqualified_buildings(
@@ -316,9 +314,14 @@ def error_detection(labels, features, classifier):
     visualize_features(
         qualified_features,
         qualified_labels,
-        viz_fig
+        viz_fig,
+        dims='SpectralEmbedding'
     )
     viz_fig.show()
+    # cluster_fig = plt.figure(2)
+    # cluster(qualified_features, clusterer, cluster_fig)
+    # cluster_fig.show()
+    pdb.set_trace()
 
     print "Qualified label statistics: ", labels_stats(qualified_labels)
 
@@ -342,8 +345,100 @@ def error_detection(labels, features, classifier):
         )
 
 
-def visualize_features(features, labels, figure, dims=None):
+def cluster(features, clusterer, figure):
+    start = time.time()
+
+    transformed = sklearn.kernel_approximation.RBFSampler(
+        gamma=pow(10., -8.),
+        n_components=100000
+    ).fit_transform(features)
+
+    cluster_labels = clusterer.fit_predict(
+        transformed
+    )
+
+    print 'Time taken = ', time.time() - start, 'sec'
+
     ax = Axes3D(figure)
+
+    features_per_clusters = [
+        np.array(
+            [
+                transformed[idx]
+                for idx, _
+                in filter(
+                    lambda (_, label): label == cluster,
+                    enumerate(cluster_labels)
+                )
+            ]
+        )
+        for cluster in set(cluster_labels)
+    ]
+
+    for cl in features_per_clusters:
+        print cl.shape
+
+    map(
+        lambda (color, features): visualize_feature(
+            ax,
+            color,
+            None,
+            None,
+            features
+        ),
+        zip(
+            plt.cm.rainbow(np.linspace(0, 1, len(set(cluster_labels)))),
+            features_per_clusters
+        )
+    )
+    ax.legend()
+
+
+def visualize_manifold(features, labels):
+    pass
+
+
+def visualize_features(features, labels, figure, dims='PCA'):
+    ax = Axes3D(figure)
+
+    feautres = sklearn.preprocessing.StandardScaler().fit_transform(features)
+
+    if dims is 'PCA':
+        features = sklearn.decomposition.PCA(n_components=3).fit_transform(
+            features
+        )
+    elif dims == 'KernelPCA':
+        features = sklearn.decomposition.KernelPCA(
+            n_components=3,
+            kernel='rbf',
+            gamma=pow(10., -8)
+        ).fit_transform(features)
+    elif dims == 'DictionaryLearning':
+        features = sklearn.decomposition.DictionaryLearning(
+            n_components=3,
+            max_iter=10000,
+            tol=1e-8
+        ).fit_transform(features)
+    elif dims == 'ICA':
+        features = sklearn.decomposition.FastICA(
+            n_components=3,
+            max_iter=10000,
+            tol=1e-8
+        ).fit_transform(features)
+    elif dims == 'FactorAnalysis':
+        features = sklearn.decomposition.FactorAnalysis(
+            n_components=3,
+            max_iter=10000,
+            tol=1e-8
+        ).fit_transform(features)
+    elif dims == 'SpectralEmbedding':
+        features = sklearn.manifold.SpectralEmbedding(
+            n_components=3,
+            affinity='rbf',
+            gamma=pow(10., -8.)
+        ).fit_transform(features)
+    else:
+        LookupError
 
     features_per_errors = [
         np.array(
@@ -366,8 +461,7 @@ def visualize_features(features, labels, figure, dims=None):
             color,
             marker,
             label,
-            features,
-            dims
+            features
         ),
         zip(
             ['g', 'r', 'b'],
@@ -428,11 +522,18 @@ def main():
     error_detection(
         labels,
         (geometric_features, altimetric_features),
-        sklearn.svm.SVC(
-            C=10,
-            gamma='auto'
+        sklearn.ensemble.RandomForestClassifier(
+            n_estimators=1000,
+            class_weight="balanced",
+            max_depth=4,
+            oob_score=True,
+            n_jobs=-1
+        ),
+        sklearn.cluster.SpectralClustering(
+            n_clusters=4
         )
     )
+
     plt.show()
 
 
