@@ -19,6 +19,7 @@ import sklearn.cluster
 import sklearn.kernel_approximation
 import sklearn.preprocessing
 import sklearn.manifold
+import sklearn.neural_network
 
 import numpy as np
 
@@ -315,7 +316,7 @@ def error_detection(labels, features, classifier, clusterer):
         qualified_features,
         qualified_labels,
         viz_fig,
-        dims='SpectralEmbedding'
+        dims='RBM'
     )
     viz_fig.show()
     # cluster_fig = plt.figure(2)
@@ -415,30 +416,66 @@ def visualize_features(features, labels, figure, dims='PCA'):
         ).fit_transform(features)
     elif dims == 'DictionaryLearning':
         features = sklearn.decomposition.DictionaryLearning(
-            n_components=3,
-            max_iter=10000,
+            n_components=100,
+            max_iter=100000,
             tol=1e-8
         ).fit_transform(features)
     elif dims == 'ICA':
         features = sklearn.decomposition.FastICA(
-            n_components=3,
-            max_iter=10000,
+            n_components=100,
+            max_iter=100000,
             tol=1e-8
         ).fit_transform(features)
     elif dims == 'FactorAnalysis':
         features = sklearn.decomposition.FactorAnalysis(
-            n_components=3,
+            n_components=100,
             max_iter=10000,
-            tol=1e-8
+            tol=1e-10
         ).fit_transform(features)
     elif dims == 'SpectralEmbedding':
         features = sklearn.manifold.SpectralEmbedding(
-            n_components=3,
+            n_components=100,
             affinity='rbf',
             gamma=pow(10., -8.)
         ).fit_transform(features)
+    elif dims == 'LocallyLinearEmbedding':
+        features = sklearn.manifold.LocallyLinearEmbedding(
+            n_neighbors=10,
+            n_components=100,
+            max_iter=100000
+        ).fit_transform(features)
+    elif dims == 'Isomap':
+        features = sklearn.manifold.Isomap(
+            n_neighbors=20,
+            n_components=100,
+            max_iter=1000000
+        ).fit_transform(features)
+    elif dims == 'MDS':
+        features = sklearn.manifold.MDS(
+            n_components=200,
+            max_iter=100000
+        ).fit_transform(features)
+    elif dims == 'TSNE':
+        features = sklearn.manifold.TSNE(
+            method='exact',
+            n_components=100,
+            n_iter=1000000,
+            n_iter_without_progress=10000
+        ).fit_transform(features)
+    elif dims == 'RBM':
+        features = sklearn.neural_network.BernoulliRBM(
+            n_components=100,
+            learning_rate=0.01,
+            batch_size=10,
+            n_iter=10000
+        ).fit_transform(features)
     else:
         LookupError
+
+    if features.shape[1] > 3:
+        features = sklearn.decomposition.PCA(
+            n_components=3
+        ).fit_transform(features)
 
     features_per_errors = [
         np.array(
