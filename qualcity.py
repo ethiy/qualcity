@@ -16,6 +16,58 @@ from docopt import docopt
 
 import yaml
 
+import altimetric_difference
+import geometry_io
+
+
+def altimetric_features(level, raster_dir, labels_dir, granularity):
+    if level < 1:
+        raise ValueError
+    return altimetric_difference.histogram_features(
+        raster_dir,
+        labels_dir,
+        altimetric_difference.DSM_DIR,
+        granularity,
+        granularity
+    )
+
+
+def features(level, feat_type, **kwargs):
+    if level > 2:
+        raise ValueError
+    return {
+        'geometric': sorted(
+            geometry_io.geometric_features(
+                kwargs['graph_dir'],
+                kwargs['attributes']
+            ).iteritems(),
+            key=operator.itemgetter(0)
+        ),
+        'altimetric': sorted(
+            altimetric_features(
+                level,
+                kwargs['raster_dir'],
+                kwargs['labels_dir'],
+                kwargs['granularity']y
+            ).iteritems(),
+            key=operator.itemgetter(0)
+        )
+    }[feat_type]
+
+
+def get_features(config):
+    return reduce(
+        utils.fuse,
+        [
+            features()
+            for feat_type in
+        ]
+    )
+
+
+def get_labels(hierarchical, level):
+    return
+
 
 def load_config(file):
     with open(file, mode='r') as conf:
