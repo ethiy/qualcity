@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
+import operator
+import pdb
+
 
 def median(iterable):
     length = len(iterable)
@@ -28,28 +31,27 @@ def fuse_elements(elements_1, elements_2):
 
     (keys_1, values_1), (keys_2, _) = map(
         lambda el: zip(*el),
-        (elements_1, elements_2)
+        (elements_1.items(), elements_2.items())
     )
 
     if not set(keys_1) <= set(keys_2):
         raise LookupError
-    _, values_2 = zip(
-        *filter(
-            lambda key, val: key in set(keys_1),
-            elements_2
-        )
-    )
+
+    values_2 = [val for key, val in elements_2.items() if key in set(keys_1)]
     print(values_2)
-    return zip(
-        keys_1,
-        zip(
-            values_1,
-            values_2
-        )
-    ) + filter(
-        lambda key, val: key not in set(keys_1),
-        elements_2
-    )
+    return list(
+            zip(
+                keys_1,
+                zip(
+                    values_1,
+                    values_2
+                )
+            )
+        ) + [
+            (key, val)
+            for key, val in elements_2.items()
+            if key not in set(keys_1)
+        ]
 
 
 def fuse(dict_1, dict_2):
