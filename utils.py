@@ -23,39 +23,59 @@ def mean(iterable):
     return sum(iterable) / len(iterable)
 
 
-def fuse_elements(elements_1, elements_2):
-    elements_1, elements_2 = sorted(
-        [elements_1, elements_2],
-        key=len
+def fuse_elements(elements):
+    s, elements = zip(
+        *sorted(
+            enumerate(elements),
+            key=lambda c: len(c[1])
+        )
     )
 
-    (keys_1, values_1), (keys_2, _) = map(
-        lambda el: zip(*el),
-        (elements_1.items(), elements_2.items())
+    keys, values = zip(
+        *map(
+            lambda el: zip(*el),
+            elements
+        )
     )
 
-    if not set(keys_1) <= set(keys_2):
+    if not set(keys[0]) <= set(keys[1]):
         raise LookupError
 
-    values_2 = [val for key, val in elements_2.items() if key in set(keys_1)]
-    print(values_2)
+    values_2 = [val for key, val in elements[1] if key in set(keys[0])]
+
     return list(
             zip(
-                keys_1,
-                zip(
-                    values_1,
-                    values_2
-                )
+                keys[0],
+                [
+                    (
+                        couple[s[0]],
+                        couple[s[1]]
+                    )
+                    for couple
+                    in zip(
+                        values[0],
+                        values_2
+                    )
+                ]
             )
         ) + [
-            (key, val)
-            for key, val in elements_2.items()
-            if key not in set(keys_1)
+            (key, (None, val))
+            if s[0] == 0
+            else (key, (val, None))
+            for key, val in elements[1]
+            if key not in set(keys[0])
         ]
 
 
 def fuse(dict_1, dict_2):
-    return fuse_elements(dict_1, dict_2)
+    return dict(
+        fuse_elements(
+            map(
+                lambda d: sorted(d, key=operator.itemgetter(0)),
+                [dict_1.items(), dict_2.items()]
+            )
+        )
+    )
 
 
 def main():
