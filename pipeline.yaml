@@ -1,16 +1,22 @@
 scene: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
-labels: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+
+labels:
+  dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+  level: 1
+  LoD: 2
+  hierarchical: True
+
 features:
   geometric:
     -degree
     -normals
   altimetric:
     granularity: 100
-level: 1
-hierarchical: True
+
 manifold:
   algorithm: KernelPCA
   dimension: 100
+
 pipeline:
   visualize:
     algorithm: PCA

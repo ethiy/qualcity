@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python2
 # -*- coding: <utf-8> -*-
 
 """qualcity.
@@ -18,6 +18,7 @@ import yaml
 
 import altimetric_difference
 import geometry_io
+import utils
 
 
 def altimetric_features(level, raster_dir, labels_dir, granularity):
@@ -40,7 +41,7 @@ def features(level, feat_type, **kwargs):
             geometry_io.geometric_features(
                 kwargs['graph_dir'],
                 kwargs['attributes']
-            ).iteritems(),
+            ).items(),
             key=operator.itemgetter(0)
         ),
         'altimetric': sorted(
@@ -48,24 +49,24 @@ def features(level, feat_type, **kwargs):
                 level,
                 kwargs['raster_dir'],
                 kwargs['labels_dir'],
-                kwargs['granularity']y
-            ).iteritems(),
+                kwargs['granularity']
+            ).items(),
             key=operator.itemgetter(0)
         )
     }[feat_type]
 
 
-def get_features(config):
+def get_features(level, config):
     return reduce(
         utils.fuse,
         [
-            features()
-            for feat_type in
+            features(level, feat_type, config[feat_type])
+            for feat_type in config.keys()
         ]
     )
 
 
-def get_labels(hierarchical, level):
+def get_labels(hierarchical, level, LoD, dir):
     return
 
 
@@ -76,8 +77,22 @@ def load_config(file):
 
 def main():
     arguments = docopt(__doc__, help=True, version=None, options_first=False)
+
+    configuration = load_config(arguments['<config_file>'])
     if arguments['--verbose']:
-        print(yaml.dump(load_config(arguments['<config_file>'])))
+        print(yaml.dump(configuration))
+
+    labels = get_labels(
+        configuration['labels']['hierarchical'],
+        configuration['labels']['level'],
+        configuration['labels']['LoD'],
+        configuration['labels']['dir']
+    )
+
+    features = get_features(
+        configuration['labels']['level'],
+        configuration['features']
+    )
 
 
 if __name__ == '__main__':
