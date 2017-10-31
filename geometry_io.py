@@ -84,19 +84,32 @@ def get_relations(filename):
     return filter(lambda x: x[0] != x[1], zip(*[i, j]))
 
 
-def stats(attribute):
-    return [min(attribute), max(attribute), mean(attribute), median(attribute)]
+def stat(statistic):
+    return {
+        'min': min,
+        'max': max,
+        'mean': mean,
+        'median': median
+    }[statistic]
 
 
-def degree_statistics(faces):
-    return stats([face[0] for face in faces.values()])
+def stats(attribute, statistics):
+    return reduce(
+        lambda _list, statistic: _list + [stat(statistic)(attribute)],
+        statistics,
+        []
+    )
 
 
-def area_statistics(faces):
-    return stats([face[1] for face in faces.values()])
+def degree_statistics(faces, statistics):
+    return stats([face[0] for face in faces.values()], statistics)
 
 
-def centroid_statistics(faces, relations=[]):
+def area_statistics(faces, statistics):
+    return stats([face[1] for face in faces.values()], statistics)
+
+
+def centroid_statistics(faces, statistics, relations=[]):
     if len(relations) == 0:
         relations = [
             (idx, _idx)
@@ -108,11 +121,12 @@ def centroid_statistics(faces, relations=[]):
         [
             np.linalg.norm(faces[idx][2] - faces[_idx][2])
             for idx, _idx in relations
-        ]
+        ],
+        statistics
     )
 
 
-def angle_statistics(faces, relations=[]):
+def angle_statistics(faces, statistics, relations=[]):
     if len(relations) == 0:
         relations = [
             (idx, _idx)
@@ -127,31 +141,38 @@ def angle_statistics(faces, relations=[]):
                 np.dot(faces[idx][3], faces[_idx][3])
             ) * 180 / np.pi
             for idx, _idx in relations
-        ]
+        ],
+        statistics
     )
 
 
-def statistics(filename, geom_attrib):
+def attribute_statistics(filename, geom_attrib, statistics):
     return {
         'degree': degree_statistics,
         'area': area_statistics,
         'centroid': centroid_statistics,
-        'centroid_bis': lambda faces: centroid_statistics(
+        'centroid_bis': lambda faces, statistics: centroid_statistics(
             faces,
+            statistics,
             get_relations(filename)
         ),
         'angle': angle_statistics,
-        'angle_bis': lambda faces: angle_statistics(
+        'angle_bis': lambda faces, statistics: angle_statistics(
             faces,
+            statistics,
             get_relations(filename)
         )
-    }[geom_attrib](get_faces(filename))
+    }[geom_attrib](get_faces(filename), statistics)
 
 
-def features(filename, geom_attribs):
+def features(filename, attributes, statistics):
     return reduce(
-        lambda _list, geom_attrib: _list + statistics(filename, geom_attrib),
-        geom_attribs,
+        lambda _list, attr: _list + attribute_statistics(
+            filename,
+            attr,
+            statistics
+        ),
+        attributes,
         [len(get_faces(filename))]
     )
 
@@ -171,12 +192,13 @@ def features_anntotations(geom_attribs):
     )
 
 
-def geometric_features(graph_dir, geom_attribs):
+def geometric_features(graph_dir, attributes, statistics):
     return {
         os.path.splitext(graph)[0]: np.array(
             features(
                 os.path.join(graph_dir, graph),
-                geom_attribs
+                attributes,
+                statistics
             )
         )
         for graph in fnmatch.filter(
@@ -208,7 +230,8 @@ def main():
     print read(os.path.join(graph_dir, '3078.txt')).node[1]
     print features(
         os.path.join(graph_dir, '3078.txt'),
-        ['degree', 'area']
+        ['degree', 'area'],
+        ['min', 'max']
     )
 
     nx.draw(read(os.path.join(graph_dir, '3078.txt')))
