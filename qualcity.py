@@ -37,21 +37,12 @@ def features(level, feat_type, **kwargs):
     if level > 2:
         raise ValueError
     return {
-        'geometric': sorted(
-            geometry_io.geometric_features(
-                kwargs['graph_dir'],
-                kwargs['attributes']
-            ).items(),
-            key=operator.itemgetter(0)
-        ),
-        'altimetric': sorted(
-            altimetric_features(
-                level,
-                kwargs['raster_dir'],
-                kwargs['labels_dir'],
-                kwargs['granularity']
-            ).items(),
-            key=operator.itemgetter(0)
+        'geometric': geometry_io.geometric_features(**kwargs),
+        'altimetric': altimetric_features(
+            level,
+            kwargs['raster_dir'],
+            kwargs['labels_dir'],
+            kwargs['granularity']
         )
     }[feat_type]
 
@@ -60,7 +51,7 @@ def get_features(level, config):
     return reduce(
         utils.fuse,
         [
-            features(level, feat_type, config[feat_type])
+            features(level, feat_type, **config[feat_type])
             for feat_type in config.keys()
         ]
     )
@@ -83,15 +74,16 @@ def main():
         print(yaml.dump(configuration))
 
     labels = get_labels(
-        configuration['labels']['hierarchical'],
-        configuration['labels']['level'],
-        configuration['labels']['LoD'],
-        configuration['labels']['dir']
+        **configuration['labels']
     )
+
+    feature_params = configuration['features']
+    if 'altimetric' in feature_params:
+        feature_params['altimetric']['labels'] = labels
 
     features = get_features(
         configuration['labels']['level'],
-        configuration['features']
+        feature_params
     )
 
 

@@ -8,8 +8,15 @@ labels:
 
 features:
   geometric:
-    -degree
-    -normals
+    graph_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
+    statistics:
+      - max
+      - min
+      - mean
+      - median
+    attributes:
+      - degree
+      - angle
   altimetric:
     granularity: 100
 
