@@ -18,15 +18,16 @@ import yaml
 
 import altimetric_difference
 import geometry_io
+import labels_io
 import utils
 
 
-def altimetric_features(level, raster_dir, labels_dir, granularity):
+def altimetric_features(level, raster_dir, labels, granularity):
     if level < 1:
         raise ValueError
     return altimetric_difference.histogram_features(
         raster_dir,
-        labels_dir,
+        labels,
         altimetric_difference.DSM_DIR,
         granularity,
         granularity
@@ -34,17 +35,12 @@ def altimetric_features(level, raster_dir, labels_dir, granularity):
 
 
 def features(level, feat_type, **kwargs):
-    if level > 2:
-        raise ValueError
+    print(feat_type)
+    print(kwargs)
     return {
-        'geometric': geometry_io.geometric_features(**kwargs),
-        'altimetric': altimetric_features(
-            level,
-            kwargs['raster_dir'],
-            kwargs['labels_dir'],
-            kwargs['granularity']
-        )
-    }[feat_type]
+        'geometric': lambda kwargs: geometry_io.geometric_features(**kwargs),
+        'altimetric': lambda kwargs: altimetric_features(level, **kwargs)
+    }[feat_type](kwargs)
 
 
 def get_features(level, config):
@@ -57,8 +53,10 @@ def get_features(level, config):
     )
 
 
-def get_labels(hierarchical, level, LoD, dir):
-    return
+def get_labels(hierarchical, level, LoD, labels_dir):
+    if level > 2:
+        raise ValueError
+    return labels_io.labels_map(labels_dir)
 
 
 def load_config(file):
@@ -76,6 +74,7 @@ def main():
     labels = get_labels(
         **configuration['labels']
     )
+    print(labels)
 
     feature_params = configuration['features']
     if 'altimetric' in feature_params:

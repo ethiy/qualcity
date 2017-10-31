@@ -1,14 +1,17 @@
-scene: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
+scene:
+  /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
 
 labels:
-  dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+  labels_dir:
+    /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
   level: 1
   LoD: 2
   hierarchical: True
 
 features:
   geometric:
-    graph_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
+    graph_dir:
+      /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
     statistics:
       - max
       - min
@@ -18,6 +21,8 @@ features:
       - degree
       - angle
   altimetric:
+    raster_dir:
+      /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
     granularity: 100
 
 manifold:
