@@ -228,13 +228,13 @@ def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
     elif level == 2:
         if hierarchical:
             return (
-                unq * ['Unqualified']
+                unq * ('Unqualified', None)
                 +
-                (1 - unq) * bul * bul_array
+                (1 - unq) * bul * ('Building', bul_array)
                 +
-                (1 - unq) * (1 - bul) * fac * fac_array
+                (1 - unq) * (1 - bul) * fac * ('Facet', fac_array)
                 +
-                (1 - unq) * (1 - bul) * (1 - fac) * ['None']
+                (1 - unq) * (1 - bul) * (1 - fac) * ('None', None)
             )
         else:
             return [int(sum(unq_array) > 0)] + bul_array + fac_array
