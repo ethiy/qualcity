@@ -76,16 +76,17 @@ CLASSES = {
 INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
 
 
-def labels_map(directory):
+def labels_map(labels_dir, hierarchical, level, LoD, threshold):
     return {
-        os.path.splitext(shape)[0]: INV_CLASSES[
-                error_classes(
-                    os.path.join(directory, shape),
-                    5
-                )
-            ]
+        os.path.splitext(shape)[0]: errors(
+            os.path.join(labels_dir, shape),
+            hierarchical,
+            level,
+            LoD,
+            threshold
+        )
         for shape in fnmatch.filter(
-            os.listdir(directory),
+            os.listdir(labels_dir),
             '*.shp'
         )
     }
@@ -221,23 +222,43 @@ def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
     elif level == 1:
         if hierarchical:
             return CLASSES[
-                unq * 1 + (1 - unq) * bul * 2 + (1 - unq) * (1 - bul) * fac * 3
+                unq * 1
+                +
+                int(LoD > 0) * (1 - unq) * bul * 2
+                +
+                int(LoD > 1) * (1 - unq) * (1 - bul) * fac * 3
             ]
         else:
-            return [unq, bul, fac]
+            return [unq] + int(LoD > 0) * [bul] + int(LoD > 1) * [fac]
     elif level == 2:
         if hierarchical:
             return (
                 unq * ('Unqualified', None)
                 +
-                (1 - unq) * bul * ('Building', bul_array)
+                (1 - unq) * bul * (
+                    int(LoD > 0) * ('Building', bul_array)
+                    +
+                    int(LoD == 0) * ('None', None)
+                )
                 +
-                (1 - unq) * (1 - bul) * fac * ('Facet', fac_array)
+                (
+                    (1 - unq) * (1 - bul) * fac * (
+                        int(LoD > 1) * ('Facet', fac_array)
+                        +
+                        int(LoD <= 1) * ('None', None)
+                    )
+                )
                 +
                 (1 - unq) * (1 - bul) * (1 - fac) * ('None', None)
             )
         else:
-            return [int(sum(unq_array) > 0)] + bul_array + fac_array
+            return (
+                [int(sum(unq_array) > 0)]
+                +
+                int(LoD > 0) * bul_array
+                +
+                int(LoD > 1) * fac_array
+            )
     else:
         return None
 
@@ -448,7 +469,8 @@ def main():
             lambda fil: errors(
                 os.path.join(labels_dir, fil),
                 hierarchical=True,
-                level=2
+                level=2,
+                LoD=0
             ),
             files
         )
