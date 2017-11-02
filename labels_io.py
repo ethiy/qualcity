@@ -209,6 +209,39 @@ def error_classes(filename, threshold):
         return 'None'
 
 
+def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
+    unq_array, bul_array, fac_array = error_arrays(filename, threshold)
+    unq, bul, fac = [
+        int(sum(meta) > 0) for meta in [unq_array, bul_array, fac_array]
+    ]
+    if level > 2:
+        ValueError
+    elif level == 0:
+        return 'Unqualified' if unq > 0 else 'Qualified'
+    elif level == 1:
+        if hierarchical:
+            return CLASSES[
+                unq * 1 + (1 - unq) * bul * 2 + (1 - unq) * (1 - bul) * fac * 3
+            ]
+        else:
+            return [unq, bul, fac]
+    elif level == 2:
+        if hierarchical:
+            return (
+                unq * ['Unqualified']
+                +
+                (1 - unq) * bul * bul_array
+                +
+                (1 - unq) * (1 - bul) * fac * fac_array
+                +
+                (1 - unq) * (1 - bul) * (1 - fac) * ['None']
+            )
+        else:
+            return [int(sum(unq_array) > 0)] + bul_array + fac_array
+    else:
+        return None
+
+
 def exists(sub_error, error_type, errors, threshold):
     if errors[ERROR_CATEGORY_INDEX[error_type]] == 'None':
         return 0
@@ -408,8 +441,18 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    print (errors_per_building(os.path.join(labels_dir, files[0])))
-    print (error_arrays(os.path.join(labels_dir, files[0]), 5))
+    print(errors_per_building(os.path.join(labels_dir, files[0])))
+    print(error_arrays(os.path.join(labels_dir, files[0]), 5))
+    print(
+        map(
+            lambda fil: errors(
+                os.path.join(labels_dir, fil),
+                hierarchical=True,
+                level=2
+            ),
+            files
+        )
+    )
 
 
 if __name__ == '__main__':
