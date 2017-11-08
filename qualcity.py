@@ -16,6 +16,8 @@ from docopt import docopt
 
 import yaml
 
+import logging
+
 import altimetric_difference
 import geometry_io
 import labels_io
@@ -41,6 +43,7 @@ def features(level, feat_type, **kwargs):
 
 
 def get_features(level, config):
+    logging.info('Getting features ...')
     return reduce(
         utils.fuse,
         [
@@ -51,6 +54,7 @@ def get_features(level, config):
 
 
 def get_labels(hierarchical, level, LoD, labels_dir):
+    logging.info('Getting Labels ...')
     return labels_io.labels_map(
         labels_dir,
         hierarchical,
@@ -61,6 +65,7 @@ def get_labels(hierarchical, level, LoD, labels_dir):
 
 
 def load_config(file):
+    logging.info('Loading pipeline configuration file...')
     with open(file, mode='r') as conf:
         return yaml.load(conf)
 
@@ -68,26 +73,26 @@ def load_config(file):
 def main():
     arguments = docopt(__doc__, help=True, version=None, options_first=False)
 
+    logging.basicConfig(
+        level=logging.DEBUG if arguments['--verbose'] else logging.INFO
+    )
+
     configuration = load_config(arguments['<config_file>'])
-    if arguments['--verbose']:
-        print(yaml.dump(configuration))
+    logging.debug(yaml.dump(configuration))
+    logging.info('Pipeline loaded.')
 
     labels = get_labels(
         **configuration['labels']
     )
-    print(labels)
+    logging.debug('Labels are: %s', labels)
+    logging.info('Labels safely loaded.')
 
     features = get_features(
         configuration['labels']['level'],
         configuration['features']
     )
-
-    print(
-        filter(
-            lambda f: f[1][0] is None or f[1][1] is None,
-            features.items()
-        )
-    )
+    logging.debug(features)
+    logging.info('Features safely loaded.')
 
 
 if __name__ == '__main__':
