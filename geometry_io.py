@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 import os
@@ -7,6 +7,8 @@ import fnmatch
 import logging
 
 import operator
+
+import functools
 
 import numpy as np
 
@@ -18,7 +20,7 @@ import utils
 
 
 def read_features(line):
-    logging.info('Read face features...')
+    logging.debug('Reading face features...')
     (
         face_id,
         degree,
@@ -63,7 +65,7 @@ def get_lines(filename):
 def get_faces(filename):
     logging.info('Getting faces and their attributes in %s...', filename)
     lines = get_lines(filename)
-    return dict([read_features(face) for face in lines[:len(lines) / 2]])
+    return dict([read_features(face) for face in lines[:len(lines) // 2]])
 
 
 def get_adjacency_matrix(filename):
@@ -72,7 +74,7 @@ def get_adjacency_matrix(filename):
     return np.array(
         [
             [int(bit) for bit in line.split(" ")]
-            for line in lines[len(lines) / 2:-1]
+            for line in lines[len(lines) // 2:-1]
         ]
     )
 
@@ -182,7 +184,7 @@ def features(filename, attributes, statistics, **kwargs):
         filename,
         statistics
     )
-    return reduce(
+    return functools.reduce(
         lambda _list, attr: _list + attribute_statistics(
             filename,
             attr,
@@ -236,18 +238,24 @@ def main():
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
         'dual_graphs'
     )
-    print read(os.path.join(graph_dir, '3078.txt')).node[1]
-    print features(
-        os.path.join(graph_dir, '3078.txt'),
-        ['degree', 'area'],
-        ['min', 'max']
+    print(
+        read(os.path.join(graph_dir, '3078.txt')).node[1]
+    )
+    print(
+        features(
+            os.path.join(graph_dir, '3078.txt'),
+            ['degree', 'area'],
+            ['min', 'max']
+        )
     )
 
-    print features(
-        os.path.join(graph_dir, '3078.txt'),
-        ['degree', 'area'],
-        'histogram',
-        bins=10
+    print(
+        features(
+            os.path.join(graph_dir, '3078.txt'),
+            ['degree', 'area'],
+            'histogram',
+            bins=10
+        )
     )
 
     nx.draw(read(os.path.join(graph_dir, '3078.txt')))
