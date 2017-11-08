@@ -4,6 +4,8 @@
 import os
 import fnmatch
 
+import logging
+
 import operator
 
 import numpy as np
@@ -12,10 +14,11 @@ import networkx as nx
 
 import matplotlib.pyplot as plt
 
-from utils import median, mean
+import utils
 
 
 def read_features(line):
+    logging.info('Read face features...')
     (
         face_id,
         degree,
@@ -51,17 +54,20 @@ def read_features(line):
 
 
 def get_lines(filename):
+    logging.info('Getting lines of %s', filename)
     with open(filename, 'r') as file:
         lines = list(file)
     return lines
 
 
 def get_faces(filename):
+    logging.info('Getting faces and their attributes in %s...', filename)
     lines = get_lines(filename)
     return dict([read_features(face) for face in lines[:len(lines) / 2]])
 
 
 def get_adjacency_matrix(filename):
+    logging.info('Getting the facets adjacency matrix in %s', filename)
     lines = get_lines(filename)
     return np.array(
         [
@@ -72,6 +78,7 @@ def get_adjacency_matrix(filename):
 
 
 def get_graph(filename):
+    logging.info('Getting the graph in %s', filename)
     return nx.from_numpy_matrix(
         get_adjacency_matrix(
             filename
@@ -80,36 +87,27 @@ def get_graph(filename):
 
 
 def get_relations(filename):
+    logging.info('Getting pairs of related faces in %s', filename)
     i, j = np.where(get_adjacency_matrix(filename) == 1)
     return filter(lambda x: x[0] != x[1], zip(*[i, j]))
 
 
-def stat(statistic):
-    return {
-        'min': min,
-        'max': max,
-        'mean': mean,
-        'median': median
-    }[statistic]
+def degree_statistics(faces, statistics, **kwargs):
+    logging.info('Getting facet degree statistics (i.e. %s)', statistics)
+    return utils.stats([face[0] for face in faces.values()], statistics)
 
 
-def stats(attribute, statistics):
-    return reduce(
-        lambda _list, statistic: _list + [stat(statistic)(attribute)],
+def area_statistics(faces, statistics, **kwargs):
+    logging.info('Getting facet area statistics (i.e. %s)', statistics)
+    return utils.stats([face[1] for face in faces.values()], statistics)
+
+
+def centroid_statistics(faces, statistics, relations=[], **kwargs):
+    logging.info(
+        'Getting facets centroid statistics (i.e. %s) with%s relations',
         statistics,
-        []
+        'out' if len(relations) == 0 else ''
     )
-
-
-def degree_statistics(faces, statistics):
-    return stats([face[0] for face in faces.values()], statistics)
-
-
-def area_statistics(faces, statistics):
-    return stats([face[1] for face in faces.values()], statistics)
-
-
-def centroid_statistics(faces, statistics, relations=[]):
     if len(relations) == 0:
         relations = [
             (idx, _idx)
@@ -117,7 +115,7 @@ def centroid_statistics(faces, statistics, relations=[]):
             for _idx in faces.keys()
             if idx != _idx
         ]
-    return stats(
+    return utils.stats(
         [
             np.linalg.norm(faces[idx][2] - faces[_idx][2])
             for idx, _idx in relations
@@ -126,7 +124,12 @@ def centroid_statistics(faces, statistics, relations=[]):
     )
 
 
-def angle_statistics(faces, statistics, relations=[]):
+def angle_statistics(faces, statistics, relations=[], **kwargs):
+    logging.info(
+        'Getting facets angle statistics (i.e. %s) with%s relations',
+        statistics,
+        'out' if len(relations) == 0 else ''
+    )
     if len(relations) == 0:
         relations = [
             (idx, _idx)
@@ -134,7 +137,7 @@ def angle_statistics(faces, statistics, relations=[]):
             for _idx in faces.keys()
             if idx != _idx
         ]
-    return stats(
+    return utils.stats(
         [
             np.arctan2(
                 np.linalg.norm(np.cross(faces[idx][3], faces[_idx][3])),
@@ -146,7 +149,14 @@ def angle_statistics(faces, statistics, relations=[]):
     )
 
 
-def attribute_statistics(filename, geom_attrib, statistics):
+def attribute_statistics(filename, geom_attrib, statistics, **kwargs):
+    logging.info(
+        'Getting %s statistics for attribute %s in %s',
+        statistics,
+        geom_attrib,
+        filename
+    )
+    facets = get_faces(filename)
     return {
         'degree': degree_statistics,
         'area': area_statistics,
@@ -162,37 +172,35 @@ def attribute_statistics(filename, geom_attrib, statistics):
             statistics,
             get_relations(filename)
         )
-    }[geom_attrib](get_faces(filename), statistics)
+    }[geom_attrib](facets, statistics, **kwargs)
 
 
-def features(filename, attributes, statistics):
+def features(filename, attributes, statistics, **kwargs):
+    logging.info(
+        'Getting %s attributes for %s using %s',
+        attributes,
+        filename,
+        statistics
+    )
     return reduce(
         lambda _list, attr: _list + attribute_statistics(
             filename,
             attr,
-            statistics
+            statistics,
+            **kwargs
         ),
         attributes,
         [len(get_faces(filename))]
     )
 
 
-def features_anntotations(geom_attribs):
-    return enumerate(
-        reduce(
-            operator.add,
-            [
-                [
-                    attrib + '_' + stat
-                    for stat in ['min', 'max', 'mean', 'median']
-                ]
-                for attrib in geom_attribs
-            ]
-        )
+def geometric_features(graph_dir, attributes, statistics, **kwargs):
+    logging.info(
+        'Getting geometric features for all files in %s based %s and %s',
+        graph_dir,
+        attributes,
+        statistics
     )
-
-
-def geometric_features(graph_dir, attributes, statistics):
     return {
         os.path.splitext(graph)[0]: np.array(
             features(
@@ -209,6 +217,7 @@ def geometric_features(graph_dir, attributes, statistics):
 
 
 def read(filename):
+    logging.info('Read %s and construct corresponding graph.', filename)
     faces = get_faces(filename)
     G = get_graph(filename)
     nx.set_node_attributes(
@@ -232,6 +241,13 @@ def main():
         os.path.join(graph_dir, '3078.txt'),
         ['degree', 'area'],
         ['min', 'max']
+    )
+
+    print features(
+        os.path.join(graph_dir, '3078.txt'),
+        ['degree', 'area'],
+        'histogram',
+        bins=10
     )
 
     nx.draw(read(os.path.join(graph_dir, '3078.txt')))
