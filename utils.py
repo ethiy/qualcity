@@ -2,10 +2,22 @@
 # -*- coding: <utf-8> -*-
 
 import operator
-import pdb
+import functools
+
+import logging
+
+import numpy as np
+
+
+def check_iterable(iterable):
+    logging.debug('Checking if %s is iterable.', iterable)
+    if not hasattr(iterable, '__iter__'):
+        logging.critical('Rasing AttributeError error...')
+        raise AttributeError
 
 
 def median(iterable):
+    check_iterable(iterable)
     length = len(iterable)
     sorted_iterable = sorted(iterable)
     if length == 0:
@@ -23,7 +35,54 @@ def mean(iterable):
     return sum(iterable) / len(iterable)
 
 
+def histogram(iterable, **kwargs):
+    logging.debug('Computing histogram for %s', iterable)
+    check_iterable(iterable)
+    return np.histogram(np.array(iterable), **kwargs)
+
+
+def stat(statistic):
+    logging.debug(
+        'Getting statistic function correponding to %s...',
+        statistic
+    )
+    try:
+        return {
+            'min': min,
+            'max': max,
+            'mean': mean,
+            'median': median
+        }[statistic]
+    except KeyError:
+        logging.error('%s is not recognized as a statistic here', statistic)
+
+
+def stats(attribute, statistics, **kwargs):
+    logging.debug('Getting %s of %s...', statistics, attribute)
+    if statistics == 'histogram':
+        logging.debug('Getting histogram...')
+        return histogram(attribute, **kwargs)
+    elif type(statistics) is list:
+        return functools.reduce(
+            lambda _list, stat: (
+                _list
+                +
+                [
+                    stat(attribute)
+                ]
+            ),
+            filter(
+                lambda stat: callable(stat),
+                [stat(statistic) for statistic in statistics]
+            ),
+            []
+        )
+    else:
+        logging.error('%s not recognized', statistics)
+
+
 def fuse_elements(elements):
+    logging.debug('Sorting dictionnaries based on their length.')
     s, elements = zip(
         *sorted(
             enumerate(elements),
@@ -31,6 +90,7 @@ def fuse_elements(elements):
         )
     )
 
+    logging.debug('Separating keys and values.')
     keys, values = zip(
         *map(
             lambda el: zip(*el),
@@ -39,8 +99,14 @@ def fuse_elements(elements):
     )
 
     if not set(keys[0]) <= set(keys[1]):
+        logging.critical('The dictionnaries cannot be fused by keys!')
         raise LookupError
 
+    logging.debug(
+        'Getting the values in the bigest dictionnary corresponding to the '
+        +
+        'keys that are present in the smallest...'
+    )
     values_2 = [val for key, val in elements[1] if key in set(keys[0])]
 
     return list(
@@ -68,6 +134,8 @@ def fuse_elements(elements):
 
 
 def fuse(dict_1, dict_2):
+    logging.debug('Fusing %s and %s', dict_1, dict_2)
+    logging.debug('Sorting each dictionnary based its keys.')
     return dict(
         fuse_elements(
             map(
@@ -90,6 +158,14 @@ def main():
             {'4': 545, '10': 641, '8': 45},
             {'4': 15, '10': 8574}
         )
+    )
+
+    stat(max)
+    print(
+        stats([12, 5, 0, 11.1], ['max', 'min', 'histogram'])
+    )
+    print(
+        stats([12, 5, 0, 11.1], 'histogram', bins=range(0, 20))
     )
 
 
