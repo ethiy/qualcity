@@ -61,7 +61,7 @@ def stats(attribute, statistics, **kwargs):
     logging.debug('Getting %s of %s...', statistics, attribute)
     if statistics == 'histogram':
         logging.debug('Getting histogram...')
-        return histogram(attribute, **kwargs)
+        return list(histogram(attribute, **kwargs)[0])
     elif type(statistics) is list:
         return functools.reduce(
             lambda _list, stat: (
