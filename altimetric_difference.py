@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 import os
@@ -125,7 +125,7 @@ def building_intersections(filename, dsms):
 def find_building(filename, dsms):
     crops = [
         crop(dsm, bb)
-        for dsm, bb in building_intersections(filename, dsms).iteritems()
+        for dsm, bb in building_intersections(filename, dsms).items()
     ]
     idx, _ = max(
         enumerate([crp.shape for crp in crops]),
@@ -201,7 +201,7 @@ def histograms(raster_dir, dsm_dir, low_gran, big_gran):
         )
         if diff is not None
         else (None, None)
-        for raster, diff in diffs.iteritems()
+        for raster, diff in diffs.items()
     }
 
 
@@ -214,7 +214,7 @@ def histogram_features(raster_dir, dsm_dir, low_gran, big_gran):
             dsm_dir,
             low_gran,
             big_gran
-        ).iteritems()
+        ).items()
     }
 
 
@@ -229,10 +229,18 @@ def main():
 
     plt.clf()
     map(
-        lambda ((hist, bins), color): plt.step(bins[1:], hist, c=color),
+        lambda hist, bins, color: plt.step(bins[1:], hist, c=color),
         zip(
-            [_hist for _hist in hists.values() if _hist[0] is not None],
-            plt.cm.rainbow(np.linspace(0, 1, len(hists)))
+            (
+                zip(
+                    *[
+                        _hist
+                        for _hist in hists.values()
+                        if _hist[0] is not None
+                    ]
+                ),
+                plt.cm.rainbow(np.linspace(0, 1, len(hists)))
+            )
         )
     )
     plt.show()
