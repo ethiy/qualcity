@@ -8,15 +8,18 @@ import logging
 
 import numpy as np
 
+utils_logger = logging.getLogger('qualcity.' + __name__)
+
 
 def check_iterable(iterable):
-    logging.debug('Checking if %s is iterable.', iterable)
+    utils_logger.debug('Checking if %s is iterable.', iterable)
     if not hasattr(iterable, '__iter__'):
-        logging.critical('Rasing AttributeError error...')
+        utils_logger.critical('Rasing AttributeError error...')
         raise AttributeError
 
 
 def median(iterable):
+    utils_logger.debug('Computing the median of %s', iterable)
     check_iterable(iterable)
     length = len(iterable)
     sorted_iterable = sorted(iterable)
@@ -32,17 +35,23 @@ def median(iterable):
 
 
 def mean(iterable):
-    return sum(iterable) / len(iterable)
+    utils_logger.debug('Computing the mean of %s', iterable)
+    length = len(iterable)
+
+    if length == 0:
+        raise LookupError
+    else:
+        return sum(iterable) / len(iterable)
 
 
 def histogram(iterable, **kwargs):
-    logging.debug('Computing histogram for %s', iterable)
+    utils_logger.debug('Computing histogram for %s', iterable)
     check_iterable(iterable)
     return np.histogram(np.array(iterable), **kwargs)
 
 
 def stat(statistic):
-    logging.debug(
+    utils_logger.debug(
         'Getting statistic function correponding to %s...',
         statistic
     )
@@ -54,15 +63,19 @@ def stat(statistic):
             'median': median
         }[statistic]
     except KeyError:
-        logging.error('%s is not recognized as a statistic here', statistic)
+        utils_logger.exception(
+            '%s is not recognized as a statistic here:',
+            statistic
+        )
 
 
 def stats(attribute, statistics, **kwargs):
-    logging.debug('Getting %s of %s...', statistics, attribute)
+    utils_logger.info('Getting %s of %s...', statistics, attribute)
     if statistics == 'histogram':
-        logging.debug('Getting histogram...')
+        utils_logger.info('Getting histogram...')
         return list(histogram(attribute, **kwargs)[0])
     elif type(statistics) is list:
+        utils_logger.info('Getting the statistics list %s...', statistics)
         return functools.reduce(
             lambda _list, stat: (
                 _list
@@ -78,71 +91,30 @@ def stats(attribute, statistics, **kwargs):
             []
         )
     else:
-        logging.error('%s not recognized', statistics)
-
-
-def fuse_elements(elements):
-    logging.debug('Sorting dictionnaries based on their length.')
-    s, elements = zip(
-        *sorted(
-            enumerate(elements),
-            key=lambda c: len(c[1])
-        )
-    )
-
-    logging.debug('Separating keys and values.')
-    keys, values = zip(
-        *map(
-            lambda el: zip(*el),
-            elements
-        )
-    )
-
-    if not set(keys[0]) <= set(keys[1]):
-        logging.critical('The dictionnaries cannot be fused by keys!')
         raise LookupError
-
-    logging.debug(
-        'Getting the values in the bigest dictionnary corresponding to the '
-        +
-        'keys that are present in the smallest...'
-    )
-    values_2 = [val for key, val in elements[1] if key in set(keys[0])]
-
-    return list(
-            zip(
-                keys[0],
-                [
-                    (
-                        couple[s[0]],
-                        couple[s[1]]
-                    )
-                    for couple
-                    in zip(
-                        values[0],
-                        values_2
-                    )
-                ]
-            )
-        ) + [
-            (key, (None, val))
-            if s[0] == 0
-            else (key, (val, None))
-            for key, val in elements[1]
-            if key not in set(keys[0])
-        ]
 
 
 def fuse(dict_1, dict_2):
-    logging.debug('Fusing %s and %s', dict_1, dict_2)
-    logging.debug('Sorting each dictionnary based its keys.')
+    utils_logger.debug('Fusing %s and %s', dict_1, dict_2)
+    k1, k2 = map(
+        lambda d: d.keys(),
+        [dict_1, dict_2]
+    )
     return dict(
-        fuse_elements(
-            map(
-                lambda d: sorted(d, key=operator.itemgetter(0)),
-                [dict_1.items(), dict_2.items()]
-            )
-        )
+        [
+            (key, (dict_1[key], dict_2[key]))
+            for key in set(k1) & set(k2)
+        ]
+        +
+        [
+            (key, (dict_1[key], None))
+            for key in set(k1) - set(k2)
+        ]
+        +
+        [
+            (key, (None, dict_2[key]))
+            for key in set(k2) - set(k1)
+        ]
     )
 
 
@@ -156,7 +128,7 @@ def main():
     print(
         fuse(
             {'4': 545, '10': 641, '8': 45},
-            {'4': 15, '10': 8574}
+            {'4': 15, '10': 8574, '7': 9473}
         )
     )
 
