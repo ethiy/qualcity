@@ -18,9 +18,11 @@ import matplotlib.pyplot as plt
 
 import utils
 
+geom_logger = logging.getLogger('qualcity.' + __name__)
+
 
 def read_features(line):
-    logging.debug('Reading face features...')
+    geom_logger.debug('Reading face features from line %s...', line)
     (
         face_id,
         degree,
@@ -56,21 +58,21 @@ def read_features(line):
 
 
 def get_lines(filename):
-    logging.info('Getting lines of %s', filename)
-    with open(filename, 'r') as file:
-        lines = list(file)
+    geom_logger.info('Lines of %s', filename)
+    geom_logger.info('Opening file %s in read mode', filename)
+    with open(filename, 'r') as _file:
+        lines = list(_file)
+        geom_logger.debug('Lines are \n: %s', lines)
     return lines
 
 
-def get_faces(filename):
-    logging.info('Getting faces and their attributes in %s...', filename)
-    lines = get_lines(filename)
+def get_faces(lines):
+    geom_logger.debug('Faces and their attributes in %s...', lines)
     return dict([read_features(face) for face in lines[:len(lines) // 2]])
 
 
-def get_adjacency_matrix(filename):
-    logging.info('Getting the facets adjacency matrix in %s', filename)
-    lines = get_lines(filename)
+def get_adjacency_matrix(lines):
+    geom_logger.debug('Facets adjacency matrix in %s', lines)
     return np.array(
         [
             [int(bit) for bit in line.split(" ")]
@@ -79,34 +81,34 @@ def get_adjacency_matrix(filename):
     )
 
 
-def get_graph(filename):
-    logging.info('Getting the graph in %s', filename)
+def get_graph(lines):
+    geom_logger.debug('Graph from %s', lines)
     return nx.from_numpy_matrix(
         get_adjacency_matrix(
-            filename
+            lines
         )
     )
 
 
-def get_relations(filename):
-    logging.info('Getting pairs of related faces in %s', filename)
-    i, j = np.where(get_adjacency_matrix(filename) == 1)
+def get_relations(lines):
+    geom_logger.debug('Pairs of related faces in %s', lines)
+    i, j = np.where(get_adjacency_matrix(lines) == 1)
     return filter(lambda x: x[0] != x[1], zip(*[i, j]))
 
 
 def degree_statistics(faces, statistics, **kwargs):
-    logging.info('Getting facet degree statistics (i.e. %s)', statistics)
+    geom_logger.info('Facet degree statistics (i.e. %s)', statistics)
     return utils.stats([face[0] for face in faces.values()], statistics)
 
 
 def area_statistics(faces, statistics, **kwargs):
-    logging.info('Getting facet area statistics (i.e. %s)', statistics)
+    geom_logger.info('Facet area statistics (i.e. %s)', statistics)
     return utils.stats([face[1] for face in faces.values()], statistics)
 
 
 def centroid_statistics(faces, statistics, relations=[], **kwargs):
-    logging.info(
-        'Getting facets centroid statistics (i.e. %s) with%s relations',
+    geom_logger.info(
+        'Facets centroid statistics (i.e. %s) with%s relations',
         statistics,
         'out' if len(relations) == 0 else ''
     )
@@ -127,8 +129,8 @@ def centroid_statistics(faces, statistics, relations=[], **kwargs):
 
 
 def angle_statistics(faces, statistics, relations=[], **kwargs):
-    logging.info(
-        'Getting facets angle statistics (i.e. %s) with%s relations',
+    geom_logger.info(
+        'Facets angle statistics (i.e. %s) with%s relations',
         statistics,
         'out' if len(relations) == 0 else ''
     )
@@ -151,14 +153,15 @@ def angle_statistics(faces, statistics, relations=[], **kwargs):
     )
 
 
-def attribute_statistics(filename, geom_attrib, statistics, **kwargs):
-    logging.info(
-        'Getting %s statistics for attribute %s in %s',
+def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
+    geom_logger.info(
+        'Getting %s statistics for attribute %s',
         statistics,
-        geom_attrib,
-        filename
+        geom_attrib
     )
-    facets = get_faces(filename)
+    geom_logger.info('Getting facets...')
+    faces = get_faces(lines)
+    geom_logger.debug('Facets in %s : %s...')
     return {
         'degree': degree_statistics,
         'area': area_statistics,
@@ -166,38 +169,44 @@ def attribute_statistics(filename, geom_attrib, statistics, **kwargs):
         'centroid_bis': lambda faces, statistics: centroid_statistics(
             faces,
             statistics,
-            get_relations(filename)
+            get_relations(lines)
         ),
         'angle': angle_statistics,
         'angle_bis': lambda faces, statistics: angle_statistics(
             faces,
             statistics,
-            get_relations(filename)
+            get_relations(lines)
         )
-    }[geom_attrib](facets, statistics, **kwargs)
+    }[geom_attrib](faces, statistics, **kwargs)
 
 
 def features(filename, attributes, statistics, **kwargs):
-    logging.info(
+    geom_logger.info(
         'Getting %s attributes for %s using %s',
         attributes,
         filename,
         statistics
     )
-    return functools.reduce(
-        lambda _list, attr: _list + attribute_statistics(
-            filename,
-            attr,
-            statistics,
-            **kwargs
-        ),
-        attributes,
-        [len(get_faces(filename))]
-    )
+    try:
+        geom_logger.info('Getting lines in %s...', filename)
+        lines = get_lines(filename)
+        geom_logger.info('Finished getting lines in %s...', filename)
+        return functools.reduce(
+            lambda _list, attr: _list + attribute_statistics(
+                lines,
+                attr,
+                statistics,
+                **kwargs
+            ),
+            attributes,
+            [len(lines) // 2]
+        )
+    except Exception:
+        geom_logger.exception('Could not extract features for %s:', filename)
 
 
 def geometric_features(graph_dir, attributes, statistics, **kwargs):
-    logging.info(
+    geom_logger.info(
         'Getting geometric features for all files in %s based %s and %s',
         graph_dir,
         attributes,
@@ -219,9 +228,17 @@ def geometric_features(graph_dir, attributes, statistics, **kwargs):
 
 
 def read(filename):
-    logging.info('Read %s and construct corresponding graph.', filename)
-    faces = get_faces(filename)
-    G = get_graph(filename)
+    geom_logger.info('Read %s and construct corresponding graph.', filename)
+    geom_logger.info('Getting lines in %s...', filename)
+    lines = get_lines(filename)
+    geom_logger.info('Finished getting lines in %s...', filename)
+
+    geom_logger.info('Getting facets...')
+    faces = get_faces(lines)
+    geom_logger.debug('Facets in %s : %s...', lines, faces)
+    geom_logger.info('Getting the graph structure...')
+    G = get_graph(lines)
+    geom_logger.debug('The graph structure in %s : %s...', lines, G)
     nx.set_node_attributes(
         G, 'degree', {idx: faces[idx][0] for idx in range(len(faces))})
     nx.set_node_attributes(
