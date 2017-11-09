@@ -135,13 +135,18 @@ def find_building(filename, dsms):
 
 
 def altimetric_difference(filename, dsm_dir):
-    return find_building(filename, get_dsms(dsm_dir)) - read(filename)
+    building_dsm = find_building(filename, get_dsms(dsm_dir))
+    model_dsm = read(filename)
+    if building_dsm.shape == model_dsm.shape:
+        return find_building(filename, get_dsms(dsm_dir)) - read(filename)
+    else:
+        return
 
 
 def histogram_bins(diffs, near_zero_gran, big_gran):
     sorted_diffs = sorted(
         np.hstack(
-            tuple([diff.flatten() for diff in diffs])
+            tuple([diff.flatten() for diff in diffs if diff is not None])
         )
     )
     min_max, max_min, _ = max(
@@ -171,19 +176,11 @@ def histogram_bins(diffs, near_zero_gran, big_gran):
     )
 
 
-def qualified_building_diffs(raster_dir, labels_dir, dsm_dir):
+def qualified_building_diffs(raster_dir, dsm_dir):
     rasters = fnmatch.filter(
         os.listdir(raster_dir),
         '*.tiff'
     )
-
-    labels = {
-        os.path.splitext(graph)[0]: labels_io.error_classes(
-            os.path.join(labels_dir, graph),
-            5
-        )
-        for graph in fnmatch.filter(os.listdir(labels_dir), '*.shp')
-    }
 
     return {
         raster: altimetric_difference(
@@ -191,31 +188,29 @@ def qualified_building_diffs(raster_dir, labels_dir, dsm_dir):
             dsm_dir
         )
         for raster in rasters
-        if labels[
-            os.path.splitext(raster)[0]
-        ] != 'Unqualified'
     }
 
 
-def histograms(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
-    diffs = qualified_building_diffs(raster_dir, labels_dir, dsm_dir)
+def histograms(raster_dir, dsm_dir, low_gran, big_gran):
+    diffs = qualified_building_diffs(raster_dir, dsm_dir)
     bins = histogram_bins(diffs.values(), low_gran, big_gran)
     return {
         raster: np.histogram(
             diff.flatten(),
             bins
         )
+        if diff is not None
+        else (None, None)
         for raster, diff in diffs.iteritems()
     }
 
 
-def histogram_features(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
+def histogram_features(raster_dir, dsm_dir, low_gran, big_gran):
     return {
         os.path.splitext(raster)[0]: histogram
         for raster, (histogram, _)
         in histograms(
             raster_dir,
-            labels_dir,
             dsm_dir,
             low_gran,
             big_gran
@@ -223,111 +218,23 @@ def histogram_features(raster_dir, labels_dir, dsm_dir, low_gran, big_gran):
     }
 
 
-def visualize_feature(ax, color, features):
-    if features.shape[0] > 1:
-        x, y, z = zip(
-            *[
-                list(couple)
-                for couple
-                in list(
-                    sklearn.decomposition.PCA(n_components=3).fit_transform(
-                        features
-                    )
-                )
-            ]
-        )
-        ax.scatter(x, y, z, c=color)
-
-
 def main():
     raster_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
         'export-3DS/rasters'
     )
-    labels_dir = os.path.join(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/',
-        'export-3DS/_labels'
-    )
 
-    hists = histograms(raster_dir, labels_dir, DSM_DIR, 100, 100)
+    hists = histograms(raster_dir, DSM_DIR, 100, 100)
+    print(hists)
 
     plt.clf()
     map(
         lambda ((hist, bins), color): plt.step(bins[1:], hist, c=color),
         zip(
-            hists.values(),
+            [_hist for _hist in hists.values() if _hist[0] is not None],
             plt.cm.rainbow(np.linspace(0, 1, len(hists)))
         )
     )
-
-    labels = [
-        label
-        for _, label in sorted(
-            labels_io.labels_map(labels_dir).iteritems(),
-            key=operator.itemgetter(0)
-        )
-        if label != 1
-    ]
-
-    altimetric_features = [
-        feature
-        for _, feature in sorted(
-            histogram_features(
-                raster_dir,
-                labels_dir,
-                DSM_DIR,
-                100,
-                100
-            ).iteritems(),
-            key=operator.itemgetter(0)
-        )
-    ]
-
-    centers = 7
-    start = time.time()
-    print 'Spectral Clustering: ', centers
-    cluster_labels = sklearn.cluster.SpectralClustering(
-        n_clusters=centers,
-        n_jobs=1
-    ).fit_predict(
-        altimetric_features
-    )
-
-    print 'Time taken = ', time.time() - start, 'sec'
-
-    figure = plt.figure()
-    ax = Axes3D(figure)
-
-    features_per_clusters = [
-        np.array(
-            [
-                altimetric_features[idx]
-                for idx, _
-                in filter(
-                    lambda (_, label): label == cluster,
-                    enumerate(cluster_labels)
-                )
-            ]
-        )
-        for cluster in set(cluster_labels)
-    ]
-
-    for cl in features_per_clusters:
-        print cl.shape
-
-    map(
-        lambda (color, features): visualize_feature(
-            ax,
-            color,
-            features
-        ),
-        zip(
-            plt.cm.rainbow(np.linspace(0, 1, centers)),
-            features_per_clusters
-        )
-    )
-    ax.legend()
-
     plt.show()
 
 
