@@ -1,14 +1,19 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-from __future__ import print_function
-
 import operator
+
+import logging
+
+import functools
 
 import os
 import fnmatch
 
 import shapefile
+
+label_logger = logging.getLogger('qualcity.' + __name__)
+
 
 SHAPEFILE = "ESRI Shapefile"
 
@@ -73,15 +78,15 @@ CLASSES = {
     3: 'Facet'
 }
 
-INV_CLASSES = {v: k for k, v in CLASSES.iteritems()}
+INV_CLASSES = {v: k for k, v in CLASSES.items()}
 
 
-def labels_map(labels_dir, hierarchical, level, LoD, threshold):
+def labels_map(labels_dir, hierarchical, depth, LoD, threshold):
     return {
         os.path.splitext(shape)[0]: errors(
             os.path.join(labels_dir, shape),
             hierarchical,
-            level,
+            depth,
             LoD,
             threshold
         )
@@ -93,13 +98,15 @@ def labels_map(labels_dir, hierarchical, level, LoD, threshold):
 
 
 def entry(error):
-    for _error, synonyms in ERROR_DICTIONARY.iteritems():
+    label_logger.debug('Get error %s correct form', error)
+    for _error, synonyms in ERROR_DICTIONARY.items():
         if error in synonyms:
             return _error
     raise LookupError
 
 
 def set_score(error):
+    label_logger.debug('Score of raw error %s', error)
     raw = error.split(': ')
     if len(raw) == 2:
         return (raw[0], int(raw[1]))
@@ -110,10 +117,12 @@ def set_score(error):
 
 
 def list_errors(errors):
+    label_logger.debug('List errors in %s', errors)
     return [set_score(error) for error in errors.split(', ')]
 
 
 def get_errors(feature):
+    label_logger.debug('Raw errors from feature %s', feature)
     return (
         list_errors(feature[-3]),
         list_errors(feature[-2]),
@@ -122,8 +131,10 @@ def get_errors(feature):
 
 
 def read(filename):
+    label_logger.info('Reading labels from %s', filename)
     records = shapefile.Reader(filename).records()
-    return reduce(
+    label_logger.debug('Records in %s are: %s', filename, records)
+    return functools.reduce(
         lambda lhs, rhs: (
             lhs[0] + rhs[0],
             lhs[1] + rhs[1],
@@ -134,19 +145,26 @@ def read(filename):
 
 
 def lint(errors):
+    label_logger.debug('Linting errors %s', errors)
     linted = {
         error: score
-        for error, score in errors.iteritems()
+        for error, score in errors.items()
         if error not in ERROR_DICTIONARY['None']
     }
     return linted if linted != {} else 'None'
 
 
 def unify_errors(filename):
-    unique_errors = map(lambda t: list(set(t)), read(filename))
-    max_score_errors = map(
-        lambda _unique_errors: {
-            error: reduce(
+    label_logger.debug('Unifying errors in building %s', filename)
+    unique_errors = [list(set(t)) for t in read(filename)]
+    label_logger.debug(
+        'Unique errors in %s are: %s',
+        filename,
+        unique_errors
+    )
+    max_score_errors = [
+        {
+            error: functools.reduce(
                 max,
                 [
                     _couple[1]
@@ -158,8 +176,13 @@ def unify_errors(filename):
                 ]
             )
             for error in dict(_unique_errors).keys()
-        },
-        unique_errors
+        }
+        for _unique_errors in unique_errors
+    ]
+    label_logger.debug(
+        'Maximum score errors in %s are: %s',
+        filename,
+        list(max_score_errors)
     )
     return map(
         lint,
@@ -168,26 +191,30 @@ def unify_errors(filename):
 
 
 def class_error(errors):
+    label_logger.debug('Meta class %s score', errors)
     return 0 if errors == 'None' else max(errors.values())
 
 
 def errors_per_building(filename):
-    return map(
-        lambda _unified_errors: {
-            error: reduce(
-                max,
-                [
-                    _unified_errors[synonym]
-                    for synonym in ERROR_DICTIONARY[error]
-                    if synonym in _unified_errors.keys()
-                ]
-            )
-            for error in set(
-                [entry(key) for key in _unified_errors.keys()]
-            )
-        }
-        if _unified_errors != 'None' else 'None',
-        unify_errors(filename)
+    label_logger.info('Labels in %s', filename)
+    return list(
+        map(
+            lambda _unified_errors: {
+                error: functools.reduce(
+                    max,
+                    [
+                        _unified_errors[synonym]
+                        for synonym in ERROR_DICTIONARY[error]
+                        if synonym in _unified_errors.keys()
+                    ]
+                )
+                for error in set(
+                    [entry(key) for key in _unified_errors.keys()]
+                )
+            }
+            if _unified_errors != 'None' else 'None',
+            unify_errors(filename)
+        )
     )
 
 
@@ -210,16 +237,35 @@ def error_classes(filename, threshold):
         return 'None'
 
 
-def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
+def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
+    label_logger.info(
+        '%srrors in %s with depth %s, LoD %s and threshold %s',
+        'Hierarchical e' if hierarchical else 'E',
+        filename,
+        depth,
+        LoD,
+        threshold
+    )
+    label_logger.info('Getting errors in array shape...')
     unq_array, bul_array, fac_array = error_arrays(filename, threshold)
+    label_logger.debug(
+        'Error arrays are %s: ',
+        [unq_array, bul_array, fac_array]
+    )
     unq, bul, fac = [
         int(sum(meta) > 0) for meta in [unq_array, bul_array, fac_array]
     ]
-    if level > 2:
+    label_logger.debug(
+        'Array compiling presence of errors %s',
+        [unq, bul, fac]
+    )
+    if depth > 2:
         ValueError
-    elif level == 0:
-        return 'Unqualified' if unq > 0 else 'Qualified'
-    elif level == 1:
+    elif depth == 0:
+        return 'Unqualified' if unq > 0 else (
+            'Error' if (bul + fac) > 0 else 'None'
+        )
+    elif depth == 1:
         if hierarchical:
             return CLASSES[
                 unq * 1
@@ -230,7 +276,7 @@ def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
             ]
         else:
             return [unq] + int(LoD > 0) * [bul] + int(LoD > 1) * [fac]
-    elif level == 2:
+    elif depth == 2:
         if hierarchical:
             return (
                 unq * ('Unqualified', None)
@@ -264,6 +310,13 @@ def errors(filename, hierarchical=True, level=2, LoD=2, threshold=5):
 
 
 def exists(sub_error, error_type, errors, threshold):
+    label_logger.info(
+        'Existance of sub_error %s of error_type %s in %s with threshold %s',
+        sub_error,
+        error_type,
+        errors,
+        threshold
+    )
     if errors[ERROR_CATEGORY_INDEX[error_type]] == 'None':
         return 0
     elif sub_error not in errors[ERROR_CATEGORY_INDEX[error_type]].keys():
@@ -274,17 +327,42 @@ def exists(sub_error, error_type, errors, threshold):
         )
 
 
-def error_array(filename, threshold, error_type):
-    errs = errors_per_building(filename)
-    return map(
-        lambda sub_error: exists(sub_error, error_type, errs, threshold),
-        ERROR_CATEGORY_DICTIONARY[error_type]
+def error_array(error_dict, threshold, error_type):
+    label_logger.info(
+        'Errors in %s of type %s in array shape with threshold %s',
+        error_dict,
+        error_type,
+        threshold
+    )
+
+    return list(
+        map(
+            lambda sub_error: exists(
+                sub_error,
+                error_type,
+                error_dict,
+                threshold
+            ),
+            ERROR_CATEGORY_DICTIONARY[error_type]
+        )
     )
 
 
 def error_arrays(filename, threshold):
+    label_logger.info(
+        'Errors of %s in array shape with threshold %s',
+        filename,
+        threshold
+    )
+    label_logger.info(
+        'Errors of %s in dictionary shape with threshold %s',
+        filename,
+        threshold
+    )
+    error_dict = errors_per_building(filename)
+
     return [
-        error_array(filename, threshold, error_type)
+        error_array(error_dict, threshold, error_type)
         for error_type in ['Unqualified', 'Building', 'Facet']
     ]
 
@@ -327,7 +405,7 @@ def similtaneous_errors_scores(labels_dir, files, first, second):
 
 def score_similtaneous_errors(labels_dir, files, first, second):
     return float(
-        reduce(
+        functools.reduce(
             lambda x, y: x + y,
             [
                 min(couple)
@@ -363,7 +441,7 @@ def list_category_errors(error_category, labels_dir, files):
 
 def score_category_errors(error_category, labels_dir, files):
     return float(
-        reduce(
+        functools.reduce(
             operator.add,
             [
                 max(dic.values())
@@ -385,14 +463,14 @@ def errors_statistics(error, error_category, labels_dir, files):
         files
     )
     errors = filter(
-        lambda _errors: reduce(
+        lambda _errors: functools.reduce(
             lambda x, y: x or y,
             [error in _errors.keys()]
         ),
         category_errors
     )
     number_of_errors = float(
-        reduce(
+        functools.reduce(
             operator.add,
             [max(dic.values()) for dic in errors]
         )
@@ -462,17 +540,24 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    print(errors_per_building(os.path.join(labels_dir, files[0])))
-    print(error_arrays(os.path.join(labels_dir, files[0]), 5))
+    label_logger.setLevel(logging.DEBUG)
+    fh = logging.StreamHandler()
+    fh.setLevel(logging.WARN)
+    label_logger.addHandler(fh)
+
+    print(list(errors_per_building(os.path.join(labels_dir, files[0]))))
+    print(list(error_arrays(os.path.join(labels_dir, files[0]), 5)))
     print(
-        map(
-            lambda fil: errors(
-                os.path.join(labels_dir, fil),
-                hierarchical=True,
-                level=2,
-                LoD=0
-            ),
-            files
+        list(
+            map(
+                lambda fil: errors(
+                    os.path.join(labels_dir, fil),
+                    hierarchical=True,
+                    depth=0,
+                    LoD=0
+                ),
+                files
+            )
         )
     )
 
