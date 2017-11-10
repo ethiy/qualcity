@@ -29,6 +29,36 @@ import labels_io
 import utils
 
 logger = logging.getLogger('qualcity')
+default_config = {
+    'version': 1,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'WARN',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'verbose',
+            'filename': 'qualcity-' + time.ctime() + '.log'
+        }
+    },
+    'loggers': {
+        'qualcity': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        }
+    }
+}
 
 
 def altimetric_features(depth, raster_dir, resolution):
@@ -86,39 +116,19 @@ def main():
     )
 
     logging.config.dictConfig(
-        {
-            'version': 1,
-            'formatters': {
-                'verbose': {
-                    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-                },
-                'simple': {
-                    'format': '%(levelname)s %(message)s'
-                },
-            },
-            'handlers': {
-                'console': {
-                    'level': 'WARN',
-                    'class': 'logging.StreamHandler',
-                    'formatter': 'verbose'
-                },
-                'file': {
-                    'level': 'DEBUG',
-                    'class': 'logging.FileHandler',
-                    'formatter': 'verbose',
-                    'filename': 'qualcity-' + time.ctime() + '.log'
-                }
-            },
-            'loggers': {
-                'qualcity': {
-                    'handlers': ['console', 'file'],
-                    'level': 'INFO',
-                }
-            }
-        }
+        default_config
     )
 
     configuration = load_config(arguments['<config_file>'])
+    configuration['logging']['handlers']['file']['filename'] = (
+        'qualcity-' + time.ctime() + '.log'
+    )
+    configuration['logging']['loggers']['qualcity']['level'] = (
+        'DEBUG' if arguments['--verbose'] else 'INFO'
+    )
+    logging.config.dictConfig(
+        configuration['logging']
+    )
     logger.debug(yaml.dump(configuration))
     logger.info('Pipeline loaded.')
 
