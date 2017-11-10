@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 """qualcity.
@@ -15,6 +15,8 @@ Options:
 import docopt
 
 import time
+
+import functools
 
 import yaml
 
@@ -48,7 +50,7 @@ def features(depth, feat_type, **kwargs):
 
 def get_features(depth, config):
     logger.info('Getting features ...')
-    return reduce(
+    return functools.reduce(
         utils.fuse,
         [
             features(depth, feat_type, **config[feat_type])
