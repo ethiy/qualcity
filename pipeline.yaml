@@ -4,7 +4,7 @@ scene:
 labels:
   labels_dir:
     /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-  level: 1
+  depth: 1
   LoD: 2
   hierarchical: True
 
@@ -23,7 +23,7 @@ features:
   altimetric:
     raster_dir:
       /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
-    granularity: 100
+    resolution: 100
 
 manifold:
   algorithm: KernelPCA
