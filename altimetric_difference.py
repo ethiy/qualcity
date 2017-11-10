@@ -11,14 +11,10 @@ import operator
 
 import numpy as np
 
-import sklearn.cluster
-import sklearn.model_selection
-
 import gdal
 import gdalconst
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 import labels_io
 
