@@ -21,6 +21,7 @@ import functools
 import yaml
 
 import logging
+import logging.config
 
 import altimetric_difference
 import geometry_io
@@ -84,21 +85,38 @@ def main():
         options_first=False
     )
 
-    logger.setLevel(logging.DEBUG if arguments['--verbose'] else logging.INFO)
-
-    fh = logging.FileHandler('qualcity-' + time.ctime() + '.log')
-    fh.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.WARN)
-
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.config.dictConfig(
+        {
+            'version': 1,
+            'formatters': {
+                'verbose': {
+                    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                },
+                'simple': {
+                    'format': '%(levelname)s %(message)s'
+                },
+            },
+            'handlers': {
+                'console': {
+                    'level': 'WARN',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'verbose'
+                },
+                'file': {
+                    'level': 'DEBUG',
+                    'class': 'logging.FileHandler',
+                    'formatter': 'verbose',
+                    'filename': 'qualcity-' + time.ctime() + '.log'
+                }
+            },
+            'loggers': {
+                'qualcity': {
+                    'handlers': ['console', 'file'],
+                    'level': 'INFO',
+                }
+            }
+        }
     )
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
-
-    logger.addHandler(fh)
-    logger.addHandler(ch)
 
     configuration = load_config(arguments['<config_file>'])
     logger.debug(yaml.dump(configuration))
