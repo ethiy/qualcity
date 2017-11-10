@@ -7,8 +7,12 @@
 build
 dist
 qualcity.egg-info
+__pycache__
 
 # Trees
 *.ps
 *.dot
 *.png
+
+# Log files
+*.log
