@@ -1,25 +1,3 @@
-logging:
-  version: 1
-  formatters:
-    precise:
-      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    brief:
-      format: '%(levelname)s %(message)s'
-  handlers:
-    console:
-      level: WARN
-      class: logging.StreamHandler
-      formatter: precise
-    file:
-      level: DEBUG
-      class: logging.FileHandler
-      formatter: precise
-  loggers:
-    qualcity:
-      handlers:
-        - console
-        - file
-
 scene:
   /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
 
@@ -35,10 +13,7 @@ features:
     graph_dir:
       /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
     statistics:
-      - max
-      - min
-      - mean
-      - median
+      histogram
     attributes:
       - degree
       - angle

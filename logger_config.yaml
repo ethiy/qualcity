@@ -1,0 +1,21 @@
+logging:
+  version: 1
+  formatters:
+    precise:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    brief:
+      format: '%(levelname)s %(message)s'
+  handlers:
+    console:
+      level: WARN
+      class: logging.StreamHandler
+      formatter: precise
+    file:
+      level: DEBUG
+      class: logging.FileHandler
+      formatter: precise
+  loggers:
+    qualcity:
+      handlers:
+        - console
+        - file
