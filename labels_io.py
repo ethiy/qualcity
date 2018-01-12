@@ -60,20 +60,20 @@ FACET_ERROR_LIST = [
 ]
 
 ERROR_CATEGORY_DICTIONARY = {
-    'Unqualified': UNQUALIFIED_ERROR_LIST,
+    'Unqualifiable': UNQUALIFIED_ERROR_LIST,
     'Building': BUILDING_ERROR_LIST,
     'Facet': FACET_ERROR_LIST
 }
 
 ERROR_CATEGORY_INDEX = {
-    'Unqualified': 0,
+    'Unqualifiable': 0,
     'Building': 1,
     'Facet': 2
 }
 
 CLASSES = {
-    0: 'None',
-    1: 'Unqualified',
+    0: 'Valid',
+    1: 'Unqualifiable',
     2: 'Building',
     3: 'Facet'
 }
@@ -228,7 +228,7 @@ def error_class_score(filename):
 def error_classes(filename, threshold):
     unq, bul, fac = error_class_score(filename)
     if unq >= threshold:
-        return 'Unqualified'
+        return 'Unqualifiable'
     elif bul >= threshold:
         return 'Building'
     elif fac >= threshold:
@@ -259,13 +259,11 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
         'Array compiling presence of errors %s',
         [unq, bul, fac]
     )
-    if depth > 2:
-        ValueError
-    elif depth == 0:
-        return 'Unqualified' if unq > 0 else (
-            'Error' if (bul + fac) > 0 else 'None'
-        )
+    if depth == 0:
+        return 'Unqualifiable' if unq > 0 else 'Qualifiable'
     elif depth == 1:
+        return 'Error' if unq + bul + fac > 0 else 'Valid'
+    elif depth == 2:
         if hierarchical:
             return CLASSES[
                 unq * 1
@@ -275,38 +273,31 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
                 int(LoD > 1) * (1 - unq) * (1 - bul) * fac * 3
             ]
         else:
-            return [unq] + int(LoD > 0) * [bul] + int(LoD > 1) * [fac]
-    elif depth == 2:
+            return 'Unqualifiable' if unq > 0 else (
+                int(LoD > 0) * [bul] + int(LoD > 1) * [fac]
+            )
+    elif depth == 3:
         if hierarchical:
-            return (
-                unq * ('Unqualified', None)
-                +
-                (1 - unq) * bul * (
-                    int(LoD > 0) * ('Building', bul_array)
-                    +
-                    int(LoD == 0) * ('None', None)
-                )
-                +
-                (
-                    (1 - unq) * (1 - bul) * fac * (
-                        int(LoD > 1) * ('Facet', fac_array)
-                        +
-                        int(LoD <= 1) * ('None', None)
+            if unq > 0:
+                return 'Unqualifiable'
+            elif unq + bul + fac == 0:
+                return 'Valid'
+            else:
+                return (
+                    (
+                        ('Building', bul_array) if LoD > 0 else 'Valid'
+                    ) if bul else fac * (
+                        ('Facet', fac_array) if LoD > 1 else 'Valid'
                     )
                 )
-                +
-                (1 - unq) * (1 - bul) * (1 - fac) * ('None', None)
-            )
         else:
-            return (
-                [int(sum(unq_array) > 0)]
-                +
+            return 'Unqualifiable' if unq > 0 else (
                 int(LoD > 0) * bul_array
                 +
                 int(LoD > 1) * fac_array
             )
     else:
-        return None
+        ValueError
 
 
 def exists(sub_error, error_type, errors, threshold):
@@ -363,7 +354,7 @@ def error_arrays(filename, threshold):
 
     return [
         error_array(error_dict, threshold, error_type)
-        for error_type in ['Unqualified', 'Building', 'Facet']
+        for error_type in ['Unqualifiable', 'Building', 'Facet']
     ]
 
 
@@ -553,8 +544,8 @@ def main():
                 lambda fil: errors(
                     os.path.join(labels_dir, fil),
                     hierarchical=True,
-                    depth=0,
-                    LoD=0
+                    depth=3,
+                    LoD=1
                 ),
                 files
             )
