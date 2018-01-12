@@ -5,7 +5,7 @@
 
 Usage:
     qualcity.py (-h | --help)
-    qualcity.py pipeline <config_file> [--verbose]
+    qualcity.py pipeline <pipeline_config> [logger <logger_config>] [--verbose]
 
 Options:
     -h --help           Show this screen.
@@ -101,9 +101,32 @@ def get_labels(hierarchical, depth, LoD, labels_dir):
     )
 
 
-def load_config(file):
+def config_logger(arguments):
+    if not arguments['logger']:
+        logging.config.dictConfig(
+            default_config
+        )
+        logger.info('Default logger chosen.')
+    else:
+        with open(arguments['<logger_config>'], mode='r') as conf:
+            configuration = yaml.load(conf)
+
+        configuration['handlers']['file']['filename'] = (
+            'qualcity-' + time.ctime() + '.log'
+        )
+        configuration['loggers']['qualcity']['level'] = (
+            'DEBUG' if arguments['--verbose'] else 'INFO'
+        )
+        logging.config.dictConfig(
+            configuration
+        )
+        logger.info('Loaded logger from: ' + arguments['<logger_config>'])
+        logger.debug(yaml.dump(configuration))
+
+
+def load_pipeline_config(pip_conf):
     logger.info('Loading pipeline configuration file...')
-    with open(file, mode='r') as conf:
+    with open(pip_conf, mode='r') as conf:
         return yaml.load(conf)
 
 
@@ -115,21 +138,9 @@ def main():
         options_first=False
     )
 
-    logging.config.dictConfig(
-        default_config
-    )
+    config_logger(arguments)
 
-    configuration = load_config(arguments['<config_file>'])
-    configuration['logging']['handlers']['file']['filename'] = (
-        'qualcity-' + time.ctime() + '.log'
-    )
-    configuration['logging']['loggers']['qualcity']['level'] = (
-        'DEBUG' if arguments['--verbose'] else 'INFO'
-    )
-    logging.config.dictConfig(
-        configuration['logging']
-    )
-    logger.debug(yaml.dump(configuration))
+    configuration = load_pipeline_config(arguments['<pipeline_config>'])
     logger.info('Pipeline loaded.')
 
     labels = get_labels(
