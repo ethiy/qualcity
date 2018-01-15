@@ -22,15 +22,16 @@ features:
       /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
     resolution: 100
 
-manifold:
-  algorithm: KernelPCA
-  dimension: 100
-
-pipeline:
-  visualize:
-    algorithm: PCA
-    dimension: 3
-  classify:
+processing:
+  visualization:
+    manifold:
+      algorithm: KernelPCA
+      dimension: 100
+    dimension_reduction:
+      algorithm: PCA
+      arguments:
+        parameters: 3
+  classification:
     data_separation:
       cross_validation:
         10
