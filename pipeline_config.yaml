@@ -25,12 +25,13 @@ features:
 processing:
   visualization:
     manifold:
-      algorithm: KernelPCA
-      dimension: 100
+      algorithm: DictionaryLearning
+      parameters:
+        n_components: 100
     dimension_reduction:
       algorithm: PCA
-      arguments:
-        parameters: 3
+      parameters:
+        n_components: 3
   classification:
     data_separation:
       cross_validation:
