@@ -262,7 +262,9 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
     if depth == 0:
         return 'Unqualifiable' if unq > 0 else 'Qualifiable'
     elif depth == 1:
-        return 'Error' if unq + bul + fac > 0 else 'Valid'
+        return 'Unqualifiable' if unq > 0 else (
+            'Error' if bul + fac > 0 else 'Valid'
+        )
     elif depth == 2:
         if hierarchical:
             return CLASSES[
@@ -544,7 +546,7 @@ def main():
                 lambda fil: errors(
                     os.path.join(labels_dir, fil),
                     hierarchical=True,
-                    depth=3,
+                    depth=2,
                     LoD=1
                 ),
                 files
