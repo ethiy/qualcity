@@ -17,11 +17,13 @@ import docopt
 import time
 
 import functools
+import operator
 
 import yaml
 
 import logging
 import logging.config
+import colorlog
 
 import sklearn.decomposition
 import sklearn.manifold
