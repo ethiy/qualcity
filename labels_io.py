@@ -299,7 +299,7 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
                 int(LoD > 1) * fac_array
             )
     else:
-        ValueError
+        raise ValueError
 
 
 def exists(sub_error, error_type, errors, threshold):
