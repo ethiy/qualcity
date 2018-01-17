@@ -4,7 +4,7 @@ scene:
 labels:
   labels_dir:
     /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-  depth: 1
+  depth: 2
   LoD: 2
   hierarchical: True
 
@@ -25,13 +25,22 @@ features:
 processing:
   visualization:
     manifold:
-      algorithm: DictionaryLearning
+      algorithm: KernelPCA
       parameters:
-        n_components: 100
+        n_components: 10
     dimension_reduction:
       algorithm: PCA
       parameters:
-        n_components: 3
+        n_components: 2
+    style:
+      colors:
+        - r
+        - g
+        - b
+      markers:
+        - o
+        - ^
+        - ','
   classification:
     data_separation:
       cross_validation:
