@@ -17,6 +17,7 @@ import docopt
 import time
 
 import functools
+import itertools
 import operator
 
 import yaml
@@ -39,6 +40,8 @@ import altimetric_difference
 import geometry_io
 import labels_io
 import utils
+
+FIGURE_COUNTER = 1
 
 logger = logging.getLogger('qualcity')
 default_config = {
@@ -204,7 +207,9 @@ def visualize_features(features, labels, depth, hier, **visualization_args):
     ):
         fig, ax = plt.subplots()
     else:
-        figure = plt.figure(1)
+        global FIGURE_COUNTER
+        figure = plt.figure(FIGURE_COUNTER)
+        FIGURE_COUNTER += 1
         ax = Axes3D(figure)
 
     visualize_categories(
@@ -279,7 +284,54 @@ def dimension_reduction(**reductor_args):
 def classify(features, labels, **kwargs):
     logger.info('Classifying...')
     model = utils.resolve(kwargs['algorithm'])(**kwargs['parameters'])
-    print(type(features))
+    predicted_labels = model.fit(features, labels).predict(features)
+    global FIGURE_COUNTER
+    f, ax = plt.subplots()
+    FIGURE_COUNTER += 1
+    plot_confusion_matrix(
+        sklearn.metrics.confusion_matrix(labels, predicted_labels),
+        set(labels),
+        f,
+        ax
+    )
+
+
+def plot_confusion_matrix(
+    confusion_matrix,
+    classes,
+    figure,
+    ax,
+    normalize=False
+):
+    if normalize:
+        confusion_matrix = (
+            confusion_matrix.astype('float')
+            /
+            confusion_matrix.sum(axis=1)[:, np.newaxis]
+        )
+
+    logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
+
+    cm = ax.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+    ax.set_title('Confusion matrix')
+    figure.colorbar(cm, ax=ax)
+
+    middle = confusion_matrix.max() / 2.
+    for i, j in itertools.product(
+        range(confusion_matrix.shape[0]),
+        range(confusion_matrix.shape[1])
+    ):
+        plt.text(
+            j,
+            i,
+            format(confusion_matrix[i, j], '.2f' if normalize else 'd'),
+            horizontalalignment="center",
+            color="white" if confusion_matrix[i, j] > middle else "black"
+        )
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
 
 
 def process(features, labels, depth, hierarchical, **kwargs):
@@ -294,8 +346,26 @@ def process(features, labels, depth, hierarchical, **kwargs):
             **kwargs['visualization']
         )
 
-    logger.info('Classification process')
-    classify(features, labels, **kwargs['classification'])
+    logger.info('Classification process starting...')
+    if len(kwargs['classification'].keys()) > 1:
+        logger.warn('There more than one classification task!')
+    elif len(kwargs['classification'].keys()) == 0:
+        logger.warn('There is no classification task!')
+    else:
+        if 'training' in kwargs['classification'].keys():
+            classify(features, labels, **kwargs['classification']['training'])
+            logger.info(
+                'Succesfully trained %s on features.',
+                kwargs['classification']['training']['algorithm']
+            )
+        else:
+            logger.error(
+                '%s Not yet implemented!',
+                kwargs['classification'].keys()
+            )
+            raise NotImplementedError
+    logger.info('Succesfully classified features.')
+
     plt.show()
 
 
