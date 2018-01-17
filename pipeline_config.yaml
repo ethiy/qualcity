@@ -25,13 +25,13 @@ features:
 processing:
   visualization:
     manifold:
-      algorithm: KernelPCA
+      algorithm: sklearn.decomposition.KernelPCA
       parameters:
         n_components: 10
     dimension_reduction:
-      algorithm: PCA
+      algorithm: sklearn.decomposition.PCA
       parameters:
-        n_components: 2
+        n_components: 3
     style:
       colors:
         - r
@@ -42,10 +42,9 @@ processing:
         - ^
         - ','
   classification:
-    data_separation:
-      cross_validation:
-        10
-    algorithm:
-      name: RandomForestClassifier
-      trees: 1000
-      depth: 4
+    training:
+      algorithm:
+        sklearn.ensemble.RandomForestClassifier
+      parameters:
+        n_estimators: 1000
+        max_depth: 4
