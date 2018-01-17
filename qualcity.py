@@ -256,66 +256,9 @@ def visualize_category(ax, color, marker, label, features):
 
 def build_maniflod(**manifold_args):
     logger.info('Building a manifold transformer...')
-    if manifold_args['algorithm'] == 'PCA':
-        return sklearn.decomposition.PCA(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'KernelPCA':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.decomposition.KernelPCA(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'DictionaryLearning':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.decomposition.DictionaryLearning(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'ICA':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.decomposition.FastICA(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'FactorAnalys':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.decomposition.FactorAnalys(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'SpectralEmbedding':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.manifold.SpectralEmbedding(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'LocallyLinearEmbedding':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.manifold.LocallyLinearEmbedding(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'Isomap':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.manifold.Isomap(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'MDS':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.manifold.MDS(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'TSNE':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.manifold.TSNE(
-            **manifold_args['parameters']
-        )
-    elif manifold_args['algorithm'] == 'RBM':
-        logger.info('Manifold %s build', manifold_args['algorithm'])
-        return sklearn.neural_network.BernoulliRBM(
-            **manifold_args['parameters']
-        )
-    else:
-        logger.error(
-            'Manifold %s is not supported.',
-            manifold_args['algorithm']
-        )
-        raise LookupError
+    return utils.resolve(manifold_args['algorithm'])(
+        **manifold_args['parameters']
+    )
 
 
 def dimension_reduction(**reductor_args):
@@ -328,19 +271,15 @@ def dimension_reduction(**reductor_args):
         logger.error('Cannot visualize less than two dimensions!')
         raise ValueError
 
-    if reductor_args['algorithm'] == 'PCA':
-        logger.info('dimension reductor %s build', reductor_args['algorithm'])
-        return sklearn.decomposition.PCA(**reductor_args['parameters'])
-    else:
-        logger.error(
-            'Reductor %s is not supported.',
-            reductor_args['algorithm']
-        )
-        raise LookupError
+    return utils.resolve(reductor_args['algorithm'])(
+        **reductor_args['parameters']
+    )
 
 
 def classify(features, labels, **kwargs):
     logger.info('Classifying...')
+    model = utils.resolve(kwargs['algorithm'])(**kwargs['parameters'])
+    print(type(features))
 
 
 def process(features, labels, depth, hierarchical, **kwargs):
