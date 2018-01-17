@@ -23,7 +23,6 @@ import yaml
 
 import logging
 import logging.config
-import colorlog
 
 import sklearn.decomposition
 import sklearn.manifold
