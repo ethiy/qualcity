@@ -6,6 +6,8 @@ import functools
 
 import logging
 
+import sys
+
 import numpy as np
 
 utils_logger = logging.getLogger('qualcity.' + __name__)
@@ -118,6 +120,28 @@ def fuse(dict_1, dict_2):
     )
 
 
+def resolve(string):
+    """
+        resolve(string)
+    """
+    module, *names = string.split('.')
+    try:
+        imported = __import__(module)
+        for name in names:
+            module += '.' + name
+            try:
+                imported = getattr(imported, name)
+            except AttributeError:
+                __import__(module)
+                imported = getattr(imported, name)
+        return imported
+    except ImportError:
+        _, exc, tb = sys.exc_info()
+        v_exc = ValueError('Could not resolve %r: %s' % (string, exc))
+        v_exc.__cause__, v_exc.traceback__ = exc, tb
+        raise v_exc
+
+
 def main():
     print(median([-5, -5, -3, -4, 0, -1]))
     print(median((-5, -5, -3, -4, 0, -1)))
@@ -139,6 +163,9 @@ def main():
     print(
         stats([12, 5, 0, 11.1], 'histogram', bins=range(0, 20))
     )
+
+    print(resolve('sklearn.decomposition.PCA').__doc__)
+    resolve('sklearn.decomp.PCA')
 
 
 if __name__ == '__main__':
