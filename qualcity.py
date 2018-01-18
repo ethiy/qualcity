@@ -29,6 +29,8 @@ import sklearn.decomposition
 import sklearn.manifold
 import sklearn.preprocessing
 
+import sklearn.metrics
+
 import sklearn.neural_network
 
 import numpy as np
@@ -169,54 +171,57 @@ def format_labels(hierarchical, depth, LoD, labels_dir):
 
 def visualize_features(features, labels, depth, hier, **visualization_args):
     logger.info('Visualizing features...')
-    if depth > 2 or hier is False:
-        logger.error('Not yet implemented')
-        raise NotImplementedError
-    features = build_maniflod(
-        **visualization_args['manifold']
-    ).fit_transform(features)
-    logger.debug('New transformed features: %s', features)
-    logger.info('Fitted and transformed features.')
+    try:
+        if depth > 2 or hier is False:
+            logger.error('Not yet implemented')
+            raise NotImplementedError
+        features = build_maniflod(
+            **visualization_args['manifold']
+        ).fit_transform(features)
+        logger.debug('New transformed features: %s', features)
+        logger.info('Fitted and transformed features.')
 
-    features = dimension_reduction(
-        **visualization_args['dimension_reduction']
-    ).fit_transform(features)
-    logger.debug('New reduced features: %s', features)
-    logger.info('Fitted and reduced features.')
+        features = dimension_reduction(
+            **visualization_args['dimension_reduction']
+        ).fit_transform(features)
+        logger.debug('New reduced features: %s', features)
+        logger.info('Fitted and reduced features.')
 
-    features_per_errors = {
-        cat: np.array(
-            [
-                features[idx]
-                for idx, _
-                in [
-                    (idx, label)
-                    for idx, label in enumerate(labels)
-                    if label == cat
+        features_per_errors = {
+            cat: np.array(
+                [
+                    features[idx]
+                    for idx, _
+                    in [
+                        (idx, label)
+                        for idx, label in enumerate(labels)
+                        if label == cat
+                    ]
                 ]
-            ]
+            )
+            for cat in sorted(list(set(labels)), reverse=True)
+        }
+        logger.debug('separated features: %s', features_per_errors)
+        logger.info('Safely separated features by categories.')
+
+        if (
+            visualization_args['dimension_reduction']['parameters']
+            ['n_components'] == 2
+        ):
+            fig, ax = plt.subplots()
+        else:
+            global FIGURE_COUNTER
+            figure = plt.figure(FIGURE_COUNTER)
+            FIGURE_COUNTER += 1
+            ax = Axes3D(figure)
+
+        visualize_categories(
+            ax,
+            features_per_errors,
+            **visualization_args['style']
         )
-        for cat in set(labels)
-    }
-    logger.debug('separated features: %s', features_per_errors)
-    logger.info('Safely separated features by categories.')
-
-    if (
-        visualization_args['dimension_reduction']['parameters']
-        ['n_components'] == 2
-    ):
-        fig, ax = plt.subplots()
-    else:
-        global FIGURE_COUNTER
-        figure = plt.figure(FIGURE_COUNTER)
-        FIGURE_COUNTER += 1
-        ax = Axes3D(figure)
-
-    visualize_categories(
-        ax,
-        features_per_errors,
-        **visualization_args['style']
-    )
+    except NotImplementedError:
+        logger.warn('Skipped visualization')
     logger.info('Succesfully visualized categories')
 
 
@@ -304,17 +309,21 @@ def classify(features, labels, **classification_args):
 def train(features, labels, **kwargs):
     logger.info('Classifying...')
     model = utils.resolve(kwargs['algorithm'])(**kwargs['parameters'])
-    predicted_labels = model.fit(features, labels).predict(features)
-    global FIGURE_COUNTER
-    f, ax = plt.subplots()
-    FIGURE_COUNTER += 1
-    plot_confusion_matrix(
-        sklearn.metrics.confusion_matrix(labels, predicted_labels),
-        set(labels),
-        f,
-        ax,
-        normalize=True
-    )
+    if 'strategy' in kwargs.keys():
+        model = utils.resolve(kwargs['strategy'])(model)
+    predicted_labels = model.fit(features, np.array(labels)).predict(features)
+    for predicted, true in zip(zip(*predicted_labels), zip(*labels)):
+        print(sklearn.metrics.classification_report(true, predicted))
+        global FIGURE_COUNTER
+        f, ax = plt.subplots()
+        FIGURE_COUNTER += 1
+        plot_confusion_matrix(
+            sklearn.metrics.confusion_matrix(true, predicted),
+            sorted(list(set(true)), reverse=True),
+            f,
+            ax,
+            normalize=True
+        )
 
 
 def plot_confusion_matrix(
