@@ -281,7 +281,27 @@ def dimension_reduction(**reductor_args):
     )
 
 
-def classify(features, labels, **kwargs):
+def classify(features, labels, **classification_args):
+    if len(classification_args.keys()) > 1:
+        logger.warn('There more than one classification task!')
+    elif len(classification_args.keys()) == 0:
+        logger.warn('There is no classification task!')
+    else:
+        if 'training' in classification_args.keys():
+            train(features, labels, **classification_args['training'])
+            logger.info(
+                'Succesfully trained %s on features.',
+                classification_args['training']['algorithm']
+            )
+        else:
+            logger.error(
+                '%s Not yet implemented!',
+                classification_args.keys()
+            )
+            raise NotImplementedError
+
+
+def train(features, labels, **kwargs):
     logger.info('Classifying...')
     model = utils.resolve(kwargs['algorithm'])(**kwargs['parameters'])
     predicted_labels = model.fit(features, labels).predict(features)
@@ -292,7 +312,8 @@ def classify(features, labels, **kwargs):
         sklearn.metrics.confusion_matrix(labels, predicted_labels),
         set(labels),
         f,
-        ax
+        ax,
+        normalize=True
     )
 
 
@@ -312,7 +333,11 @@ def plot_confusion_matrix(
 
     logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
 
-    cm = ax.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+    cm = ax.imshow(
+        confusion_matrix,
+        interpolation='nearest',
+        cmap=plt.cm.Blues
+    )
     ax.set_title('Confusion matrix')
     figure.colorbar(cm, ax=ax)
 
@@ -329,9 +354,13 @@ def plot_confusion_matrix(
             color="white" if confusion_matrix[i, j] > middle else "black"
         )
 
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    figure.tight_layout()
+    ax.set_yticks(np.arange(len(classes)))
+    ax.set_xticks(np.arange(len(classes)))
+    ax.set_yticklabels(classes)
+    ax.set_xticklabels(classes)
+    ax.set_ylabel('True label')
+    ax.set_xlabel('Predicted label')
 
 
 def process(features, labels, depth, hierarchical, **kwargs):
@@ -347,23 +376,7 @@ def process(features, labels, depth, hierarchical, **kwargs):
         )
 
     logger.info('Classification process starting...')
-    if len(kwargs['classification'].keys()) > 1:
-        logger.warn('There more than one classification task!')
-    elif len(kwargs['classification'].keys()) == 0:
-        logger.warn('There is no classification task!')
-    else:
-        if 'training' in kwargs['classification'].keys():
-            classify(features, labels, **kwargs['classification']['training'])
-            logger.info(
-                'Succesfully trained %s on features.',
-                kwargs['classification']['training']['algorithm']
-            )
-        else:
-            logger.error(
-                '%s Not yet implemented!',
-                kwargs['classification'].keys()
-            )
-            raise NotImplementedError
+    classify(features, labels, **kwargs['classification'])
     logger.info('Succesfully classified features.')
 
     plt.show()
