@@ -283,13 +283,13 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
             if unq > 0:
                 return 'Unqualifiable'
             elif unq + bul + fac == 0:
-                return 'Valid'
+                return ('Valid', None)
             else:
                 return (
                     (
-                        ('Building', bul_array) if LoD > 0 else 'Valid'
+                        ('Building', bul_array) if LoD > 0 else ('Valid', None)
                     ) if bul else fac * (
-                        ('Facet', fac_array) if LoD > 1 else 'Valid'
+                        ('Facet', fac_array) if LoD > 1 else ('Valid', None)
                     )
                 )
         else:
