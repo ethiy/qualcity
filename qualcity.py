@@ -135,7 +135,7 @@ def format_features(depth, buildings, config):
     features = [features[building] for building in buildings]
 
     if depth == 0:
-        return [feature for feature, _ in features]
+        raise NotImplementedError
     else:
         return [np.hstack(feature) for feature in features]
 
@@ -181,7 +181,7 @@ def visualize_features(features, labels, depth, hier, **visualization_args):
         logger.debug('New transformed features: %s', features)
         logger.info('Fitted and transformed features.')
 
-        features = dimension_reduction(
+        features = build_reductor(
             **visualization_args['dimension_reduction']
         ).fit_transform(features)
         logger.debug('New reduced features: %s', features)
@@ -271,7 +271,7 @@ def build_maniflod(**manifold_args):
     )
 
 
-def dimension_reduction(**reductor_args):
+def build_reductor(**reductor_args):
     logger.info('Building a dimension reductor...')
 
     if reductor_args['parameters']['n_components'] > 3:
@@ -286,14 +286,37 @@ def dimension_reduction(**reductor_args):
     )
 
 
-def classify(features, labels, **classification_args):
+def build_classifier(**classifier_args):
+    logger.info('Building a classifier...')
+
+    model = utils.resolve(
+        classifier_args['algorithm']
+    )(**classifier_args['parameters'])
+    logger.info(
+        'Constructed classifier: %s, with parameters %s',
+        classifier_args['algorithm'],
+        classifier_args['parameters']
+    )
+    if 'strategy' in classifier_args.keys():
+        logger.info('Adding strategy: %s', classifier_args['strategy'])
+        model = utils.resolve(classifier_args['strategy'])(model)
+    return model
+
+
+def classify(features, labels, depth, hierarchical, **classification_args):
     if len(classification_args.keys()) > 1:
         logger.warn('There more than one classification task!')
     elif len(classification_args.keys()) == 0:
         logger.warn('There is no classification task!')
     else:
         if 'training' in classification_args.keys():
-            train(features, labels, **classification_args['training'])
+            train(
+                features,
+                labels,
+                depth,
+                hierarchical,
+                **classification_args['training']
+            )
             logger.info(
                 'Succesfully trained %s on features.',
                 classification_args['training']['algorithm']
@@ -306,24 +329,84 @@ def classify(features, labels, **classification_args):
             raise NotImplementedError
 
 
-def train(features, labels, **kwargs):
+def train(features, labels, depth, hierarchical, **kwargs):
     logger.info('Classifying...')
-    model = utils.resolve(kwargs['algorithm'])(**kwargs['parameters'])
-    if 'strategy' in kwargs.keys():
-        model = utils.resolve(kwargs['strategy'])(model)
-    predicted_labels = model.fit(features, np.array(labels)).predict(features)
-    for predicted, true in zip(zip(*predicted_labels), zip(*labels)):
-        print(sklearn.metrics.classification_report(true, predicted))
-        global FIGURE_COUNTER
-        f, ax = plt.subplots()
-        FIGURE_COUNTER += 1
-        plot_confusion_matrix(
-            sklearn.metrics.confusion_matrix(true, predicted),
-            sorted(list(set(true)), reverse=True),
-            f,
-            ax,
-            normalize=True
+    model = build_classifier(**kwargs)
+
+    if hierarchical is True:
+        if depth < 3:
+            logger.info('Fitting and predicting classes...')
+            predicted_labels = model.fit(features, np.array(labels)).predict(
+                features
+            )
+            report_training(predicted_labels, labels)
+        else:
+            logger.info('Separate families from classes...')
+            families, errors = zip(*labels)
+            logger.info('Fitting and predicting families...')
+            predicted_families = model.fit(
+                features, np.array(families)
+            ).predict(features)
+            report_training(predicted_families, families)
+            logger.info('Separating errors per family...')
+            idx_per_fam = {
+                fam: np.array(
+                    [
+                        idx
+                        for idx, _
+                        in [
+                            (idx, label)
+                            for idx, label in enumerate(families)
+                            if label == fam
+                        ]
+                    ]
+                )
+                for fam in set(families)
+                if fam != 'Valid'
+            }
+            for fam, fam_indexes in idx_per_fam.items():
+                logger.info(
+                    'Fitting and predicting labels for %s family...',
+                    fam
+                )
+                train(
+                    [features[idx] for idx in fam_indexes],
+                    [errors[idx] for idx in fam_indexes],
+                    0,
+                    False,
+                    **kwargs
+                )
+    else:
+        logger.info('Fitting and predicting multilabels...')
+        predicted_labels = model.fit(features, np.array(labels)).predict(
+            features
         )
+        report_multilabel_training(predicted_labels, labels)
+
+
+def report_multilabel_training(z_predicted, z_true):
+    logger.info('Reporting a multilabel training...')
+    for number, (predicted, true) in enumerate(
+        zip(zip(*z_predicted), zip(*z_true))
+    ):
+        logger.info('Reporting label number: %s', number)
+        report_training(predicted, true)
+
+
+def report_training(predicted, true):
+    logger.info('Reporting training...')
+    print(sklearn.metrics.classification_report(true, predicted))
+    logger.debug('%s', sklearn.metrics.classification_report(true, predicted))
+    global FIGURE_COUNTER
+    f, ax = plt.subplots()
+    FIGURE_COUNTER += 1
+    plot_confusion_matrix(
+        sklearn.metrics.confusion_matrix(true, predicted),
+        sorted(list(set(true)), reverse=True),
+        f,
+        ax,
+        normalize=True
+    )
 
 
 def plot_confusion_matrix(
@@ -333,7 +416,10 @@ def plot_confusion_matrix(
     ax,
     normalize=False
 ):
+    logger.info('Plotting confusion matrix...')
+    logger.debug('Confusiong matrix is: %s', confusion_matrix)
     if normalize:
+        logger.info('Normalizing confusion matrix')
         confusion_matrix = (
             confusion_matrix.astype('float')
             /
@@ -342,12 +428,19 @@ def plot_confusion_matrix(
 
     logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
 
+    logger.info('Plotting now...')
     cm = ax.imshow(
         confusion_matrix,
         interpolation='nearest',
         cmap=plt.cm.Blues
     )
-    ax.set_title('Confusion matrix')
+    ax.set_title(
+        'Confusion matrix for '
+        +
+        np.sum(confusion_matrix)
+        +
+        'elements'
+    )
     figure.colorbar(cm, ax=ax)
 
     middle = confusion_matrix.max() / 2.
@@ -385,7 +478,7 @@ def process(features, labels, depth, hierarchical, **kwargs):
         )
 
     logger.info('Classification process starting...')
-    classify(features, labels, **kwargs['classification'])
+    classify(features, labels, depth, hierarchical, **kwargs['classification'])
     logger.info('Succesfully classified features.')
 
     plt.show()
