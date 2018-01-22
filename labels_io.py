@@ -18,7 +18,7 @@ label_logger = logging.getLogger('qualcity.' + __name__)
 SHAPEFILE = "ESRI Shapefile"
 
 ERROR_DICTIONARY = {
-    'over_segmentation': [
+    'over segmentation': [
         'over_segmentation',
         'over',
         'over_segmantation',
@@ -26,11 +26,11 @@ ERROR_DICTIONARY = {
         'oversegmentation',
         'over_segmentationover_segmentation'
     ],
-    'under_segmentation': ['under_segmentation', 'under', 'unde_segmentation'],
-    'mis_segmentation': ['mis_segmentation', 'missegmentation', 'mis'],
-    'slope': ['slope'],
-    'footprint': ['footprint', 'footprint_error'],
-    'too_low': ['too_low'],
+    'under segmentation': ['under_segmentation', 'under', 'unde_segmentation'],
+    'Imprecise segmentation': ['mis_segmentation', 'missegmentation', 'mis'],
+    'Slope': ['slope'],
+    'Footprint': ['footprint', 'footprint_error'],
+    'Height': ['too_low'],
     'None': ['None', ''],
     'half_building': ['half_building', 'half_bulding'],
     'changed': ['changed'],
@@ -46,17 +46,17 @@ UNQUALIFIED_ERROR_LIST = [
 ]
 
 BUILDING_ERROR_LIST = [
-    'over_segmentation',
-    'under_segmentation',
-    'footprint',
-    'too_low'
+    'over segmentation',
+    'under segmentation',
+    'Footprint',
+    'Height'
 ]
 
 FACET_ERROR_LIST = [
-    'over_segmentation',
-    'under_segmentation',
-    'mis_segmentation',
-    'slope'
+    'over segmentation',
+    'under segmentation',
+    'Imprecise segmentation',
+    'Slope'
 ]
 
 ERROR_CATEGORY_DICTIONARY = {
@@ -79,6 +79,20 @@ CLASSES = {
 }
 
 INV_CLASSES = {v: k for k, v in CLASSES.items()}
+
+
+def LABELS(LoD, family):
+    return (
+        int(LoD > 0) * int('Building' in family) * [
+            ('Building ' + err) if 'segmentation' in err else err
+            for err in BUILDING_ERROR_LIST
+        ]
+        +
+        int(LoD > 1) * int('Facet' in family) * [
+            ('Facet ' + err) if 'r segmentation' in err else err
+            for err in FACET_ERROR_LIST
+        ]
+    )
 
 
 def labels_map(labels_dir, hierarchical, depth, LoD, threshold):
@@ -546,13 +560,15 @@ def main():
                 lambda fil: errors(
                     os.path.join(labels_dir, fil),
                     hierarchical=True,
-                    depth=2,
-                    LoD=1
+                    depth=3,
+                    LoD=2
                 ),
                 files
             )
         )
     )
+
+    print(LABELS(2, ['Building']))
 
 
 if __name__ == '__main__':
