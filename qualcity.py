@@ -303,46 +303,101 @@ def build_classifier(**classifier_args):
     return model
 
 
-def classify(features, labels, depth, hierarchical, **classification_args):
-    if len(classification_args.keys()) > 1:
+def classify(features, labels, buildings, depth, hierarchical, **class_args):
+    if len(class_args.keys()) > 1:
         logger.warn('There more than one classification task!')
-    elif len(classification_args.keys()) == 0:
+    elif len(class_args.keys()) == 0:
         logger.warn('There is no classification task!')
     else:
-        if 'training' in classification_args.keys():
-            train(
+        if 'training' in class_args.keys():
+            model = train(
                 features,
                 labels,
                 depth,
-                hierarchical,
-                **classification_args['training']
+                (
+                    None if hierarchical
+                    else (
+                        ['Building', 'Facet'] if depth < 3
+                        else labels_io.LABELS(2)
+                    )
+                ),
+                **class_args['training']
             )
             logger.info(
                 'Succesfully trained %s on features.',
-                classification_args['training']['algorithm']
+                class_args['training']['algorithm']
             )
+            # predictions = test(
+            #     model,
+            #     buildings,
+            #     features,
+            #     depth,
+            #     hierarchical
+            # )
+
+            # report_prediction(predictions, 'filename.csv')
         else:
             logger.error(
                 '%s Not yet implemented!',
-                classification_args.keys()
+                class_args.keys()
             )
             raise NotImplementedError
 
 
-def train(features, labels, depth, hierarchical, **kwargs):
-    logger.info('Classifying...')
+def test(model, buildings, features, depth, hier, true_labels=None):
+    logger.info('Testing...')
+    if hier:
+        if depth < 3:
+            return {
+                building: (cls, proba)
+                for building, cls, proba
+                in zip(
+                    buildings,
+                    model.predict(features),
+                    np.amax(
+                        model.predict_proba(features),
+                        axis=1
+                    )
+                )
+            }
+        else:
+            predicted_probas = np.amax(
+                model[None].predict_proba(features),
+                axis=1
+            )
+            print(predicted_probas)
+            raise NotImplementedError
+    else:
+        print(model.predict_proba(features))
+        return {
+            building: (cls, proba)
+            for building, cls, proba
+            in zip(
+                buildings,
+                model.predict(features),
+                np.amax(
+                    model.predict_proba(features),
+                    axis=1
+                )
+            )
+        }
+
+
+def train(features, true, depth, multilabels=None, **kwargs):
+    logger.info('Training...')
     model = build_classifier(**kwargs)
 
-    if hierarchical is True:
+    if multilabels is None:
         if depth < 3:
             logger.info('Fitting and predicting classes...')
-            predicted_labels = model.fit(features, np.array(labels)).predict(
+            predicted = model.fit(features, np.array(true)).predict(
                 features
             )
-            report_training(predicted_labels, labels)
+            report_training(predicted, true)
+            return model
         else:
             logger.info('Separate families from classes...')
-            families, errors = zip(*labels)
+            families, errors = zip(*true)
             logger.info('Fitting and predicting families...')
             predicted_families = model.fit(
                 features, np.array(families)
@@ -364,36 +419,64 @@ def train(features, labels, depth, hierarchical, **kwargs):
                 for fam in set(families)
                 if fam != 'Valid'
             }
-            for fam, fam_indexes in idx_per_fam.items():
-                logger.info(
-                    'Fitting and predicting labels for %s family...',
-                    fam
-                )
-                train(
-                    [features[idx] for idx in fam_indexes],
-                    [errors[idx] for idx in fam_indexes],
-                    0,
-                    False,
-                    **kwargs
-                )
+
+            return dict(
+                [(None,  model)]
+                +
+                [
+                    (
+                        fam,
+                        train(
+                            [features[idx] for idx in fam_indexes],
+                            [errors[idx] for idx in fam_indexes],
+                            0,
+                            labels_io.LABELS(2, fam),
+                            **kwargs
+                        )
+                    )
+                    for fam, fam_indexes in idx_per_fam.items()
+                ]
+            )
     else:
         logger.info('Fitting and predicting multilabels...')
-        predicted_labels = model.fit(features, np.array(labels)).predict(
+        predicted = model.fit(features, np.array(true)).predict(
             features
         )
-        report_multilabel_training(predicted_labels, labels)
+        report_multilabel_training(predicted, true, multilabels)
+        return model
 
 
-def report_multilabel_training(z_predicted, z_true):
+def report_multilabel_training(z_predicted, z_true, labels):
     logger.info('Reporting a multilabel training...')
     for number, (predicted, true) in enumerate(
         zip(zip(*z_predicted), zip(*z_true))
     ):
-        logger.info('Reporting label number: %s', number)
-        report_training(predicted, true)
+        logger.info(
+            'Reporting label: %s', labels[number]
+        )
+        report_training(predicted, true, labels[number])
 
 
-def report_training(predicted, true):
+def report_prediction(predictions, filename):
+    print(predictions)
+    with open(filename, 'w') as prediction_file:
+        for building, (label, probability) in predictions.items():
+            prediction_file.write(
+                building
+                +
+                ', '
+                +
+                label
+                +
+                ', '
+                +
+                str(probability)
+                +
+                '\n'
+            )
+
+
+def report_training(predicted, true, label=None):
     logger.info('Reporting training...')
     print(sklearn.metrics.classification_report(true, predicted))
     logger.debug('%s', sklearn.metrics.classification_report(true, predicted))
@@ -402,10 +485,14 @@ def report_training(predicted, true):
     FIGURE_COUNTER += 1
     plot_confusion_matrix(
         sklearn.metrics.confusion_matrix(true, predicted),
-        sorted(list(set(true)), reverse=True),
+        (
+            sorted(list(set(true)))
+            if label is None
+            else ['None', label]
+        ),
         f,
         ax,
-        normalize=True
+        normalize=False
     )
 
 
@@ -418,6 +505,7 @@ def plot_confusion_matrix(
 ):
     logger.info('Plotting confusion matrix...')
     logger.debug('Confusiong matrix is: %s', confusion_matrix)
+    number_of_elements = np.sum(confusion_matrix)
     if normalize:
         logger.info('Normalizing confusion matrix')
         confusion_matrix = (
@@ -437,9 +525,9 @@ def plot_confusion_matrix(
     ax.set_title(
         'Confusion matrix for '
         +
-        np.sum(confusion_matrix)
+        str(number_of_elements)
         +
-        'elements'
+        ' elements'
     )
     figure.colorbar(cm, ax=ax)
 
@@ -465,7 +553,7 @@ def plot_confusion_matrix(
     ax.set_xlabel('Predicted label')
 
 
-def process(features, labels, depth, hierarchical, **kwargs):
+def process(features, labels, buildings, depth, hierarchical, **kwargs):
     logger.info('Processing features...')
     if 'visualization' in kwargs.keys():
         logger.info('Feature space visualization.')
@@ -478,7 +566,14 @@ def process(features, labels, depth, hierarchical, **kwargs):
         )
 
     logger.info('Classification process starting...')
-    classify(features, labels, depth, hierarchical, **kwargs['classification'])
+    classify(
+        features,
+        labels,
+        buildings,
+        depth,
+        hierarchical,
+        **kwargs['classification']
+    )
     logger.info('Succesfully classified features.')
 
     plt.show()
@@ -525,6 +620,7 @@ def main():
     process(
         features,
         labels,
+        buildings,
         configuration['labels']['depth'],
         configuration['labels']['hierarchical'],
         **configuration['processing']
