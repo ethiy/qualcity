@@ -318,7 +318,7 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                     None if hierarchical
                     else (
                         ['Building', 'Facet'] if depth < 3
-                        else labels_io.LABELS(2)
+                        else labels_io.LABELS(2, ['Building', 'Facet'])
                     )
                 ),
                 **class_args['training']
@@ -327,15 +327,27 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                 'Succesfully trained %s on features.',
                 class_args['training']['algorithm']
             )
-            # predictions = test(
-            #     model,
-            #     buildings,
-            #     features,
-            #     depth,
-            #     hierarchical
-            # )
+            predictions = test(
+                model,
+                buildings,
+                features,
+                (
+                    None if hierarchical
+                    else (
+                        ['Building', 'Facet'] if depth < 3
+                        else labels_io.LABELS(2, ['Building', 'Facet'])
+                    )
+                )
+            )
 
-            # report_prediction(predictions, 'filename.csv')
+            report_prediction(
+                predictions,
+                str('multilabel_'if not hierarchical else '')
+                +
+                'results'
+                +
+                '.csv'
+            )
         else:
             logger.error(
                 '%s Not yet implemented!',
@@ -344,10 +356,10 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
             raise NotImplementedError
 
 
-def test(model, buildings, features, depth, hier, true_labels=None):
+def test(model, buildings, features, label_names=None, true_labels=None):
     logger.info('Testing...')
-    if hier:
-        if depth < 3:
+    if label_names is None:
+        try:
             return {
                 building: (cls, proba)
                 for building, cls, proba
@@ -360,25 +372,51 @@ def test(model, buildings, features, depth, hier, true_labels=None):
                     )
                 )
             }
-        else:
-            predicted_probas = np.amax(
-                model[None].predict_proba(features),
-                axis=1
-            )
-            print(predicted_probas)
-            raise NotImplementedError
+        except AttributeError:
+            return {
+                building: [
+                    family,
+                    probability,
+                ]
+                +
+                (
+                    test(
+                        model[family],
+                        [building],
+                        features[buildings.index(building)].reshape(1, -1),
+                        labels_io.LABELS(2, family)
+                    )[building] if family != 'Valid' else []
+                )
+                for building, family, probability
+                in zip(
+                    buildings,
+                    model[None].predict(features),
+                    np.amax(
+                        model[None].predict_proba(features),
+                        axis=1
+                    )
+                )
+            }
     else:
-        print(model.predict_proba(features))
         return {
-            building: (cls, proba)
-            for building, cls, proba
+            building: [
+                el
+                for tup in [
+                    (label_name, bool(label), probability)
+                    for label_name, label, probability
+                    in zip(
+                        label_names,
+                        labels,
+                        probabilties
+                    )
+                ]
+                for el in tup
+            ]
+            for building, labels, probabilties
             in zip(
                 buildings,
                 model.predict(features),
-                np.amax(
-                    model.predict_proba(features),
-                    axis=1
-                )
+                model.predict_proba(features)
             )
         }
 
@@ -458,19 +496,17 @@ def report_multilabel_training(z_predicted, z_true, labels):
 
 
 def report_prediction(predictions, filename):
-    print(predictions)
     with open(filename, 'w') as prediction_file:
-        for building, (label, probability) in predictions.items():
+        for building, labels in predictions.items():
             prediction_file.write(
                 building
                 +
                 ', '
                 +
-                label
-                +
-                ', '
-                +
-                str(probability)
+                functools.reduce(
+                    lambda x, y: str(x) + ', ' + str(y),
+                    labels
+                )
                 +
                 '\n'
             )
