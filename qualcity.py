@@ -327,7 +327,7 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                 'Succesfully trained %s on features.',
                 class_args['training']['algorithm']
             )
-            predictions = test(
+            predictions = predict_all(
                 model,
                 buildings,
                 features,
@@ -356,7 +356,7 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
             raise NotImplementedError
 
 
-def test(model, buildings, features, label_names=None, true_labels=None):
+def predict_all(model, buildings, features, label_names=None):
     logger.info('Testing...')
     if label_names is None:
         try:
@@ -380,7 +380,7 @@ def test(model, buildings, features, label_names=None, true_labels=None):
                 ]
                 +
                 (
-                    test(
+                    predict_all(
                         model[family],
                         [building],
                         features[buildings.index(building)].reshape(1, -1),
