@@ -114,7 +114,12 @@ def altimetric_features(depth, raster_dir, resolution):
 
 def features(depth, feat_type, **kwargs):
     return {
-        'geometric': lambda kwargs: geometry_io.geometric_features(**kwargs),
+        'geometric': lambda kwargs: geometry_io.geometric_features(
+            kwargs['graph_dir'],
+            kwargs['attributes'],
+            kwargs['statistics'],
+            **kwargs['paramaters']
+        ),
         'altimetric': lambda kwargs: altimetric_features(depth, **kwargs)
     }[feat_type](kwargs)
 
@@ -304,9 +309,7 @@ def build_classifier(**classifier_args):
 
 
 def classify(features, labels, buildings, depth, hierarchical, **class_args):
-    if len(class_args.keys()) > 1:
-        logger.warn('There more than one classification task!')
-    elif len(class_args.keys()) == 0:
+    if len(class_args.keys()) == 0:
         logger.warn('There is no classification task!')
     else:
         if 'training' in class_args.keys():
@@ -327,41 +330,30 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                 'Succesfully trained %s on features.',
                 class_args['training']['algorithm']
             )
-            predictions = predict_all(
+        if 'testing' in class_args.keys():
+            test(
                 model,
                 buildings,
                 features,
+                labels,
                 (
                     None if hierarchical
                     else (
                         ['Building', 'Facet'] if depth < 3
                         else labels_io.LABELS(2, ['Building', 'Facet'])
                     )
-                )
+                ),
+                **class_args['testing']
             )
 
-            report_prediction(
-                predictions,
-                str('multilabel_'if not hierarchical else '')
-                +
-                'results'
-                +
-                '.csv'
-            )
-        else:
-            logger.error(
-                '%s Not yet implemented!',
-                class_args.keys()
-            )
-            raise NotImplementedError
 
-
-def predict_all(model, buildings, features, label_names=None):
-    logger.info('Testing...')
+def predict(model, buildings, features, label_names=None, probas=False):
+    logger.info('Predicting...')
     if label_names is None:
         try:
+            logger.info('Multiclass predicition...')
             return {
-                building: (cls, proba)
+                building: (cls, proba) if probas else cls
                 for building, cls, proba
                 in zip(
                     buildings,
@@ -373,18 +365,19 @@ def predict_all(model, buildings, features, label_names=None):
                 )
             }
         except AttributeError:
+            logger.info('Multiclass, Multilabel stage predicition...')
             return {
-                building: [
-                    family,
-                    probability,
-                ]
+                building: [family]
+                +
+                (probability if probas else [])
                 +
                 (
-                    predict_all(
+                    predict(
                         model[family],
                         [building],
                         features[buildings.index(building)].reshape(1, -1),
-                        labels_io.LABELS(2, family)
+                        labels_io.LABELS(2, family),
+                        probas
                     )[building] if family != 'Valid' else []
                 )
                 for building, family, probability
@@ -398,11 +391,15 @@ def predict_all(model, buildings, features, label_names=None):
                 )
             }
     else:
+        logger.info('Multilabel stage predicition...')
         return {
             building: [
                 el
                 for tup in [
-                    (label_name, bool(label), probability)
+                    (
+                        (label_name, bool(label), probability)
+                        if probas else (label_name, bool(label))
+                    )
                     for label_name, label, probability
                     in zip(
                         label_names,
@@ -421,9 +418,26 @@ def predict_all(model, buildings, features, label_names=None):
         }
 
 
-def train(features, true, depth, multilabels=None, **kwargs):
+def test(model, buildings, features, ground_truth, label_names, **test_args):
+    predictions = predict(
+        model,
+        buildings,
+        features,
+        label_names,
+        test_args['probabilties']
+    )
+
+    score_prediction(predictions, ground_truth, *test_args['score'])
+
+    report_prediction(
+        predictions,
+        'results.csv'
+    )
+
+
+def train(features, true, depth, multilabels=None, **train_args):
     logger.info('Training...')
-    model = build_classifier(**kwargs)
+    model = build_classifier(**train_args)
 
     if multilabels is None:
         if depth < 3:
@@ -431,7 +445,8 @@ def train(features, true, depth, multilabels=None, **kwargs):
             predicted = model.fit(features, np.array(true)).predict(
                 features
             )
-            report_training(predicted, true)
+            if train_args['reporting']:
+                report_training(predicted, true)
             return model
         else:
             logger.info('Separate families from classes...')
@@ -440,7 +455,8 @@ def train(features, true, depth, multilabels=None, **kwargs):
             predicted_families = model.fit(
                 features, np.array(families)
             ).predict(features)
-            report_training(predicted_families, families)
+            if train_args['reporting']:
+                report_training(predicted_families, families)
             logger.info('Separating errors per family...')
             idx_per_fam = {
                 fam: np.array(
@@ -469,7 +485,7 @@ def train(features, true, depth, multilabels=None, **kwargs):
                             [errors[idx] for idx in fam_indexes],
                             0,
                             labels_io.LABELS(2, fam),
-                            **kwargs
+                            **train_args
                         )
                     )
                     for fam, fam_indexes in idx_per_fam.items()
@@ -480,32 +496,34 @@ def train(features, true, depth, multilabels=None, **kwargs):
         predicted = model.fit(features, np.array(true)).predict(
             features
         )
-        report_multilabel_training(predicted, true, multilabels)
+        if train_args['reporting']:
+            report_multilabel_training(predicted, true, multilabels)
         return model
 
 
-def report_multilabel_training(z_predicted, z_true, labels):
+def report_multilabel_training(z_predicted, z_true, labels_names):
     logger.info('Reporting a multilabel training...')
     for number, (predicted, true) in enumerate(
         zip(zip(*z_predicted), zip(*z_true))
     ):
         logger.info(
-            'Reporting label: %s', labels[number]
+            'Reporting label: %s', labels_names[number]
         )
-        report_training(predicted, true, labels[number])
+        report_training(predicted, true, labels_names[number])
+
+
+def score_prediction(predictions, ground_truth, *score_args):
+    pass# print(sklearn.metrics.classification_report(predictions, ground_truth))
 
 
 def report_prediction(predictions, filename):
     with open(filename, 'w') as prediction_file:
         for building, labels in predictions.items():
             prediction_file.write(
-                building
-                +
-                ', '
-                +
-                functools.reduce(
-                    lambda x, y: str(x) + ', ' + str(y),
-                    labels
+                ', '.join(
+                    [building]
+                    +
+                    [str(label) for label in labels]
                 )
                 +
                 '\n'
