@@ -92,8 +92,13 @@ def get_graph(lines):
 
 def get_relations(lines):
     geom_logger.debug('Pairs of related faces in %s', lines)
-    i, j = np.where(get_adjacency_matrix(lines) == 1)
-    return filter(lambda x: x[0] != x[1], zip(*[i, j]))
+    return [
+        (i, j)
+        for i, j in zip(
+            *np.where(get_adjacency_matrix(lines) == 1)
+        )
+        if i != j
+    ]
 
 
 def degree_statistics(faces, statistics, **kwargs):

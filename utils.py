@@ -86,10 +86,7 @@ def stats(attribute, statistics, **kwargs):
                     stat(attribute)
                 ]
             ),
-            filter(
-                lambda stat: callable(stat),
-                [stat(statistic) for statistic in statistics]
-            ),
+            [stat(statistic) for statistic in statistics if callable(stat)],
             []
         )
     else:
