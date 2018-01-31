@@ -171,16 +171,19 @@ def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
         'degree': degree_statistics,
         'area': area_statistics,
         'centroid': centroid_statistics,
-        'centroid_bis': lambda faces, statistics: centroid_statistics(
+        'centroid_bis':
+        lambda faces, statistics, **kwargs: centroid_statistics(
             faces,
             statistics,
-            get_relations(lines)
+            get_relations(lines),
+            **kwargs
         ),
         'angle': angle_statistics,
-        'angle_bis': lambda faces, statistics: angle_statistics(
+        'angle_bis': lambda faces, statistics, **kwargs: angle_statistics(
             faces,
             statistics,
-            get_relations(lines)
+            get_relations(lines),
+            **kwargs
         )
     }[geom_attrib](faces, statistics, **kwargs)
 
@@ -210,7 +213,7 @@ def features(filename, attributes, statistics, **kwargs):
         geom_logger.exception('Could not extract features for %s:', filename)
 
 
-def geometric_features(graph_dir, attributes, statistics, **kwargs):
+def geometric_features(graph_dir, attributes, statistics, **parameters):
     geom_logger.info(
         'Getting geometric features for all files in %s based %s and %s',
         graph_dir,
@@ -222,7 +225,8 @@ def geometric_features(graph_dir, attributes, statistics, **kwargs):
             features(
                 os.path.join(graph_dir, graph),
                 attributes,
-                statistics
+                statistics,
+                **parameters
             )
         )
         for graph in fnmatch.filter(
