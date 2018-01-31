@@ -347,17 +347,16 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
             )
 
 
-def predict(model, buildings, features, label_names=None, probas=False):
-    logger.info('Predicting...')
-    if label_names is None:
+def predict_proba(model, buildings, features, lnames=None, larray=True):
+    logger.info('Predicting probabilities...')
+    if lnames is None:
         try:
             logger.info('Multiclass predicition...')
             return {
-                building: (cls, proba) if probas else cls
-                for building, cls, proba
+                building: proba
+                for building, proba
                 in zip(
                     buildings,
-                    model.predict(features),
                     np.amax(
                         model.predict_proba(features),
                         axis=1
@@ -367,19 +366,15 @@ def predict(model, buildings, features, label_names=None, probas=False):
         except AttributeError:
             logger.info('Multiclass, Multilabel stage predicition...')
             return {
-                building: [family]
-                +
-                (probability if probas else [])
-                +
-                (
-                    predict(
-                        model[family],
-                        [building],
-                        features[buildings.index(building)].reshape(1, -1),
-                        labels_io.LABELS(2, family),
-                        probas
-                    )[building] if family != 'Valid' else []
-                )
+                building: (
+                        probability,
+                        predict_proba(
+                            model[family],
+                            [building],
+                            features[buildings.index(building)].reshape(1, -1),
+                            labels_io.LABELS(2, family)
+                        )[building] if family != 'Valid' else []
+                    )
                 for building, family, probability
                 in zip(
                     buildings,
@@ -393,27 +388,58 @@ def predict(model, buildings, features, label_names=None, probas=False):
     else:
         logger.info('Multilabel stage predicition...')
         return {
-            building: [
-                el
-                for tup in [
-                    (
-                        (label_name, bool(label), probability)
-                        if probas else (label_name, bool(label))
-                    )
-                    for label_name, label, probability
-                    in zip(
-                        label_names,
-                        labels,
-                        probabilties
-                    )
-                ]
-                for el in tup
-            ]
-            for building, labels, probabilties
+            building: probabilties
+            for building, probabilties
             in zip(
                 buildings,
-                model.predict(features),
                 model.predict_proba(features)
+            )
+        }
+
+
+def predict(model, buildings, features, lnames=None, larray=True):
+    logger.info('Predicting...')
+    if lnames is None:
+        try:
+            logger.info('Multiclass predicition...')
+            return {
+                building: cls
+                for building, cls
+                in zip(
+                    buildings,
+                    model.predict(features)
+                )
+            }
+        except AttributeError:
+            logger.info('Multiclass, Multilabel stage predicition...')
+            return {
+                building:
+                (
+                    family,
+                    (
+                        predict(
+                            model[family],
+                            [building],
+                            features[buildings.index(building)].reshape(1, -1),
+                            labels_io.LABELS(2, family),
+                            larray=True
+                        )[building] if family != 'Valid' else None
+                    )
+                )
+                for building, family
+                in zip(
+                    buildings,
+                    model[None].predict(features)
+                )
+            }
+    else:
+        logger.info('Multilabel stage predicition...')
+        return {
+            building: labels
+            for building, labels
+            in zip(
+                buildings,
+                model.predict(features)
             )
         }
 
