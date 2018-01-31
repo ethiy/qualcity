@@ -6,17 +6,22 @@ labels:
     /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
   depth: 3
   LoD: 2
-  hierarchical: False
+  hierarchical: True
 
 features:
   geometric:
     graph_dir:
       /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
     statistics:
-      histogram
+      - mean
+      - median
+      - max
+      - min
     attributes:
       - degree
-      - angle
+      - angle_bis
+      - centroid_bis
+      - area
   altimetric:
     raster_dir:
       /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
@@ -50,3 +55,13 @@ processing:
         n_estimators: 750
       strategy:
         sklearn.multiclass.OneVsRestClassifier
+      reporting: True
+    testing:
+      data_separation:
+        cross_validation:
+          parameters:
+            k: 10
+      reporting: True
+      score:
+        - sklearn.metrics.accuracy_score
+      probabilties: False
