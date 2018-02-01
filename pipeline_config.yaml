@@ -47,6 +47,10 @@ processing:
         - o
         - ^
   classification:
+    data_separation:
+      cross_validation:
+        parameters:
+          k: 10
     training:
       algorithm:
         sklearn.ensemble.RandomForestClassifier
@@ -57,10 +61,7 @@ processing:
         sklearn.multiclass.OneVsRestClassifier
       reporting: True
     testing:
-      data_separation:
-        cross_validation:
-          parameters:
-            k: 10
+      filename: results
       reporting: True
       score:
         - sklearn.metrics.accuracy_score
