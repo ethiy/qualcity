@@ -119,6 +119,10 @@ def features(depth, feat_type, **kwargs):
             kwargs['attributes'],
             kwargs['statistics'],
             **kwargs['paramaters']
+        ) if 'paramaters' in kwargs.keys() else geometry_io.geometric_features(
+            kwargs['graph_dir'],
+            kwargs['attributes'],
+            kwargs['statistics']
         ),
         'altimetric': lambda kwargs: altimetric_features(depth, **kwargs)
     }[feat_type](kwargs)
