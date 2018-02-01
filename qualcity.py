@@ -185,13 +185,15 @@ def visualize_features(features, labels, depth, hier, **visualization_args):
             logger.error('Not yet implemented')
             raise NotImplementedError
         features = build_maniflod(
-            **visualization_args['manifold']
+            visualization_args['manifold']['algorithm'],
+            **visualization_args['manifold']['parameters']
         ).fit_transform(features)
         logger.debug('New transformed features: %s', features)
         logger.info('Fitted and transformed features.')
 
         features = build_reductor(
-            **visualization_args['dimension_reduction']
+            visualization_args['dimension_reduction']['algorithm'],
+            **visualization_args['dimension_reduction']['parameters']
         ).fit_transform(features)
         logger.debug('New reduced features: %s', features)
         logger.info('Fitted and reduced features.')
@@ -273,24 +275,24 @@ def visualize_category(ax, color, marker, label, features):
     ax.scatter(*coordinates, label=label, c=color, marker=marker)
 
 
-def build_maniflod(**manifold_args):
+def build_maniflod(algorithm, **parameters):
     logger.info('Building a manifold transformer...')
-    return utils.resolve(manifold_args['algorithm'])(
-        **manifold_args['parameters']
+    return utils.resolve(algorithm)(
+        **parameters
     )
 
 
-def build_reductor(**reductor_args):
+def build_reductor(algorithm, **parameters):
     logger.info('Building a dimension reductor...')
 
-    if reductor_args['parameters']['n_components'] > 3:
+    if parameters['n_components'] > 3:
         logger.error('Cannot visualize more than three dimensions!')
         raise ValueError
-    elif reductor_args['parameters']['n_components'] < 2:
+    elif parameters['n_components'] < 2:
         logger.error('Cannot visualize less than two dimensions!')
         raise ValueError
 
-    return utils.resolve(reductor_args['algorithm'])(
+    return utils.resolve(algorithm)(
         **reductor_args['parameters']
     )
 
@@ -348,6 +350,10 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                     )
                 ),
                 **class_args['testing']
+            )
+            logger.info(
+                'Succesfully tested %s on features.',
+                class_args['training']['algorithm']
             )
 
 
@@ -457,11 +463,18 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
         test_args['probabilties']
     )
 
-    score_prediction(predictions, ground_truth, *test_args['score'])
+    # score_prediction(
+    #     [
+    #         predictions[building]
+    #         for building in buildings
+    #     ],
+    #     ground_truth,
+    #     *test_args['score']
+    # )
 
-    report_prediction(
+    save_prediction(
         predictions,
-        'results.csv'
+        test_args['filename']
     )
 
 
@@ -476,7 +489,11 @@ def train(features, true, depth, multilabels=None, **train_args):
                 features
             )
             if train_args['reporting']:
-                report_training(predicted, true)
+                logger.info(
+                    'Reporting classes %s ...',
+                    set(labels)
+                )
+                report(predicted, true)
             return model
         else:
             logger.info('Separate families from classes...')
@@ -486,7 +503,11 @@ def train(features, true, depth, multilabels=None, **train_args):
                 features, np.array(families)
             ).predict(features)
             if train_args['reporting']:
-                report_training(predicted_families, families)
+                logger.info(
+                    'Reporting classes %s ...',
+                    set(families)
+                )
+                report(predicted_families, families)
             logger.info('Separating errors per family...')
             idx_per_fam = {
                 fam: np.array(
@@ -527,26 +548,15 @@ def train(features, true, depth, multilabels=None, **train_args):
             features
         )
         if train_args['reporting']:
-            report_multilabel_training(predicted, true, multilabels)
+            logger.info(
+                'Reporting multilabels %s ...',
+                multilabels
+            )
+            report(predicted, true, multilabels)
         return model
 
 
-def report_multilabel_training(z_predicted, z_true, labels_names):
-    logger.info('Reporting a multilabel training...')
-    for number, (predicted, true) in enumerate(
-        zip(zip(*z_predicted), zip(*z_true))
-    ):
-        logger.info(
-            'Reporting label: %s', labels_names[number]
-        )
-        report_training(predicted, true, labels_names[number])
-
-
-def score_prediction(predictions, ground_truth, *score_args):
-    pass# print(sklearn.metrics.classification_report(predictions, ground_truth))
-
-
-def report_prediction(predictions, filename):
+def save_prediction(predictions, filename):
     with open(filename, 'w') as prediction_file:
         for building, labels in predictions.items():
             prediction_file.write(
@@ -560,24 +570,32 @@ def report_prediction(predictions, filename):
             )
 
 
-def report_training(predicted, true, label=None):
-    logger.info('Reporting training...')
-    print(sklearn.metrics.classification_report(true, predicted))
-    logger.debug('%s', sklearn.metrics.classification_report(true, predicted))
-    global FIGURE_COUNTER
-    f, ax = plt.subplots()
-    FIGURE_COUNTER += 1
-    plot_confusion_matrix(
-        sklearn.metrics.confusion_matrix(true, predicted),
-        (
-            sorted(list(set(true)))
-            if label is None
-            else ['None', label]
-        ),
-        f,
-        ax,
-        normalize=False
-    )
+def report(predicted, true, labels=None):
+    if isinstance(labels, tuple):
+        print(labels)
+    elif isinstance(labels, list):
+        for number, (z_predicted, z_true) in enumerate(
+            zip(zip(*predicted), zip(*true))
+        ):
+            report(z_predicted, z_true, labels[number])
+    else:
+        print(sklearn.metrics.classification_report(true, predicted))
+        logger.debug(
+            '%s',
+            sklearn.metrics.classification_report(true, predicted)
+        )
+        global FIGURE_COUNTER
+        f, ax = plt.subplots()
+        FIGURE_COUNTER += 1
+        plot_confusion_matrix(
+            sklearn.metrics.confusion_matrix(true, predicted),
+            (
+                sorted(list(set(true))) if labels is None else [None, labels]
+            ),
+            f,
+            ax,
+            normalize=False
+        )
 
 
 def plot_confusion_matrix(
