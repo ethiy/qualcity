@@ -343,11 +343,16 @@ def classify(features, labels, buildings, depth, hierarchical, **class_args):
                 features,
                 labels,
                 (
-                    None if hierarchical
+                    None if depth < 3
                     else (
-                        ['Building', 'Facet'] if depth < 3
-                        else labels_io.LABELS(2, ['Building', 'Facet'])
+                        None,
+                        labels_io.LABELS(2, ['Building']),
+                        labels_io.LABELS(2, ['Facet'])
                     )
+                ) if hierarchical
+                else (
+                    ['Building', 'Facet'] if depth < 3
+                    else labels_io.LABELS(2, ['Building', 'Facet'])
                 ),
                 **class_args['testing']
             )
@@ -410,38 +415,37 @@ def predict_proba(model, buildings, features, lnames=None, larray=True):
 def predict(model, buildings, features, lnames=None, larray=True):
     logger.info('Predicting...')
     if lnames is None:
-        try:
-            logger.info('Multiclass predicition...')
-            return {
-                building: cls
-                for building, cls
-                in zip(
-                    buildings,
-                    model.predict(features)
-                )
-            }
-        except AttributeError:
-            logger.info('Multiclass, Multilabel stage predicition...')
-            return {
-                building:
+        logger.info('Multiclass predicition...')
+        return {
+            building: cls
+            for building, cls
+            in zip(
+                buildings,
+                model.predict(features)
+            )
+        }
+    elif isinstance(lnames, tuple):
+        logger.info('Multiclass, Multilabel stage predicition...')
+        return {
+            building:
+            (
+                family,
                 (
-                    family,
-                    (
-                        predict(
-                            model[family],
-                            [building],
-                            features[buildings.index(building)].reshape(1, -1),
-                            labels_io.LABELS(2, family),
-                            larray=True
-                        )[building] if family != 'Valid' else None
-                    )
+                    predict(
+                        model[family],
+                        [building],
+                        features[buildings.index(building)].reshape(1, -1),
+                        labels_io.LABELS(2, family),
+                        larray=True
+                    )[building] if family != 'Valid' else None
                 )
-                for building, family
-                in zip(
-                    buildings,
-                    model[None].predict(features)
-                )
-            }
+            )
+            for building, family
+            in zip(
+                buildings,
+                model[None].predict(features)
+            )
+        }
     else:
         logger.info('Multilabel stage predicition...')
         return {
@@ -463,14 +467,17 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
         test_args['probabilties']
     )
 
-    # score_prediction(
-    #     [
-    #         predictions[building]
-    #         for building in buildings
-    #     ],
-    #     ground_truth,
-    #     *test_args['score']
-    # )
+    cm = report(
+        [
+            predictions[building]
+            for building in buildings
+        ],
+        ground_truth,
+        label_names,
+        *test_args['score']
+    )
+
+    print(cm)
 
     save_prediction(
         predictions,
@@ -563,39 +570,85 @@ def save_prediction(predictions, filename):
                 ', '.join(
                     [building]
                     +
-                    [str(label) for label in labels]
+                    [
+                        (
+                            ', '.join(label)
+                            if isinstance(label, list)
+                            else str(label)
+                        )
+                        for label in labels
+                    ]
                 )
                 +
                 '\n'
             )
 
 
-def report(predicted, true, labels=None):
+def report(predicted, true, labels=None, *score_args):
     if isinstance(labels, tuple):
-        print(labels)
+        (
+            (true_families, _),
+            (predicted_families, _)
+        ) = (
+            zip(*true),
+            zip(*predicted)
+        )
+        return (
+            [
+                (
+                    None,
+                    report(
+                        predicted_families,
+                        true_families,
+                        None,
+                        *score_args
+                    )
+                )
+            ]
+            +
+            [
+                (
+                    family,
+                    report(
+                        z_predicted_errors,
+                        z_true_errors,
+                        labels_io.LABELS(2, [family]),
+                        *score_args
+                    )
+                )
+                for family, (z_predicted_errors, z_true_errors)
+                in [
+                    (
+                        family,
+                        zip(
+                            *[
+                                (predicted_errors, true_errors)
+                                for (true_family, true_errors),
+                                    (predicted_family, predicted_errors)
+                                in zip(
+                                    true,
+                                    predicted
+                                )
+                                if family == predicted_family
+                                if true_family == predicted_family
+                            ]
+                        )
+                    )
+                    for family in set(predicted_families)
+                    if family != 'Valid'
+                ]
+            ]
+        )
     elif isinstance(labels, list):
-        for number, (z_predicted, z_true) in enumerate(
-            zip(zip(*predicted), zip(*true))
-        ):
-            report(z_predicted, z_true, labels[number])
+        return [
+            report(z_predicted, z_true, labels[number], *score_args)
+            for number, (z_predicted, z_true) in enumerate(
+                zip(zip(*predicted), zip(*true))
+            )
+        ]
+
     else:
-        print(sklearn.metrics.classification_report(true, predicted))
-        logger.debug(
-            '%s',
-            sklearn.metrics.classification_report(true, predicted)
-        )
-        global FIGURE_COUNTER
-        f, ax = plt.subplots()
-        FIGURE_COUNTER += 1
-        plot_confusion_matrix(
-            sklearn.metrics.confusion_matrix(true, predicted),
-            (
-                sorted(list(set(true))) if labels is None else [None, labels]
-            ),
-            f,
-            ax,
-            normalize=False
-        )
+        return sklearn.metrics.confusion_matrix(true, predicted)
 
 
 def plot_confusion_matrix(
