@@ -34,7 +34,7 @@ setup(
             'scipy',
             'pyshp',
             'scikit-learn',
-            'repoze.lru'
+            'logging'
     ],
     include_package_data=True,
     zip_safe=False
