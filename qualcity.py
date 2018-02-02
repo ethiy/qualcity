@@ -293,7 +293,7 @@ def build_reductor(algorithm, **parameters):
         raise ValueError
 
     return utils.resolve(algorithm)(
-        **reductor_args['parameters']
+        **parameters
     )
 
 
