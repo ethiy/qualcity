@@ -438,7 +438,9 @@ def predict(model, buildings, features, lnames=None, larray=True):
                     predict(
                         model[family],
                         [building],
-                        features[buildings.index(building)].reshape(1, -1),
+                        features[
+                            np.where(buildings == building)[0]
+                        ].reshape(1, -1),
                         labels_io.LABELS(2, family),
                         larray=True
                     )[building] if family != 'Valid' else None
