@@ -556,7 +556,7 @@ def train(features, true, depth, multilabels=None, **train_args):
     else:
         logger.info('Fitting and predicting multilabels...')
         predicted = model.fit(features, np.array(true)).predict(
-            features
+            np.array(features)
         )
         if train_args['reporting']:
             logger.info(
