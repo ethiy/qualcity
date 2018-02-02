@@ -72,7 +72,7 @@ def stat(statistic):
 
 
 def stats(attribute, statistics, **kwargs):
-    utils_logger.info('Getting %s of %s...', statistics, attribute)
+    utils_logger.debug('Getting %s of %s...', statistics, attribute)
     if statistics == 'histogram':
         utils_logger.info('Getting histogram...')
         return list(histogram(attribute, **kwargs)[0])
