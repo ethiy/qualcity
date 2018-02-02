@@ -576,7 +576,7 @@ def save_prediction(predictions, filename):
                     +
                     [
                         (
-                            ', '.join(label)
+                            ', '.join([str(l) for l in label])
                             if isinstance(label, list)
                             else str(label)
                         )
