@@ -653,8 +653,7 @@ def report(predicted, true, labels=None, *score_args):
     else:
         return sklearn.metrics.confusion_matrix(
             true,
-            predicted,
-            labels=['None', labels] if labels is not None else labels
+            predicted
         )
 
 
