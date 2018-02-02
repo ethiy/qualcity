@@ -20,6 +20,8 @@ import functools
 import itertools
 import operator
 
+import pathos.multiprocessing as mp
+
 import yaml
 
 import logging
@@ -774,17 +776,20 @@ def process(features, labels, buildings, depth, hierarchical, **kwargs):
             **kwargs['classification']
         )
     else:
-        for train_indices, test_indices in indices:
-            classify(
+        pool = mp.Pool(processes=4)
+        pool.map(
+            lambda idxs: classify(
                 features,
                 labels,
                 buildings,
                 depth,
                 hierarchical,
-                train_indices,
-                test_indices,
+                idxs[0],
+                idxs[1],
                 **kwargs['classification']
-            )
+            ),
+            indices
+        )
     logger.info('Succesfully classified features.')
 
     plt.show()
