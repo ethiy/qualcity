@@ -502,7 +502,7 @@ def train(features, true, depth, multilabels=None, **train_args):
             if train_args['reporting']:
                 logger.info(
                     'Reporting classes %s ...',
-                    set(labels)
+                    set(true)
                 )
                 report(predicted, true)
             return model
