@@ -314,52 +314,56 @@ def build_classifier(**classifier_args):
     return model
 
 
-def classify(features, labels, buildings, depth, hierarchical, **class_args):
-    if len(class_args.keys()) == 0:
-        logger.warn('There is no classification task!')
-    else:
-        if 'training' in class_args.keys():
-            model = train(
-                features,
-                labels,
-                depth,
-                (
-                    None if hierarchical
-                    else (
-                        ['Building', 'Facet'] if depth < 3
-                        else labels_io.LABELS(2, ['Building', 'Facet'])
-                    )
-                ),
-                **class_args['training']
+def classify(
+    features,
+    labels,
+    buildings,
+    depth,
+    hierarchical,
+    train_indices,
+    test_indices,
+    **class_args
+):
+    model = train(
+        np.array(features)[train_indices],
+        np.array(labels)[train_indices],
+        depth,
+        (
+            None if hierarchical
+            else (
+                ['Building', 'Facet'] if depth < 3
+                else labels_io.LABELS(2, ['Building', 'Facet'])
             )
-            logger.info(
-                'Succesfully trained %s on features.',
-                class_args['training']['algorithm']
+        ),
+        **class_args['training']
+    )
+    logger.info(
+        'Succesfully trained %s on all the features.',
+        class_args['training']['algorithm']
+    )
+    test(
+        model,
+        np.array(buildings)[test_indices],
+        np.array(features)[test_indices],
+        np.array(labels)[test_indices],
+        (
+            None if depth < 3
+            else (
+                None,
+                labels_io.LABELS(2, ['Building']),
+                labels_io.LABELS(2, ['Facet'])
             )
-        if 'testing' in class_args.keys():
-            test(
-                model,
-                buildings,
-                features,
-                labels,
-                (
-                    None if depth < 3
-                    else (
-                        None,
-                        labels_io.LABELS(2, ['Building']),
-                        labels_io.LABELS(2, ['Facet'])
-                    )
-                ) if hierarchical
-                else (
-                    ['Building', 'Facet'] if depth < 3
-                    else labels_io.LABELS(2, ['Building', 'Facet'])
-                ),
-                **class_args['testing']
-            )
-            logger.info(
-                'Succesfully tested %s on features.',
-                class_args['training']['algorithm']
-            )
+        ) if hierarchical
+        else (
+            ['Building', 'Facet'] if depth < 3
+            else labels_io.LABELS(2, ['Building', 'Facet'])
+        ),
+        **class_args['testing']
+    )
+    logger.info(
+        'Succesfully tested %s on all features.',
+        class_args['training']['algorithm']
+    )
 
 
 def predict_proba(model, buildings, features, lnames=None, larray=True):
@@ -449,7 +453,7 @@ def predict(model, buildings, features, lnames=None, larray=True):
     else:
         logger.info('Multilabel stage predicition...')
         return {
-            building: labels
+            building: list(labels)
             for building, labels
             in zip(
                 buildings,
@@ -646,9 +650,12 @@ def report(predicted, true, labels=None, *score_args):
                 zip(zip(*predicted), zip(*true))
             )
         ]
-
     else:
-        return sklearn.metrics.confusion_matrix(true, predicted)
+        return sklearn.metrics.confusion_matrix(
+            true,
+            predicted,
+            labels=['None', labels] if labels is not None else labels
+        )
 
 
 def plot_confusion_matrix(
@@ -708,6 +715,34 @@ def plot_confusion_matrix(
     ax.set_xlabel('Predicted label')
 
 
+def data_split(features, labels, **separation_args):
+    if separation_args == 'None':
+        return (
+            np.arange(features.shape[0]),
+            np.arange(features.shape[0])
+        )
+    elif 'train_test_split' in separation_args.keys():
+        return sklearn.model_selection.train_test_split(
+            np.arange(features.shape[0]),
+            **separation_args['train_test_split']
+        )
+    elif 'cross_validation' in separation_args.keys():
+        return list(
+            sklearn.model_selection.StratifiedKFold(
+                **separation_args['cross_validation']['parameters']
+            ).split(
+                features,
+                list(zip(*labels))[0] if isinstance(labels, tuple) else labels
+            )
+        )
+    else:
+        logger.error(
+            'Separation %s not implemented.',
+            kwargs['classification']['data_separation']
+        )
+        raise NotImplementedError
+
+
 def process(features, labels, buildings, depth, hierarchical, **kwargs):
     logger.info('Processing features...')
     if 'visualization' in kwargs.keys():
@@ -721,14 +756,34 @@ def process(features, labels, buildings, depth, hierarchical, **kwargs):
         )
 
     logger.info('Classification process starting...')
-    classify(
+    indices = data_split(
         features,
         labels,
-        buildings,
-        depth,
-        hierarchical,
-        **kwargs['classification']
+        **kwargs['classification']['data_separation']
     )
+    if isinstance(indices, tuple):
+        classify(
+            features,
+            labels,
+            buildings,
+            depth,
+            hierarchical,
+            indices[0],
+            indices[1],
+            **kwargs['classification']
+        )
+    else:
+        for train_indices, test_indices in indices:
+            classify(
+                features,
+                labels,
+                buildings,
+                depth,
+                hierarchical,
+                train_indices,
+                test_indices,
+                **kwargs['classification']
+            )
     logger.info('Succesfully classified features.')
 
     plt.show()

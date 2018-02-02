@@ -50,7 +50,7 @@ processing:
     data_separation:
       cross_validation:
         parameters:
-          k: 10
+          n_splits: 2
     training:
       algorithm:
         sklearn.ensemble.RandomForestClassifier
