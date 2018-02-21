@@ -5,10 +5,11 @@
 
 Usage:
     qualcity.py (-h | --help)
-    qualcity.py pipeline <pipeline_config> [logger <logger_config>] [--verbose]
+    qualcity.py pipeline <pipline_conf> [logger <log_conf>] [(-v | --verbose)]
 
 Options:
     -h --help           Show this screen.
+    -v --verbose        Verbose mode
 
 """
 
@@ -87,7 +88,7 @@ def config_logger(arguments):
         )
         logger.info('Default logger chosen.')
     else:
-        with open(arguments['<logger_config>'], mode='r') as conf:
+        with open(arguments['<log_conf>'], mode='r') as conf:
             configuration = yaml.load(conf)
 
         configuration['handlers']['file']['filename'] = (
@@ -99,7 +100,7 @@ def config_logger(arguments):
         logging.config.dictConfig(
             configuration
         )
-        logger.info('Loaded logger from: ' + arguments['<logger_config>'])
+        logger.info('Loaded logger from: ' + arguments['<log_conf>'])
         logger.debug(yaml.dump(configuration))
 
 
@@ -811,7 +812,7 @@ def main():
 
     config_logger(arguments)
 
-    configuration = load_pipeline_config(arguments['<pipeline_config>'])
+    configuration = load_pipeline_config(arguments['<pipline_conf>'])
     logger.info('Pipeline loaded.')
 
     buildings, labels = format_labels(
