@@ -19,8 +19,8 @@ features:
       - min
     attributes:
       - degree
-      - angle_bis
-      - centroid_bis
+      - angle_with_relations
+      - centroid_with_relations
       - area
   altimetric:
     raster_dir:
@@ -50,7 +50,7 @@ processing:
     data_separation:
       cross_validation:
         parameters:
-          n_splits: 2
+          n_splits: 10
     training:
       algorithm:
         sklearn.ensemble.RandomForestClassifier
