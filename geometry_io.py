@@ -20,6 +20,9 @@ import utils
 
 geom_logger = logging.getLogger('qualcity.' + __name__)
 
+NODE_ATTRIBUTES = ['degree', 'area']
+EDGE_ATTRIBUTES = ['centroid', 'angle']
+
 
 def read_features(line):
     geom_logger.debug('Reading face features from line %s...', line)
@@ -101,57 +104,42 @@ def get_relations(lines):
     ]
 
 
-def degree_statistics(faces, statistics, **kwargs):
-    geom_logger.info('Facet degree statistics (i.e. %s)', statistics)
-    return utils.stats([face[0] for face in faces.values()], statistics)
-
-
-def area_statistics(faces, statistics, **kwargs):
-    geom_logger.info('Facet area statistics (i.e. %s)', statistics)
-    return utils.stats([face[1] for face in faces.values()], statistics)
-
-
-def centroid_statistics(faces, statistics, relations=[], **kwargs):
-    geom_logger.info(
-        'Facets centroid statistics (i.e. %s) with%s relations',
-        statistics,
-        'out' if len(relations) == 0 else ''
-    )
-    if len(relations) == 0:
-        relations = [
-            (idx, _idx)
-            for idx in faces.keys()
-            for _idx in faces.keys()
-            if idx != _idx
-        ]
+def node_statistics(faces, attribute, statistics, **kwargs):
+    geom_logger.info('Facet %s statistics: %s', attribute, statistics)
     return utils.stats(
         [
-            np.linalg.norm(faces[idx][2] - faces[_idx][2])
-            for idx, _idx in relations
+            face[NODE_ATTRIBUTES.index(attribute)]
+            for face in faces.values()
         ],
         statistics
     )
 
 
-def angle_statistics(faces, statistics, relations=[], **kwargs):
+def edge_statistics(faces, attribute, statistics, relations=[], **kwargs):
     geom_logger.info(
-        'Facets angle statistics (i.e. %s) with%s relations',
+        'Facets %s statistics (i.e. %s) with%s relations',
+        attribute,
         statistics,
         'out' if len(relations) == 0 else ''
     )
     if len(relations) == 0:
         relations = [
-            (idx, _idx)
-            for idx in faces.keys()
-            for _idx in faces.keys()
-            if idx != _idx
+            (i, j)
+            for i in faces.keys()
+            for j in faces.keys()
+            if i != j
         ]
     return utils.stats(
         [
-            np.arctan2(
-                np.linalg.norm(np.cross(faces[idx][3], faces[_idx][3])),
-                np.dot(faces[idx][3], faces[_idx][3])
-            ) * 180 / np.pi
+            np.linalg.norm(
+                faces[idx][
+                    len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
+                ]
+                -
+                faces[_idx][
+                    len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
+                ]
+            )
             for idx, _idx in relations
         ],
         statistics
@@ -168,19 +156,46 @@ def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
     faces = get_faces(lines)
     geom_logger.debug('Facets in %s : %s...')
     return {
-        'degree': degree_statistics,
-        'area': area_statistics,
-        'centroid': centroid_statistics,
-        'centroid_bis':
-        lambda faces, statistics, **kwargs: centroid_statistics(
+        'degree':
+        lambda faces, statistics, **kwargs: node_statistics(
             faces,
+            'degree',
+            statistics,
+            **kwargs
+        ),
+        'area':
+        lambda faces, statistics, **kwargs: node_statistics(
+            faces,
+            'area',
+            statistics,
+            **kwargs
+        ),
+        'centroid':
+        lambda faces, statistics, **kwargs: edge_statistics(
+            faces,
+            'centroid',
+            statistics,
+            **kwargs
+        ),
+        'centroid_with_relations':
+        lambda faces, statistics, **kwargs: edge_statistics(
+            faces,
+            'centroid',
             statistics,
             get_relations(lines),
             **kwargs
         ),
-        'angle': angle_statistics,
-        'angle_bis': lambda faces, statistics, **kwargs: angle_statistics(
+        'angle':
+        lambda faces, statistics, **kwargs: edge_statistics(
             faces,
+            'angle',
+            statistics,
+            **kwargs
+        ),
+        'angle_with_relations':
+        lambda faces, statistics, **kwargs: edge_statistics(
+            faces,
+            'angle',
             statistics,
             get_relations(lines),
             **kwargs
@@ -264,13 +279,13 @@ def main():
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
         'dual_graphs'
     )
-    print(
-        read(os.path.join(graph_dir, '3078.txt')).node[1]
-    )
+    # print(
+    #     read(os.path.join(graph_dir, '3078.txt')).node[1]
+    # )
     print(
         features(
             os.path.join(graph_dir, '3078.txt'),
-            ['degree', 'area'],
+            ['degree', 'area', 'centroid'],
             ['min', 'max']
         )
     )
@@ -284,8 +299,8 @@ def main():
         )
     )
 
-    nx.draw(read(os.path.join(graph_dir, '3078.txt')))
-    plt.show()
+    # nx.draw(read(os.path.join(graph_dir, '3078.txt')))
+    # plt.show()
 
 
 if __name__ == '__main__':
