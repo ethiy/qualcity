@@ -181,10 +181,10 @@ def format_labels(hierarchical, depth, LoD, labels_dir):
     return zip(*labels)
 
 
-def visualize_features(features, labels, depth, hier, **visualization_args):
+def visualize_features(features, labels, label_names, **visualization_args):
     logger.info('Visualizing features...')
     try:
-        if depth > 2 or hier is False:
+        if not isinstance(label_names, tuple):
             logger.error('Not yet implemented')
             raise NotImplementedError
         features = build_maniflod(
@@ -317,12 +317,11 @@ def build_classifier(**classifier_args):
     return model
 
 
-def classify(
+def train_test(
     features,
     labels,
     buildings,
-    depth,
-    hierarchical,
+    label_names,
     train_indices,
     test_indices,
     **class_args
@@ -330,43 +329,94 @@ def classify(
     model = train(
         np.array(features)[train_indices],
         np.array(labels)[train_indices],
-        depth,
-        (
-            None if hierarchical
-            else (
-                ['Building', 'Facet'] if depth < 3
-                else labels_io.LABELS(2, ['Building', 'Facet'])
-            )
-        ),
+        label_names,
         **class_args['training']
     )
     logger.info(
         'Succesfully trained %s on all the features.',
         class_args['training']['algorithm']
     )
-    test(
+    return test(
         model,
         np.array(buildings)[test_indices],
         np.array(features)[test_indices],
         np.array(labels)[test_indices],
-        (
-            None if depth < 3
-            else (
-                None,
-                labels_io.LABELS(2, ['Building']),
-                labels_io.LABELS(2, ['Facet'])
-            )
-        ) if hierarchical
-        else (
-            ['Building', 'Facet'] if depth < 3
-            else labels_io.LABELS(2, ['Building', 'Facet'])
-        ),
+        label_names,
         **class_args['testing']
     )
-    logger.info(
-        'Succesfully tested %s on all features.',
-        class_args['training']['algorithm']
+    # logger.info(
+    #     'Succesfully tested %s on all features.',
+    #     class_args['training']['algorithm']
+    # )
+
+
+def classify(features, labels, buildings, label_names, **class_args):
+    logger.info('Classification process starting...')
+
+    indices = data_split(
+        features,
+        labels,
+        **class_args['data_separation']
     )
+    logger.info('Data splited.')
+
+    if isinstance(indices, tuple):
+        train_test(
+            features,
+            labels,
+            buildings,
+            label_names,
+            indices[0],
+            indices[1],
+            **class_args
+        )
+    else:
+        pool = mp.Pool(processes=len(indices))
+        z_predictions, z_cms = zip(
+            *pool.map(
+                lambda idxs: train_test(
+                    features,
+                    labels,
+                    buildings,
+                    label_names,
+                    idxs[0],
+                    idxs[1],
+                    **class_args
+                ),
+                indices
+            )
+        )
+        predictions = dict(
+            functools.reduce(
+                lambda llist, rdict: llist + list(rdict.items()),
+                z_predictions,
+                []
+            )
+        )
+        save_prediction(predictions, 'filename.csv', label_names)
+
+        if isinstance(label_names, dict):
+            pass
+        elif isinstance(label_names, list):
+            cms = functools.reduce(
+                lambda llist, rlist: [
+                    sum(lists) for lists in zip(llist, rlist)
+                ],
+                z_cms,
+                [np.zeros((2, 2), dtype=int)] * len(label_names)
+            )
+        elif isinstance(label_names, tuple):
+            cms = functools.reduce(
+                operator.add,
+                z_cms,
+                np.zeros((len(label_names), len(label_names)), dtype=int)
+            )
+        else:
+            raise NotImplementedError
+        plot_confusion_matrix(
+            cms,
+            label_names
+        )
 
 
 def predict_proba(model, buildings, features, lnames=None, larray=True):
@@ -419,9 +469,9 @@ def predict_proba(model, buildings, features, lnames=None, larray=True):
         }
 
 
-def predict(model, buildings, features, lnames=None, larray=True):
+def predict(model, buildings, features, label_names, larray=True):
     logger.info('Predicting...')
-    if lnames is None:
+    if isinstance(label_names, tuple):
         logger.info('Multiclass predicition...')
         return {
             building: cls
@@ -431,7 +481,7 @@ def predict(model, buildings, features, lnames=None, larray=True):
                 model.predict(features)
             )
         }
-    elif isinstance(lnames, tuple):
+    elif isinstance(label_names, dict):
         logger.info('Multiclass, Multilabel stage predicition...')
         return {
             building:
@@ -444,7 +494,7 @@ def predict(model, buildings, features, lnames=None, larray=True):
                         features[
                             np.where(buildings == building)[0]
                         ].reshape(1, -1),
-                        labels_io.LABELS(2, family),
+                        label_names[family],
                         larray=True
                     )[building] if family != 'Valid' else None
                 )
@@ -455,8 +505,8 @@ def predict(model, buildings, features, lnames=None, larray=True):
                 model[None].predict(features)
             )
         }
-    else:
-        logger.info('Multilabel stage predicition...')
+    elif isinstance(label_names, list):
+        logger.info('Multilabel predicition...')
         return {
             building: list(labels)
             for building, labels
@@ -465,6 +515,8 @@ def predict(model, buildings, features, lnames=None, larray=True):
                 model.predict(features)
             )
         }
+    else:
+        raise('Labels %s not supported', label_names)
 
 
 def test(model, buildings, features, ground_truth, label_names, **test_args):
@@ -476,125 +528,124 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
         test_args['probabilties']
     )
 
-    cm = report(
-        [
-            predictions[building]
-            for building in buildings
-        ],
-        ground_truth,
-        label_names,
-        *test_args['score']
-    )
-
-    print(cm)
-
-    save_prediction(
+    return (
         predictions,
-        test_args['filename']
+        report(
+            [
+                predictions[building]
+                for building in buildings
+            ],
+            ground_truth,
+            label_names,
+            *test_args['score']
+        )
     )
 
 
-def train(features, true, depth, multilabels=None, **train_args):
+def train(features, true, label_names, **train_args):
     logger.info('Training...')
     model = build_classifier(**train_args)
 
-    if multilabels is None:
-        if depth < 3:
-            logger.info('Fitting and predicting classes...')
-            predicted = model.fit(features, np.array(true)).predict(
-                features
+    if isinstance(label_names, tuple):
+        logger.info('Fitting and predicting classes...')
+        predicted = model.fit(features, np.array(true)).predict(
+            features
+        )
+        if train_args['reporting']:
+            logger.info(
+                'Reporting classes %s ...',
+                label_names
             )
-            if train_args['reporting']:
-                logger.info(
-                    'Reporting classes %s ...',
-                    set(true)
-                )
-                report(predicted, true)
-            return model
-        else:
-            logger.info('Separate families from classes...')
-            families, errors = zip(*true)
-            logger.info('Fitting and predicting families...')
-            predicted_families = model.fit(
-                features, np.array(families)
-            ).predict(features)
-            if train_args['reporting']:
-                logger.info(
-                    'Reporting classes %s ...',
-                    set(families)
-                )
-                report(predicted_families, families)
-            logger.info('Separating errors per family...')
-            idx_per_fam = {
-                fam: np.array(
-                    [
-                        idx
-                        for idx, _
-                        in [
-                            (idx, label)
-                            for idx, label in enumerate(families)
-                            if label == fam
-                        ]
-                    ]
-                )
-                for fam in set(families)
-                if fam != 'Valid'
-            }
-
-            return dict(
-                [(None,  model)]
-                +
-                [
-                    (
-                        fam,
-                        train(
-                            [features[idx] for idx in fam_indexes],
-                            [errors[idx] for idx in fam_indexes],
-                            0,
-                            labels_io.LABELS(2, fam),
-                            **train_args
-                        )
-                    )
-                    for fam, fam_indexes in idx_per_fam.items()
-                ]
-            )
-    else:
+            report(predicted, true, label_names)
+        report(predicted, true, label_names)
+        return model
+    elif isinstance(label_names, list):
         logger.info('Fitting and predicting multilabels...')
         predicted = model.fit(features, np.array(true)).predict(
             np.array(features)
         )
         if train_args['reporting']:
             logger.info(
-                'Reporting multilabels %s ...',
-                multilabels
+                'Reporting %s ...',
+                label_names
             )
-            report(predicted, true, multilabels)
-        return model
+            report(predicted, true, label_names)
+            return model
+    elif isinstance(label_names, dict):
+        logger.info('Separate families from classes...')
+        families, errors = zip(*true)
+        logger.info('Fitting and predicting families...')
+        predicted_families = model.fit(
+            features, np.array(families)
+        ).predict(features)
+        if train_args['reporting']:
+            logger.info(
+                'Reporting classes %s ...',
+                set(families)
+            )
+            report(predicted_families, families, tuple(label_names.keys()))
+        logger.info('Separating errors per family...')
+        idx_per_fam = {
+            fam: np.array(
+                [
+                    idx
+                    for idx, _
+                    in [
+                        (idx, label)
+                        for idx, label in enumerate(families)
+                        if label == fam
+                    ]
+                ]
+            )
+            for fam in label_names.keys()
+            if fam != 'Valid'
+        }
+
+        return dict(
+            [(None,  model)]
+            +
+            [
+                (
+                    fam,
+                    train(
+                        [features[idx] for idx in fam_indexes],
+                        [errors[idx] for idx in fam_indexes],
+                        label_names[fam],
+                        **train_args
+                    )
+                )
+                for fam, fam_indexes in idx_per_fam.items()
+            ]
+        )
+    else:
+        raise LookupError('Labels %s not supported', label_names)
 
 
-def save_prediction(predictions, filename):
+def save_prediction(predictions, filename, label_names):
     with open(filename, 'w') as prediction_file:
         for building, labels in predictions.items():
-            prediction_file.write(
-                ', '.join(
-                    [building]
-                    +
-                    [
-                        (
-                            ', '.join([str(l) for l in label])
-                            if isinstance(label, list)
-                            else str(label)
-                        )
-                        for label in labels
-                    ]
-                )
-                +
-                '\n'
-            )
+            line = [building]
+            if isinstance(label_names, tuple):
+                line += labels
+            elif isinstance(label_names, list):
+                errors = [
+                    label_names[idx]
+                    for idx, label in enumerate(labels)
+                    if label
+                ]
+                line += errors if errors else ['Valid']
+            elif isinstance(label_names, dict):
+                fam, err = labels
+                line += [
+                    label_names[fam][idx]
+                    for idx, label in enumerate(labels)
+                    if label
+                ] if fam != 'Valid' else ['Valid']
+            prediction_file.write(', '.join(line) + '\n')
 
 
-def report(predicted, true, labels=None, *score_args):
-    if isinstance(labels, tuple):
+def report(predicted, true, label_names, *score_args):
+    if isinstance(label_names, dict):
         (
             (true_families, _),
             (predicted_families, _)
@@ -609,7 +660,7 @@ def report(predicted, true, labels=None, *score_args):
                     report(
                         predicted_families,
                         true_families,
-                        None,
+                        tuple(label_names.keys()),
                         *score_args
                     )
                 )
@@ -621,7 +672,7 @@ def report(predicted, true, labels=None, *score_args):
                     report(
                         z_predicted_errors,
                         z_true_errors,
-                        labels_io.LABELS(2, [family]),
+                        label_names[family],
                         *score_args
                     )
                 )
@@ -643,80 +694,141 @@ def report(predicted, true, labels=None, *score_args):
                             ]
                         )
                     )
-                    for family in set(predicted_families)
+                    for family in predicted_families
                     if family != 'Valid'
                 ]
             ]
         )
-    elif isinstance(labels, list):
+    elif isinstance(label_names, list):
         return [
-            report(z_predicted, z_true, labels[number], *score_args)
+            report(
+                z_predicted,
+                z_true,
+                ('None', label_names[number]),
+                *score_args
+            )
             for number, (z_predicted, z_true) in enumerate(
                 zip(zip(*predicted), zip(*true))
             )
         ]
+    elif isinstance(label_names, tuple):
+        present = set(true)
+        if len(present) != len(label_names):
+            if len(present) == 1:
+                cm = np.zeros((len(label_names), len(label_names)), dtype=int)
+                if 1 in present:
+                    cm[1, 1] = sklearn.metrics.confusion_matrix(
+                        true,
+                        predicted
+                    )[0, 0]
+                    return cm
+                elif 0 in present:
+                    cm[0, 0] = sklearn.metrics.confusion_matrix(
+                        true,
+                        predicted
+                    )[0, 0]
+                    return cm
+                else:
+                    raise NotImplementedError
+            else:
+                raise NotImplementedError
+        else:
+            return sklearn.metrics.confusion_matrix(
+                true,
+                predicted
+            )
     else:
-        return sklearn.metrics.confusion_matrix(
-            true,
-            predicted
-        )
+        raise LookupError('Labels %s not supported', label_names)
 
 
 def plot_confusion_matrix(
     confusion_matrix,
-    classes,
-    figure,
-    ax,
+    label_names,
+    figure=None,
+    axes=[],
     normalize=False
 ):
-    logger.info('Plotting confusion matrix...')
-    logger.debug('Confusiong matrix is: %s', confusion_matrix)
-    number_of_elements = np.sum(confusion_matrix)
-    if normalize:
-        logger.info('Normalizing confusion matrix')
-        confusion_matrix = (
-            confusion_matrix.astype('float')
-            /
-            confusion_matrix.sum(axis=1)[:, np.newaxis]
+    if isinstance(label_names, dict):
+        figure, axes = plt.subplots(
+            len(confusion_matrix),
+            max(
+                [
+                    len(matrices)
+                    for matrices in confusion_matrix.values()
+                ]
+            )
         )
-
-    logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
-
-    logger.info('Plotting now...')
-    cm = ax.imshow(
-        confusion_matrix,
-        interpolation='nearest',
-        cmap=plt.cm.Blues
-    )
-    ax.set_title(
-        'Confusion matrix for '
-        +
-        str(number_of_elements)
-        +
-        ' elements'
-    )
-    figure.colorbar(cm, ax=ax)
-
-    middle = confusion_matrix.max() / 2.
-    for i, j in itertools.product(
-        range(confusion_matrix.shape[0]),
-        range(confusion_matrix.shape[1])
-    ):
-        plt.text(
-            j,
-            i,
-            format(confusion_matrix[i, j], '.2f' if normalize else 'd'),
-            horizontalalignment="center",
-            color="white" if confusion_matrix[i, j] > middle else "black"
+        for row, (family, cms) in enumerate(confusion_matrix):
+            plot_confusion_matrix(
+                cms,
+                label_names[family],
+                figure,
+                axes[row, :],
+                normalize
+            )
+    elif isinstance(confusion_matrix, list):
+        figure, axes = (
+            plt.subplots(1, len(confusion_matrix))
+            if not axes else (figure, axes)
         )
+        for column, cm in enumerate(confusion_matrix):
+            plot_confusion_matrix(
+                cm,
+                (None, label_names[column]),
+                figure,
+                axes[column],
+                normalize
+            )
+    else:
+        figure, ax = plt.subplots() if not axes else (figure, axes)
+        logger.info('Plotting confusion matrix...')
+        logger.debug('Confusiong matrix is: %s', confusion_matrix)
+        number_of_elements = np.sum(confusion_matrix)
+        if normalize:
+            logger.info('Normalizing confusion matrix')
+            confusion_matrix = (
+                confusion_matrix.astype('float')
+                /
+                confusion_matrix.sum(axis=1)[:, np.newaxis]
+            )
 
-    figure.tight_layout()
-    ax.set_yticks(np.arange(len(classes)))
-    ax.set_xticks(np.arange(len(classes)))
-    ax.set_yticklabels(classes)
-    ax.set_xticklabels(classes)
-    ax.set_ylabel('True label')
-    ax.set_xlabel('Predicted label')
+        logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
+
+        logger.info('Plotting now...')
+        cm = ax.imshow(
+            confusion_matrix,
+            interpolation='nearest',
+            cmap=plt.cm.Blues
+        )
+        ax.set_title(
+            'Confusion matrix for '
+            +
+            str(number_of_elements)
+            +
+            ' elements'
+        )
+        figure.colorbar(cm, ax=ax)
+
+        middle = confusion_matrix.max() / 2.
+        for i, j in itertools.product(
+            range(confusion_matrix.shape[0]),
+            range(confusion_matrix.shape[1])
+        ):
+            ax.text(
+                j,
+                i,
+                format(confusion_matrix[i, j], '.2f' if normalize else 'd'),
+                horizontalalignment="center",
+                color="white" if confusion_matrix[i, j] > middle else "black"
+            )
+
+        figure.tight_layout()
+        ax.set_yticks(np.arange(len(label_names)))
+        ax.set_xticks(np.arange(len(label_names)))
+        ax.set_yticklabels(label_names)
+        ax.set_xticklabels(label_names)
+        ax.set_ylabel('True label')
+        ax.set_xlabel('Predicted label')
 
 
 def data_split(features, labels, **separation_args):
@@ -747,52 +859,26 @@ def data_split(features, labels, **separation_args):
         raise NotImplementedError
 
 
-def process(features, labels, buildings, depth, hierarchical, **kwargs):
+def process(features, labels, buildings, label_names, **kwargs):
     logger.info('Processing features...')
     if 'visualization' in kwargs.keys():
         logger.info('Feature space visualization.')
         visualize_features(
             features,
             labels,
-            depth,
-            hierarchical,
+            label_names,
             **kwargs['visualization']
         )
+        logger.info('Visualization process ended.')
 
-    logger.info('Classification process starting...')
-    indices = data_split(
+    classify(
         features,
         labels,
-        **kwargs['classification']['data_separation']
+        buildings,
+        label_names,
+        **kwargs['classification']
     )
-    if isinstance(indices, tuple):
-        classify(
-            features,
-            labels,
-            buildings,
-            depth,
-            hierarchical,
-            indices[0],
-            indices[1],
-            **kwargs['classification']
-        )
-    else:
-        pool = mp.Pool(processes=4)
-        pool.map(
-            lambda idxs: classify(
-                features,
-                labels,
-                buildings,
-                depth,
-                hierarchical,
-                idxs[0],
-                idxs[1],
-                **kwargs['classification']
-            ),
-            indices
-        )
     logger.info('Succesfully classified features.')
-
     plt.show()
 
 
@@ -800,6 +886,27 @@ def load_pipeline_config(pip_conf):
     logger.info('Loading pipeline configuration file...')
     with open(pip_conf, mode='r') as conf:
         return yaml.load(conf)
+
+
+def label_names(config, labels):
+    if config['depth'] < 2:
+        return tuple(set(labels))
+    elif config['depth'] == 2:
+        return (
+            tuple(set(labels)) if config['hierarchical']
+            else ['Building', 'Facet']
+        )
+    elif config['depth'] == 3:
+        return (
+            {
+                'Valid': None,
+                'Building': labels_io.LABELS(2, ['Building']),
+                'Facet': labels_io.LABELS(2, ['Facet'])
+            } if config['hierarchical']
+            else labels_io.LABELS(2, ['Building', 'Facet'])
+        )
+    else:
+        raise LookupError('depth cannot be > 3')
 
 
 def main():
@@ -838,8 +945,10 @@ def main():
         features,
         labels,
         buildings,
-        configuration['labels']['depth'],
-        configuration['labels']['hierarchical'],
+        label_names(
+            configuration['labels'],
+            labels
+        ),
         **configuration['processing']
     )
 
