@@ -61,8 +61,9 @@ processing:
         sklearn.multiclass.OneVsRestClassifier
       reporting: True
     testing:
-      filename: results
       reporting: True
       score:
         - sklearn.metrics.accuracy_score
+    predictions:
       probabilties: False
+      filename: results
