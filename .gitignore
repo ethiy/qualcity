@@ -16,3 +16,6 @@ __pycache__
 
 # Log files
 *.log
+
+# Predition files
+*.csv
