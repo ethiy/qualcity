@@ -1,69 +1,68 @@
 scene:
-  /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
+    /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
 
 labels:
-  labels_dir:
-    /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-  depth: 3
-  LoD: 2
-  hierarchical: True
+    labels_dir:
+        /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+    depth: 3
+    LoD: 2
+    hierarchical: False
 
 features:
-  geometric:
-    graph_dir:
-      /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
-    statistics:
-      - mean
-      - median
-      - max
-      - min
-    attributes:
-      - degree
-      - angle_with_relations
-      - centroid_with_relations
-      - area
-  altimetric:
-    raster_dir:
-      /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
-    resolution: 5
+    geometric:
+        graph_dir:
+            /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
+        statistics:
+            - mean
+            - median
+            - max
+            - min
+        attributes:
+            - degree
+            - angle_with_relations
+            - centroid_with_relations
+            - area
+    altimetric:
+        raster_dir:
+            /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
+        resolution: 5
 
 processing:
-  visualization:
-    manifold:
-      algorithm: sklearn.decomposition.KernelPCA
-      parameters:
-        n_components: 10
-    dimension_reduction:
-      algorithm: sklearn.decomposition.PCA
-      parameters:
-        n_components: 3
-    style:
-      colors:
-        - g
-        - r
-        - b
-      markers:
-        - ','
-        - o
-        - ^
-  classification:
-    data_separation:
-      cross_validation:
-        parameters:
-          n_splits: 10
-    training:
-      algorithm:
-        sklearn.ensemble.RandomForestClassifier
-      parameters:
-        max_depth: 4
-        n_estimators: 750
-      strategy:
-        sklearn.multiclass.OneVsRestClassifier
-      reporting: True
-    testing:
-      reporting: True
-      score:
-        - sklearn.metrics.accuracy_score
-    predictions:
-      probabilties: False
-      filename: results
+    visualization:
+        manifold:
+            algorithm: sklearn.decomposition.KernelPCA
+            parameters:
+                n_components: 10
+        dimension_reduction:
+            algorithm: sklearn.decomposition.PCA
+            parameters:
+                n_components: 3
+        style:
+            colors:
+                - g
+                - r
+                - b
+            markers:
+                - ','
+                - o
+                - ^
+    classification:
+        data_separation:
+            cross_validation:
+                parameters:
+                    n_splits: 5
+        training:
+            model:
+                strategy:
+                    sklearn.multiclass.OneVsRestClassifier
+                algorithm:
+                    sklearn.ensemble.RandomForestClassifier
+                parameters:
+                    max_depth: 4
+                    n_estimators: 750
+        testing:
+            score:
+                - sklearn.metrics.accuracy_score
+        predictions:
+            probabilities: False
+            filename: results
