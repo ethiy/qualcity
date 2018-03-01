@@ -449,7 +449,7 @@ def classify(features, labels, buildings, label_names, **class_args):
             indices[1],
             **class_args
         )
-    else:
+    elif isinstance(indices, list):
         pool = mp.Pool(processes=len(indices))
         z_predictions, train_cms, test_cms = zip(
             *pool.map(
@@ -481,13 +481,23 @@ def classify(features, labels, buildings, label_names, **class_args):
                 [len(indices) - 1, 1]
             )
         ]
+    else:
+        predictions, _ = test(
+            build_classifier(**class_args['training']['model']),
+            np.array(buildings)[indices],
+            np.array(features)[indices],
+            None,
+            label_names,
+            **class_args['testing']
+        )
     save_prediction(
         predictions,
         label_names,
         **class_args['predictions']
     )
-    for cm in [train_cm, test_cm]:
-        plot_confusion_matrix(cm, label_names)
+    if train_cm and test_cm:
+        for cm in [train_cm, test_cm]:
+            plot_confusion_matrix(cm, label_names)
 
 
 def predict_proba(model, buildings, features, lnames=None, larray=True):
@@ -607,7 +617,7 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
             ground_truth,
             label_names,
             *test_args['score']
-        )
+        ) if ground_truth else None
     )
 
 
@@ -939,18 +949,15 @@ def plot_confusion_matrix(
 
 def data_split(features, labels, **separation_args):
     if not separation_args:
-        return (
-            np.arange(len(features)),
-            np.arange(len(features))
-        )
-    elif 'train_test_split' in separation_args.keys():
+        return np.arange(len(features))
+    elif 'train_test_split' in separation_args:
         return tuple(
             sklearn.model_selection.train_test_split(
                 np.arange(len(features)),
                 **separation_args['train_test_split']['parameters']
             )
         )
-    elif 'cross_validation' in separation_args.keys():
+    elif 'cross_validation' in separation_args:
         return list(
             sklearn.model_selection.StratifiedKFold(
                 **separation_args['cross_validation']['parameters']
