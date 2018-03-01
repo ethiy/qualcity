@@ -17,6 +17,8 @@ import docopt
 
 import time
 
+import pickle
+
 import functools
 import itertools
 import operator
@@ -304,18 +306,27 @@ def build_reductor(algorithm, **parameters):
 def build_classifier(**classifier_args):
     logger.info('Building a classifier...')
 
-    model = utils.resolve(
-        classifier_args['algorithm']
-    )(**classifier_args['parameters'])
-    logger.info(
-        'Constructed classifier: %s, with parameters %s',
-        classifier_args['algorithm'],
-        classifier_args['parameters']
-    )
-    if 'strategy' in classifier_args.keys():
-        logger.info('Adding strategy: %s', classifier_args['strategy'])
-        model = utils.resolve(classifier_args['strategy'])(model)
-    return model
+    if 'filename' in classifier_args:
+        with open(classifier_args['filename'], 'rb') as model_file:
+            return pickle.load(model_file)
+    else:
+        model = utils.resolve(
+            classifier_args['algorithm']
+        )(**classifier_args['parameters'])
+        logger.info(
+            'Constructed classifier: %s, with parameters %s',
+            classifier_args['algorithm'],
+            classifier_args['parameters']
+        )
+        if 'strategy' in classifier_args.keys():
+            logger.info('Adding strategy: %s', classifier_args['strategy'])
+            model = utils.resolve(classifier_args['strategy'])(model)
+        return model
+
+
+def save_classifier(filename, model):
+    with open(filename + '.pkl', 'wb') as model_file:
+        pickle.dump(model, model_file)
 
 
 def train_test(
@@ -333,6 +344,8 @@ def train_test(
         label_names,
         **class_args['training']
     )
+    if 'save' in class_args['training']['model']:
+        save_classifier(class_args['training']['model']['save'], model)
     logger.info(
         'Succesfully trained %s on all the features.',
         class_args['training']['model']['algorithm']
@@ -420,7 +433,10 @@ def classify(features, labels, buildings, label_names, **class_args):
     indices = data_split(
         features,
         labels,
-        **class_args['data_separation']
+        **(
+            class_args['data_separation']
+            if 'data_separation' in class_args else {}
+        )
     )
     logger.info('Data splited.')
 
@@ -924,10 +940,10 @@ def plot_confusion_matrix(
 
 
 def data_split(features, labels, **separation_args):
-    if separation_args == 'None':
+    if not separation_args:
         return (
-            np.arange(features.shape[0]),
-            np.arange(features.shape[0])
+            np.arange(len(features)),
+            np.arange(len(features))
         )
     elif 'train_test_split' in separation_args.keys():
         return tuple(

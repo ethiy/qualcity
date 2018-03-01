@@ -47,16 +47,9 @@ processing:
                 - o
                 - ^
     classification:
-        data_separation: None
         training:
             model:
-                strategy:
-                    sklearn.multiclass.OneVsRestClassifier
-                algorithm:
-                    sklearn.ensemble.RandomForestClassifier
-                parameters:
-                    max_depth: 4
-                    n_estimators: 750
+                filename: model.pkl
                 save: model
         testing:
             score:
