@@ -347,8 +347,7 @@ def train_test(
     if 'save' in class_args['training']['model']:
         save_classifier(class_args['training']['model']['save'], model)
     logger.info(
-        'Succesfully trained %s on all the features.',
-        class_args['training']['model']['algorithm']
+        'Succesfully trained on all the features.'
     )
     predictions, test_cm = test(
         model,
@@ -359,8 +358,7 @@ def train_test(
         **class_args['testing']
     )
     logger.info(
-        'Succesfully tested %s on all features.',
-        class_args['training']['model']['algorithm']
+        'Succesfully tested on all features.'
     )
 
     return (predictions, train_cm, test_cm)
