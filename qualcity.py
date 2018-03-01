@@ -352,9 +352,9 @@ def train_test(
     return (predictions, train_cm, test_cm)
 
 
-def summarize_cv(cms, label_names):
+def summarize_cv(cms, label_names, train=None, cv=1):
     if isinstance(label_names, dict):
-        return functools.reduce(
+        summed_dict = functools.reduce(
             lambda ldict, rdict: {
                 fam: (
                     (
@@ -386,10 +386,16 @@ def summarize_cv(cms, label_names):
                 ]
             )
         )
+        return summed_dict if not train else {
+            fam: cm // cv if fam is None else [
+                _cm // cv for _cm in cm
+            ]
+            for fam, cm in summed_dict.items()
+        }
     elif isinstance(label_names, list):
         return functools.reduce(
             lambda llist, rlist: [
-                sum(lists) for lists in zip(llist, rlist)
+                sum(lsts) // (cv if train else 1) for lsts in zip(llist, rlist)
             ],
             cms,
             [np.zeros((2, 2), dtype=int)] * len(label_names)
@@ -399,7 +405,7 @@ def summarize_cv(cms, label_names):
             operator.add,
             cms,
             np.zeros((len(label_names), len(label_names)), dtype=int)
-        )
+        ) // (cv if train else 1)
     else:
         raise LookupError('Labels %s not supported', label_names)
 
@@ -450,8 +456,12 @@ def classify(features, labels, buildings, label_names, **class_args):
         )
 
         train_cm, test_cm = [
-            summarize_cv(cms, label_names)
-            for cms in [train_cms, test_cms]
+            summarize_cv(cms, label_names, train, cv)
+            for train, cms, cv in zip(
+                [True, False],
+                [train_cms, test_cms],
+                [len(indices) - 1, 1]
+            )
         ]
     save_prediction(
         predictions,
@@ -795,7 +805,8 @@ def plot_confusion_matrix(
     label_names,
     figure=None,
     axes=None,
-    normalize=False
+    normalize=False,
+    max_l=8
 ):
     if isinstance(label_names, dict):
         figure, axes = plt.subplots(
@@ -807,13 +818,13 @@ def plot_confusion_matrix(
                 ]
             )
         )
-        print(confusion_matrix[None])
         plot_confusion_matrix(
             confusion_matrix[None],
             tuple(label_names.keys()),
             figure,
             axes[0, 0],
-            normalize
+            normalize,
+            max_l
         )
         confusion_matrix.pop(None)
         for row, (family, cms) in enumerate(confusion_matrix.items(), start=1):
@@ -822,7 +833,8 @@ def plot_confusion_matrix(
                 label_names[family],
                 figure,
                 axes[row, :],
-                normalize
+                normalize,
+                max_l
             )
     elif isinstance(confusion_matrix, list):
         figure, axes = (
@@ -832,10 +844,11 @@ def plot_confusion_matrix(
         for column, cm in enumerate(confusion_matrix):
             plot_confusion_matrix(
                 cm,
-                (None, label_names[column]),
+                ('Valid', label_names[column]),
                 figure,
                 axes[column],
-                normalize
+                normalize,
+                max_l
             )
     else:
         figure, ax = plt.subplots() if axes is None else (figure, axes)
@@ -853,15 +866,12 @@ def plot_confusion_matrix(
         logger.debug('Confusion matrix to be plotted: %s', confusion_matrix)
 
         logger.info('Plotting now...')
-        print(ax, confusion_matrix)
         cm = ax.imshow(
             confusion_matrix,
             interpolation='nearest',
             cmap=plt.cm.Blues
         )
         ax.set_title(
-            'Confusion matrix for '
-            +
             str(number_of_elements)
             +
             ' elements'
@@ -881,11 +891,26 @@ def plot_confusion_matrix(
                 color="white" if confusion_matrix[i, j] > middle else "black"
             )
 
-        # figure.tight_layout()
+        ticks = [
+            (
+                ' '.join(
+                    _tick[:len(_tick)//2 + 1]
+                    +
+                    ['\n']
+                    +
+                    _tick[len(_tick)//2 + 1:]
+                )
+                if isinstance(_tick, list) else _tick
+            )
+            for _tick in [
+                label.split() if len(label) > max_l else label
+                for label in label_names
+            ]
+        ]
         ax.set_yticks(np.arange(len(label_names)))
         ax.set_xticks(np.arange(len(label_names)))
-        ax.set_yticklabels(label_names)
-        ax.set_xticklabels(label_names)
+        ax.set_yticklabels(ticks)
+        ax.set_xticklabels(ticks)
         ax.set_ylabel('True label')
         ax.set_xlabel('Predicted label')
 
