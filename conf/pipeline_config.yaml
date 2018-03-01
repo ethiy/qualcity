@@ -47,11 +47,7 @@ processing:
                 - o
                 - ^
     classification:
-        data_separation:
-            train_test_split:
-                parameters:
-                    test_size: 0.4
-                    random_state: 42
+        data_separation: None
         training:
             model:
                 strategy:
@@ -61,6 +57,7 @@ processing:
                 parameters:
                     max_depth: 4
                     n_estimators: 750
+                save: model
         testing:
             score:
                 - sklearn.metrics.accuracy_score
