@@ -394,13 +394,16 @@ def summarize_cv(cms, label_names, train=None, cv=1):
             for fam, cm in summed_dict.items()
         }
     elif isinstance(label_names, list):
-        return functools.reduce(
-            lambda llist, rlist: [
-                sum(lsts) // (cv if train else 1) for lsts in zip(llist, rlist)
-            ],
-            cms,
-            [np.zeros((2, 2), dtype=int)] * len(label_names)
-        )
+        return [
+            cm // (cv if train else 1)
+            for cm in functools.reduce(
+                lambda llist, rlist: [
+                    sum(lsts) for lsts in zip(llist, rlist)
+                ],
+                cms,
+                [np.zeros((2, 2), dtype=int)] * len(label_names)
+            )
+        ]
     elif isinstance(label_names, tuple):
         return functools.reduce(
             operator.add,
@@ -846,6 +849,7 @@ def plot_confusion_matrix(
             plt.subplots(1, len(confusion_matrix))
             if axes is None else (figure, axes)
         )
+        plt.subplots_adjust(left=.05, right=.95)
         for column, cm in enumerate(confusion_matrix):
             plot_confusion_matrix(
                 cm,
