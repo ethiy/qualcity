@@ -482,8 +482,11 @@ def classify(features, labels, buildings, label_names, **class_args):
             )
         ]
     else:
+        model = build_classifier(**class_args['training']['model'])
+        if 'save' in class_args['training']['model']:
+            save_classifier(class_args['training']['model']['save'], model)
         predictions, _ = test(
-            build_classifier(**class_args['training']['model']),
+            model,
             np.array(buildings)[indices],
             np.array(features)[indices],
             None,
@@ -617,7 +620,7 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
             ground_truth,
             label_names,
             *test_args['score']
-        ) if ground_truth else None
+        ) if ground_truth is not None else None
     )
 
 
