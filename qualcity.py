@@ -335,7 +335,7 @@ def train_test(
     )
     logger.info(
         'Succesfully trained %s on all the features.',
-        class_args['training']['algorithm']
+        class_args['training']['model']['algorithm']
     )
     predictions, test_cm = test(
         model,
@@ -347,7 +347,7 @@ def train_test(
     )
     logger.info(
         'Succesfully tested %s on all features.',
-        class_args['training']['algorithm']
+        class_args['training']['model']['algorithm']
     )
 
     return (predictions, train_cm, test_cm)
@@ -599,7 +599,7 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
 
 def train(features, true, label_names, **train_args):
     logger.info('Training...')
-    model = build_classifier(**train_args)
+    model = build_classifier(**train_args['model'])
 
     if isinstance(label_names, tuple):
         logger.info('Fitting and predicting classes...')
@@ -930,9 +930,11 @@ def data_split(features, labels, **separation_args):
             np.arange(features.shape[0])
         )
     elif 'train_test_split' in separation_args.keys():
-        return sklearn.model_selection.train_test_split(
-            np.arange(features.shape[0]),
-            **separation_args['train_test_split']
+        return tuple(
+            sklearn.model_selection.train_test_split(
+                np.arange(len(features)),
+                **separation_args['train_test_split']['parameters']
+            )
         )
     elif 'cross_validation' in separation_args.keys():
         return list(
