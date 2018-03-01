@@ -47,10 +47,6 @@ processing:
                 - o
                 - ^
     classification:
-        data_separation:
-            train_test_split:
-                parameters:
-                    test_size: 1
         training:
             model:
                 filename: model.pkl
