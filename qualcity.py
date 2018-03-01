@@ -39,6 +39,7 @@ import sklearn.neural_network
 import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 
 import altimetric_difference
@@ -809,7 +810,8 @@ def plot_confusion_matrix(
     max_l=8
 ):
     if isinstance(label_names, dict):
-        figure, axes = plt.subplots(
+        figure = plt.figure()
+        specs = matplotlib.gridspec.GridSpec(
             len(confusion_matrix),
             max(
                 [
@@ -822,7 +824,7 @@ def plot_confusion_matrix(
             confusion_matrix[None],
             tuple(label_names.keys()),
             figure,
-            axes[0, 0],
+            figure.add_subplot(specs[0, 0]),
             normalize,
             max_l
         )
@@ -832,7 +834,10 @@ def plot_confusion_matrix(
                 cms,
                 label_names[family],
                 figure,
-                axes[row, :],
+                [
+                    figure.add_subplot(specs[row, column])
+                    for column in range(len(cms))
+                ],
                 normalize,
                 max_l
             )
@@ -876,7 +881,6 @@ def plot_confusion_matrix(
             +
             ' elements'
         )
-        figure.colorbar(cm, ax=ax)
 
         middle = confusion_matrix.max() / 2.
         for i, j in itertools.product(
