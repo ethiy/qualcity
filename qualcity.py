@@ -498,46 +498,21 @@ def classify(features, labels, buildings, label_names, **class_args):
             plot_confusion_matrix(cm, label_names)
 
 
-def predict_proba(model, buildings, features, lnames=None, larray=True):
+def predict_proba(model, buildings, features, label_names):
     logger.info('Predicting probabilities...')
-    if lnames is None:
-        try:
-            logger.info('Multiclass predicition...')
-            return {
-                building: proba
-                for building, proba
-                in zip(
-                    buildings,
-                    np.amax(
-                        model.predict_proba(features),
-                        axis=1
-                    )
+    if isinstance(label_names, tuple):
+        return {
+            building: probability
+            for building, probability
+            in zip(
+                buildings,
+                np.amax(
+                    model.predict_proba(features),
+                    axis=1
                 )
-            }
-        except AttributeError:
-            logger.info('Multiclass, Multilabel stage predicition...')
-            return {
-                building: (
-                        probability,
-                        predict_proba(
-                            model[family],
-                            [building],
-                            features[buildings.index(building)].reshape(1, -1),
-                            labels_io.LABELS(2, family)
-                        )[building] if family != 'Valid' else []
-                    )
-                for building, family, probability
-                in zip(
-                    buildings,
-                    model[None].predict(features),
-                    np.amax(
-                        model[None].predict_proba(features),
-                        axis=1
-                    )
-                )
-            }
-    else:
-        logger.info('Multilabel stage predicition...')
+            )
+        }
+    elif isinstance(label_names, list):
         return {
             building: probabilities
             for building, probabilities
@@ -546,6 +521,29 @@ def predict_proba(model, buildings, features, lnames=None, larray=True):
                 model.predict_proba(features)
             )
         }
+    elif isinstance(label_names, dict):
+        return {
+            building: [
+                error_probablities * probability
+                for error_probablities in predict_proba(
+                    model[family],
+                    [building],
+                    features[buildings.index(building)].reshape(1, -1),
+                    label_names[family]
+                )[building]
+            ] if family != 'Valid' else [probability]
+            for building, family, probability
+            in zip(
+                buildings,
+                model[None].predict(features),
+                np.amax(
+                    model[None].predict_proba(features),
+                    axis=1
+                )
+            )
+        }
+    else:
+        raise LookupError('Labels %s not supported', label_names)
 
 
 def predict(model, buildings, features, label_names):
@@ -703,7 +701,7 @@ def train(features, true, label_names, **train_args):
 def save_prediction(
     predictions,
     label_names,
-    filename='results',
+    filename='predictions',
     probabilities=False
 ):
     with open(filename + '.csv', 'w') as prediction_file:
