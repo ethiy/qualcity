@@ -264,13 +264,25 @@ def read(filename):
     G = get_graph(lines)
     geom_logger.debug('The graph structure in %s : %s...', lines, G)
     nx.set_node_attributes(
-        G, 'degree', {idx: faces[idx][0] for idx in range(len(faces))})
+        G,
+        {idx: faces[idx][0] for idx in range(len(faces))},
+        'degree'
+    )
     nx.set_node_attributes(
-        G, 'area', {idx: faces[idx][1] for idx in range(len(faces))})
+        G,
+        {idx: faces[idx][1] for idx in range(len(faces))},
+        'area'
+    )
     nx.set_node_attributes(
-        G, 'centroid', {idx: faces[idx][2] for idx in range(len(faces))})
+        G,
+        {idx: faces[idx][2] for idx in range(len(faces))},
+        'centroid'
+    )
     nx.set_node_attributes(
-        G, 'normal', {idx: faces[idx][3] for idx in range(len(faces))})
+        G,
+        {idx: faces[idx][3] for idx in range(len(faces))},
+        'normal'
+    )
     return G
 
 
@@ -279,9 +291,9 @@ def main():
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
         'dual_graphs'
     )
-    # print(
-    #     read(os.path.join(graph_dir, '3078.txt')).node[1]
-    # )
+    print(
+        read(os.path.join(graph_dir, '3078.txt')).node[1]
+    )
     print(
         features(
             os.path.join(graph_dir, '3078.txt'),
@@ -299,8 +311,8 @@ def main():
         )
     )
 
-    # nx.draw(read(os.path.join(graph_dir, '3078.txt')))
-    # plt.show()
+    nx.draw(read(os.path.join(graph_dir, '3078.txt')))
+    plt.show()
 
 
 if __name__ == '__main__':
