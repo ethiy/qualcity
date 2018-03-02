@@ -52,8 +52,6 @@ processing:
                 filename: model.pkl
                 save: model
         testing:
-            score:
-                - sklearn.metrics.accuracy_score
-        predictions:
-            probabilities: False
-            filename: results
+            predictions:
+                probabilities: False
+                filename: predictions

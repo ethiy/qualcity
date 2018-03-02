@@ -17,8 +17,6 @@ import docopt
 
 import time
 
-import pickle
-
 import functools
 import itertools
 import operator
@@ -34,9 +32,9 @@ import sklearn.decomposition
 import sklearn.manifold
 import sklearn.preprocessing
 
-import sklearn.metrics
+import sklearn.externals.joblib as skPickler
 
-import sklearn.neural_network
+import sklearn.metrics
 
 import numpy as np
 
@@ -307,8 +305,7 @@ def build_classifier(**classifier_args):
     logger.info('Building a classifier...')
 
     if 'filename' in classifier_args:
-        with open(classifier_args['filename'], 'rb') as model_file:
-            return pickle.load(model_file)
+        return skPickler.load(classifier_args['filename'])
     else:
         model = utils.resolve(
             classifier_args['algorithm']
@@ -322,11 +319,6 @@ def build_classifier(**classifier_args):
             logger.info('Adding strategy: %s', classifier_args['strategy'])
             model = utils.resolve(classifier_args['strategy'])(model)
         return model
-
-
-def save_classifier(filename, model):
-    with open(filename + '.pkl', 'wb') as model_file:
-        pickle.dump(model, model_file)
 
 
 def train_test(
@@ -345,7 +337,7 @@ def train_test(
         **class_args['training']
     )
     if 'save' in class_args['training']['model']:
-        save_classifier(class_args['training']['model']['save'], model)
+        json.dump(class_args['training']['model']['save'], model)
     logger.info(
         'Succesfully trained on all the features.'
     )
@@ -484,7 +476,10 @@ def classify(features, labels, buildings, label_names, **class_args):
     else:
         model = build_classifier(**class_args['training']['model'])
         if 'save' in class_args['training']['model']:
-            save_classifier(class_args['training']['model']['save'], model)
+            skPickler.dump(
+                model,
+                class_args['training']['model']['save'] + '.pkl'
+            )
         predictions, _ = test(
             model,
             np.array(buildings)[indices],
@@ -496,7 +491,7 @@ def classify(features, labels, buildings, label_names, **class_args):
     save_prediction(
         predictions,
         label_names,
-        **class_args['predictions']
+        **class_args['testing']['predictions']
     )
     if train_cm and test_cm:
         for cm in [train_cm, test_cm]:
@@ -618,8 +613,7 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
                 for building in buildings
             ],
             ground_truth,
-            label_names,
-            *test_args['score']
+            label_names
         ) if ground_truth is not None else None
     )
 
@@ -714,27 +708,45 @@ def save_prediction(
 ):
     with open(filename + '.csv', 'w') as prediction_file:
         for building, labels in predictions.items():
-            line = [building]
             if isinstance(label_names, tuple):
-                line += labels
+                prediction_file.write(
+                    ', '.join(
+                        [building] + labels
+                    )
+                    +
+                    '\n'
+                )
             elif isinstance(label_names, list):
                 errors = [
                     label_names[idx]
                     for idx, label in enumerate(labels)
                     if label
                 ]
-                line += errors if errors else ['Valid']
+                prediction_file.write(
+                    ', '.join(
+                        [building] + (errors if errors else ['Valid'])
+                    )
+                    +
+                    '\n'
+                )
             elif isinstance(label_names, dict):
                 fam, err = labels
-                line += [
-                    label_names[fam][idx]
-                    for idx, label in enumerate(labels)
-                    if label
-                ] if fam != 'Valid' else ['Valid']
-            prediction_file.write(', '.join(line) + '\n')
+                prediction_file.write(
+                    ', '.join(
+                        [building] + [
+                            label_names[fam][idx]
+                            for idx, label in enumerate(labels)
+                            if label
+                        ] if fam != 'Valid' else ['Valid']
+                    )
+                    +
+                    '\n'
+                )
+            else:
+                raise LookupError('Labels %s not supported', label_names)
 
 
-def report(predicted, true, label_names, *score_args):
+def report(predicted, true, label_names):
     if isinstance(label_names, dict):
         (
             (true_families, _),
@@ -750,8 +762,7 @@ def report(predicted, true, label_names, *score_args):
                     report(
                         predicted_families,
                         true_families,
-                        tuple(label_names.keys()),
-                        *score_args
+                        tuple(label_names.keys())
                     )
                 )
             ]
@@ -762,8 +773,7 @@ def report(predicted, true, label_names, *score_args):
                     report(
                         z_predicted_errors,
                         z_true_errors,
-                        label_names[family],
-                        *score_args
+                        label_names[family]
                     )
                 )
                 for family, (z_predicted_errors, z_true_errors)
@@ -794,8 +804,7 @@ def report(predicted, true, label_names, *score_args):
             report(
                 z_predicted,
                 z_true,
-                ('None', label_names[number]),
-                *score_args
+                ('None', label_names[number])
             )
             for number, (z_predicted, z_true) in enumerate(
                 zip(zip(*predicted), zip(*true))
