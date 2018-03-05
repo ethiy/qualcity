@@ -759,7 +759,11 @@ def save_prediction(
                         ) if sum(labels) else [
                             building,
                             'Valid',
-                            '{:.3f}'.format(proba_predictions[building])
+                            '{:.3f}'.format(
+                                np.multiply.reduce(
+                                    1 - proba_predictions[building]
+                                )
+                            )
                         ]
                     )
                     +
