@@ -513,7 +513,7 @@ def classify(features, labels, buildings, label_names, **class_args):
         label_names,
         **class_args['testing']['predictions']
     )
-    if train_cm and test_cm:
+    if train_cm is not None and test_cm is not None:
         for cm in [train_cm, test_cm]:
             plot_confusion_matrix(cm, label_names)
 
@@ -731,7 +731,11 @@ def save_prediction(
             for building, labels in predictions.items():
                 prediction_file.write(
                     ', '.join(
-                        [building, labels, proba_predictions[building]]
+                        [
+                            building,
+                            labels,
+                            '{:.3f}'.format(proba_predictions[building])
+                        ]
                     )
                     +
                     '\n'
