@@ -589,7 +589,7 @@ def predict(model, buildings, features, label_names):
                         model[family],
                         [building],
                         features[
-                            np.where(buildings == building)[0]
+                            buildings.index(building)
                         ].reshape(1, -1),
                         label_names[family]
                     )[building] if family != 'Valid' else None
@@ -602,7 +602,6 @@ def predict(model, buildings, features, label_names):
             )
         }
     elif isinstance(label_names, list):
-        print(features, buildings)
         logger.info('Multilabel predicition...')
         return {
             building: list(labels)
