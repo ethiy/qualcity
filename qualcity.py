@@ -332,7 +332,7 @@ def train_test(
 ):
     model, train_cm = train(
         np.array(features)[train_indices],
-        np.array(labels)[train_indices],
+        None if labels is None else [labels[idx] for idx in train_indices],
         label_names,
         **class_args['training']
     )
@@ -343,9 +343,9 @@ def train_test(
     )
     predictions, test_cm = test(
         model,
-        np.array(buildings)[test_indices],
+        [buildings[idx] for idx in test_indices],
         np.array(features)[test_indices],
-        np.array(labels)[test_indices],
+        None if labels is None else [labels[idx] for idx in test_indices],
         label_names,
         **class_args['testing']
     )
@@ -460,15 +460,17 @@ def classify(features, labels, buildings, label_names, **class_args):
         pool = mp.Pool(processes=len(indices))
         z_predictions, z_proba_predictions, train_cms, test_cms = zip(
             *pool.map(
-                lambda idxs: train_test(
-                    features,
-                    labels,
-                    buildings,
-                    label_names,
-                    idxs[0],
-                    idxs[1],
-                    **class_args
-                ),
+                lambda p: (
+                    lambda train_idx, test_idx: train_test(
+                        features,
+                        labels,
+                        buildings,
+                        label_names,
+                        train_idx,
+                        test_idx,
+                        **class_args
+                    )
+                )(*p),
                 indices
             )
         )
@@ -496,25 +498,14 @@ def classify(features, labels, buildings, label_names, **class_args):
             )
         ]
     else:
-        model = build_classifier(**class_args['training']['model'])
-        if 'save' in class_args['training']['model']:
-            skPickler.dump(
-                model,
-                class_args['training']['model']['save'] + '.pkl'
-            )
-        predictions, _ = test(
-            model,
-            np.array(buildings)[indices],
-            np.array(features)[indices],
-            None,
-            label_names,
-            **class_args['testing']
-        )
-        proba_predictions = predict_proba(
-            model,
-            buildings,
+        predictions, proba_predictions, train_cm, test_cm = train_test(
             features,
-            label_names
+            None,
+            buildings,
+            label_names,
+            [],
+            indices,
+            **class_args
         )
     save_prediction(
         predictions,
@@ -611,6 +602,7 @@ def predict(model, buildings, features, label_names):
             )
         }
     elif isinstance(label_names, list):
+        print(features, buildings)
         logger.info('Multilabel predicition...')
         return {
             building: list(labels)
