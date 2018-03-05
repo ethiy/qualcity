@@ -745,18 +745,22 @@ def save_prediction(
                                 [
                                     (
                                         label_names[idx],
-                                        str(proba)
+                                        '{:.3f}'.format(proba)
                                     )
                                     for idx, label, proba in zip(
                                         itertools.count(),
-                                        errors,
+                                        labels,
                                         proba_predictions[building]
                                     )
                                     if label
                                 ],
                                 ()
                             )
-                        ) if sum(labels) else [building, 'Valid']
+                        ) if sum(labels) else [
+                            building,
+                            'Valid',
+                            '{:.3f}'.format(proba_predictions[building])
+                        ]
                     )
                     +
                     '\n'
@@ -770,7 +774,7 @@ def save_prediction(
                                 [
                                     (
                                         label_names[family][idx],
-                                        str(proba)
+                                        '{:.3f}'.format(proba)
                                     )
                                     for idx, label, proba in zip(
                                         itertools.count(),
@@ -785,7 +789,7 @@ def save_prediction(
                         if family != 'Valid' else [
                             building,
                             'Valid',
-                            str(proba_predictions[building])
+                            '{:.3f}'.format(proba_predictions[building])
                         ]
                     )
                     +
