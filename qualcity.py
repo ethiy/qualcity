@@ -1084,10 +1084,19 @@ def label_names(config, labels):
         return (
             {
                 'Valid': None,
-                'Building': labels_io.LABELS(2, ['Building']),
-                'Facet': labels_io.LABELS(2, ['Facet'])
+                'Building': labels_io.LABELS(
+                    config['LoD'],
+                    ['Building']
+                ),
+                'Facet': labels_io.LABELS(
+                    config['LoD'],
+                    ['Facet']
+                )
             } if config['hierarchical']
-            else labels_io.LABELS(2, ['Building', 'Facet'])
+            else labels_io.LABELS(
+                config['LoD'],
+                ['Building', 'Facet']
+            )
         )
     else:
         raise LookupError('depth cannot be > 3')
