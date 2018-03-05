@@ -337,7 +337,7 @@ def train_test(
         **class_args['training']
     )
     if 'save' in class_args['training']['model']:
-        json.dump(class_args['training']['model']['save'], model)
+        skPickler.dump(model, class_args['training']['model']['save'] + '.pkl')
     logger.info(
         'Succesfully trained on all the features.'
     )
@@ -353,7 +353,17 @@ def train_test(
         'Succesfully tested on all features.'
     )
 
-    return (predictions, train_cm, test_cm)
+    return (
+        predictions,
+        predict_proba(
+            model,
+            [buildings[index] for index in test_indices],
+            np.array(features)[test_indices],
+            label_names
+        ),
+        train_cm,
+        test_cm
+    )
 
 
 def summarize_cv(cms, label_names, train=None, cv=1):
@@ -430,9 +440,14 @@ def classify(features, labels, buildings, label_names, **class_args):
     )
     logger.info('Data splited.')
 
-    predictions, train_cm, test_cm = (None, None, None)
+    predictions, proba_predictions, train_cm, test_cm = (
+        None,
+        None,
+        None,
+        None
+    )
     if isinstance(indices, tuple):
-        predictions, train_cm, test_cm = train_test(
+        predictions, proba_predictions, train_cm, test_cm = train_test(
             features,
             labels,
             buildings,
@@ -443,7 +458,7 @@ def classify(features, labels, buildings, label_names, **class_args):
         )
     elif isinstance(indices, list):
         pool = mp.Pool(processes=len(indices))
-        z_predictions, train_cms, test_cms = zip(
+        z_predictions, z_proba_predictions, train_cms, test_cms = zip(
             *pool.map(
                 lambda idxs: train_test(
                     features,
@@ -461,6 +476,13 @@ def classify(features, labels, buildings, label_names, **class_args):
             functools.reduce(
                 lambda llist, rdict: llist + list(rdict.items()),
                 z_predictions,
+                []
+            )
+        )
+        proba_predictions = dict(
+            functools.reduce(
+                lambda llist, rdict: llist + list(rdict.items()),
+                z_proba_predictions,
                 []
             )
         )
@@ -488,8 +510,15 @@ def classify(features, labels, buildings, label_names, **class_args):
             label_names,
             **class_args['testing']
         )
+        proba_predictions = predict_proba(
+            model,
+            buildings,
+            features,
+            label_names
+        )
     save_prediction(
         predictions,
+        proba_predictions,
         label_names,
         **class_args['testing']['predictions']
     )
@@ -531,7 +560,7 @@ def predict_proba(model, buildings, features, label_names):
                     features[buildings.index(building)].reshape(1, -1),
                     label_names[family]
                 )[building]
-            ] if family != 'Valid' else [probability]
+            ] if family != 'Valid' else probability
             for building, family, probability
             in zip(
                 buildings,
@@ -620,7 +649,9 @@ def train(features, true, label_names, **train_args):
     logger.info('Training...')
     model = build_classifier(**train_args['model'])
 
-    if isinstance(label_names, tuple):
+    if true is None:
+        return (model, None)
+    elif isinstance(label_names, tuple):
         logger.info('Fitting and predicting classes...')
         predicted = model.fit(features, np.array(true)).predict(
             features
@@ -700,48 +731,77 @@ def train(features, true, label_names, **train_args):
 
 def save_prediction(
     predictions,
+    proba_predictions,
     label_names,
-    filename='predictions',
-    probabilities=False
+    filename='predictions'
 ):
     with open(filename + '.csv', 'w') as prediction_file:
-        for building, labels in predictions.items():
-            if isinstance(label_names, tuple):
+        if isinstance(label_names, tuple):
+            for building, labels in predictions.items():
                 prediction_file.write(
                     ', '.join(
-                        [building] + labels
+                        [building, labels, proba_predictions[building]]
                     )
                     +
                     '\n'
                 )
-            elif isinstance(label_names, list):
-                errors = [
-                    label_names[idx]
-                    for idx, label in enumerate(labels)
-                    if label
-                ]
+        elif isinstance(label_names, list):
+            for building, labels in predictions.items():
                 prediction_file.write(
                     ', '.join(
-                        [building] + (errors if errors else ['Valid'])
+                        [building] + list(
+                            sum(
+                                [
+                                    (
+                                        label_names[idx],
+                                        str(proba)
+                                    )
+                                    for idx, label, proba in zip(
+                                        itertools.count(),
+                                        errors,
+                                        proba_predictions[building]
+                                    )
+                                    if label
+                                ],
+                                ()
+                            )
+                        ) if sum(labels) else [building, 'Valid']
                     )
                     +
                     '\n'
                 )
-            elif isinstance(label_names, dict):
-                fam, err = labels
+        elif isinstance(label_names, dict):
+            for building, (family, errors) in predictions.items():
                 prediction_file.write(
                     ', '.join(
-                        [building] + [
-                            label_names[fam][idx]
-                            for idx, label in enumerate(labels)
-                            if label
-                        ] if fam != 'Valid' else ['Valid']
+                        [building] + list(
+                            sum(
+                                [
+                                    (
+                                        label_names[family][idx],
+                                        str(proba)
+                                    )
+                                    for idx, label, proba in zip(
+                                        itertools.count(),
+                                        errors,
+                                        proba_predictions[building]
+                                    )
+                                    if label
+                                ],
+                                ()
+                            )
+                        )
+                        if family != 'Valid' else [
+                            building,
+                            'Valid',
+                            str(proba_predictions[building])
+                        ]
                     )
                     +
                     '\n'
                 )
-            else:
-                raise LookupError('Labels %s not supported', label_names)
+        else:
+            raise LookupError('Labels %s not supported', label_names)
 
 
 def report(predicted, true, label_names):
