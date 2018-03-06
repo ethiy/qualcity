@@ -144,8 +144,8 @@ def get_errors(feature):
     )
 
 
-def read(filename):
-    label_logger.info('Reading labels from %s', filename)
+def read_shp(filename):
+    label_logger.info('Extracting labels from shapefile %s', filename)
     records = shapefile.Reader(filename).records()
     label_logger.debug('Records in %s are: %s', filename, records)
     return functools.reduce(
@@ -156,6 +156,19 @@ def read(filename):
         ),
         [get_errors(feature) for feature in records]
     )
+
+
+def read_csv(filename):
+    return
+
+
+def read(filename, filetype='ESRI Shapefile'):
+    if filetype == 'ESRI Shapefile':
+        return read_shp(filename)
+    elif filetype == 'csv':
+        return read_csv(filename)
+    else:
+        raise LookupError('Unsupported filetype %s', filetype)
 
 
 def lint(errors):
