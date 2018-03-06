@@ -153,26 +153,34 @@ def format_features(depth, buildings, config):
         return [np.hstack(feature) for feature in features]
 
 
-def get_labels(hierarchical, depth, LoD, labels_dir):
+def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     logger.info('Getting Labels ...')
     return [
         (building, label)
         for building, label in sorted(
             labels_io.labels_map(
-                labels_dir,
+                labels_path,
                 hierarchical,
                 depth,
                 LoD,
-                threshold=5
+                threshold,
+                filetype
             ).items(),
             key=operator.itemgetter(0)
         )
     ]
 
 
-def format_labels(hierarchical, depth, LoD, labels_dir):
+def format_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     logger.info('Formatting labels')
-    labels = get_labels(hierarchical, depth, LoD, labels_dir)
+    labels = get_labels(
+        hierarchical,
+        depth,
+        LoD,
+        threshold,
+        labels_path,
+        filetype
+    )
     if depth > 0:
         labels = [
             (building, label)
