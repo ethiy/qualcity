@@ -12,6 +12,8 @@ import fnmatch
 
 import shapefile
 
+import numpy as np
+
 import utils
 
 label_logger = logging.getLogger('qualcity.' + __name__)
@@ -630,38 +632,41 @@ def main():
     error_dict = read(os.path.join(labels_dir, files[0]))
     print(error_dict)
     print(error_arrays(error_dict, 5))
-    print(
-        [
-            errors(
-                read(os.path.join(labels_dir, _file)),
-                hierarchical=True,
-                depth=3,
-                LoD=2
-            )
-            for _file in files
-        ]
-    )
-
     print(LABELS(2, ['Building']))
 
-    write(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS'
-        + '/ground_truth.csv',
+    # write(
+    #     '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS'
+    #     + '/_ground_truth.csv',
+    #     {
+    #         os.path.splitext(_file)[0]:
+    #         read(
+    #             os.path.join(labels_dir, _file)
+    #         )
+    #         for _file in files
+    #     }
+    # )
+
+    print(
         {
             os.path.splitext(_file)[0]:
-            errors_per_building(
+            read(
                 os.path.join(labels_dir, _file)
             )
             for _file in files
         }
     )
 
-    # print(
-    #     read(
-    #         ,
-    #         'CSV'
-    #     )
-    # )
+    print(
+        labels_map(
+            '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS'
+            + '/ground_truth.csv',
+            True,
+            3,
+            2,
+            5,
+            filetype='csv'
+        )
+    )
 
 
 if __name__ == '__main__':
