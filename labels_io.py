@@ -85,12 +85,12 @@ INV_CLASSES = {v: k for k, v in CLASSES.items()}
 
 def LABELS(LoD, family):
     return (
-        int(LoD > 0) * int('Building' in family) * [
+        (LoD > 0) * ('Building' in family) * [
             ('Building ' + err) if 'segmentation' in err else err
             for err in BUILDING_ERROR_LIST
         ]
         +
-        int(LoD > 1) * int('Facet' in family) * [
+        (LoD > 1) * ('Facet' in family) * [
             ('Facet ' + err) if 'r segmentation' in err else err
             for err in FACET_ERROR_LIST
         ]
