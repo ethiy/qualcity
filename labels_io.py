@@ -116,7 +116,7 @@ def entry(error):
     for _error, synonyms in ERROR_DICTIONARY.items():
         if error in synonyms:
             return _error
-    raise LookupError
+    raise LookupError('%s not found', error)
 
 
 def set_score(error):
@@ -127,7 +127,7 @@ def set_score(error):
     elif len(raw) == 1:
         return (raw[0], 10)
     else:
-        raise IOError
+        raise IOError('Cannot extract error score from %s', error)
 
 
 def list_errors(errors):
@@ -211,25 +211,23 @@ def class_error(errors):
 
 def errors_per_building(filename):
     label_logger.info('Labels in %s', filename)
-    return list(
-        map(
-            lambda _unified_errors: {
-                error: functools.reduce(
-                    max,
-                    [
-                        _unified_errors[synonym]
-                        for synonym in ERROR_DICTIONARY[error]
-                        if synonym in _unified_errors.keys()
-                    ]
-                )
-                for error in set(
-                    [entry(key) for key in _unified_errors.keys()]
-                )
-            }
-            if _unified_errors != 'None' else 'None',
-            unify_errors(filename)
-        )
-    )
+    return [
+        {
+            error:
+            functools.reduce(
+                max,
+                [
+                    _unified_errors[synonym]
+                    for synonym in ERROR_DICTIONARY[error]
+                    if synonym in _unified_errors.keys()
+                ]
+            )
+            for error in set(
+                [entry(key) for key in _unified_errors.keys()]
+            )
+        } if _unified_errors != 'None' else 'None'
+        for _unified_errors in unify_errors(filename)
+    ]
 
 
 def error_class_score(filename):
