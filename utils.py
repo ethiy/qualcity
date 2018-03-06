@@ -8,9 +8,19 @@ import logging
 
 import sys
 
+import unicodedata
+
 import numpy as np
 
 utils_logger = logging.getLogger('qualcity.' + __name__)
+
+
+def normalize_caseless(string):
+    return unicodedata.normalize("NFKD", string.casefold())
+
+
+def caseless_equal(lhs, rhs):
+    return normalize_caseless(lhs) == normalize_caseless(rhs)
 
 
 def check_iterable(iterable):
