@@ -99,20 +99,39 @@ def LABELS(LoD, family):
     )
 
 
-def labels_map(labels_dir, hierarchical, depth, LoD, threshold):
-    return {
-        os.path.splitext(shape)[0]: errors(
-            os.path.join(labels_dir, shape),
-            hierarchical,
-            depth,
-            LoD,
-            threshold
-        )
-        for shape in fnmatch.filter(
-            os.listdir(labels_dir),
-            '*.shp'
-        )
-    }
+def labels_map(
+    labels_path,
+    hierarchical,
+    depth,
+    LoD,
+    threshold,
+    filetype='csv'
+):
+    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
+        return {
+            os.path.splitext(shape)[0]: errors(
+                read(os.path.join(labels_path, shape), filetype),
+                hierarchical,
+                depth,
+                LoD,
+                threshold
+            )
+            for shape in fnmatch.filter(
+                os.listdir(labels_path),
+                '*.shp'
+            )
+        }
+    elif utils.caseless_equal(filetype, 'csv'):
+        return {
+            building: errors(
+                error_dicts,
+                hierarchical,
+                depth,
+                LoD,
+                threshold
+            )
+            for building, error_dicts in read(labels_path, filetype).items()
+        }
 
 
 def entry(error):
