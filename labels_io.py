@@ -152,11 +152,7 @@ def read_shp(filename):
     label_logger.debug('Records in %s are: %s', filename, records)
     unformatted_errors = unify_errors(
         functools.reduce(
-            lambda lhs, rhs: (
-                lhs[0] + rhs[0],
-                lhs[1] + rhs[1],
-                lhs[2] + rhs[2]
-            ),
+            lambda lhs, rhs: [llhs + rrhs for llhs, rrhs in zip(lhs, rhs)],
             [get_errors(feature) for feature in records]
         )
     )
