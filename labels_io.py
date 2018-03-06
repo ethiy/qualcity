@@ -177,14 +177,57 @@ def read_shp(filename):
 
 
 def read_csv(filename):
-    print(UNQUALIFIED_ERROR_LIST + LABELS(2, ['Building', 'Facet']))
+    possible_errors = UNQUALIFIED_ERROR_LIST + LABELS(2, ['Building', 'Facet'])
+    milestones = np.cumsum(
+        [0] + [len(l) for l in ERROR_CATEGORY_DICTIONARY.values()][:-1]
+    )
     with open(filename, 'r') as label_file:
-        return {
-            building: list(zip(
-                labels[::2],
+        raw_error_dict = {
+            building: zip(
+                [
+                    possible_errors.index(label) - milestones
+                    if label != 'Valid' else None
+                    for label in labels[::2]
+                ],
                 [int(float(proba) * 10) for proba in labels[1::2]]
-            ))
-            for building, *labels in csv.reader(label_file, delimiter=',')
+            )
+            for building, *labels in [
+                line.split(', ') for line in label_file.readlines()
+            ]
+        }
+        error_category_dict = {
+            building:
+            [
+                (sum(indexes >= 0) - 1) * [{}]
+                + [
+                    {
+                        ERROR_CATEGORY_DICTIONARY[CLASSES[sum(indexes >= 0)]][
+                            indexes[sum(indexes >= 0) - 1]
+                        ]:
+                        score
+                    }
+                ]
+                + (len(milestones) - sum(indexes >= 0)) * [{}]
+                if indexes is not None else [{}] * len(milestones)
+                for indexes, score in error_list
+            ]
+            for building, error_list in raw_error_dict.items()
+        }
+        return {
+            building:
+            [
+                'Valid' if not len(level) else level
+                for level in functools.reduce(
+                    lambda l_dicts, r_dicts:
+                    [
+                        {**l_dict, **r_dicts[idx]}
+                        for idx, l_dict in enumerate(l_dicts)
+                    ],
+                    error_dicts,
+                    [{}, {}, {}]
+                )
+            ]
+            for building, error_dicts in error_category_dict.items()
         }
 
 
