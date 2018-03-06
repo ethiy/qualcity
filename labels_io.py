@@ -339,7 +339,8 @@ def class_error(errors):
 
 def errors(error_dict, hierarchical=True, depth=2, LoD=2, threshold=5):
     label_logger.info(
-        'Extracting %s hierarchical errors in %s with depth %s, LoD %s and threshold %s',
+        'Extracting %s hierarchical errors in %s with depth %s, LoD %s and '
+        + 'threshold %s',
         '' if hierarchical else 'non',
         error_dict,
         depth,
