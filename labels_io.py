@@ -31,7 +31,7 @@ ERROR_DICTIONARY = {
     'Slope': ['slope'],
     'Footprint': ['footprint', 'footprint_error'],
     'Height': ['too_low'],
-    'None': ['None', ''],
+    'Valid': ['Valid', 'None', ''],
     'half_building': ['half_building', 'half_bulding'],
     'changed': ['changed'],
     'Unknown': ['Unknown'],
@@ -176,9 +176,9 @@ def lint(errors):
     linted = {
         error: score
         for error, score in errors.items()
-        if error not in ERROR_DICTIONARY['None']
+        if error not in ERROR_DICTIONARY['Valid']
     }
-    return linted if linted != {} else 'None'
+    return linted if linted != {} else 'Valid'
 
 
 def unify_errors(filename):
@@ -219,7 +219,7 @@ def unify_errors(filename):
 
 def class_error(errors):
     label_logger.debug('Meta class %s score', errors)
-    return 0 if errors == 'None' else max(errors.values())
+    return 0 if errors == 'Valid' else max(errors.values())
 
 
 def errors_per_building(filename):
@@ -238,7 +238,7 @@ def errors_per_building(filename):
             for error in set(
                 [entry(key) for key in _unified_errors.keys()]
             )
-        } if _unified_errors != 'None' else 'None'
+        } if _unified_errors != 'Valid' else 'Valid'
         for _unified_errors in unify_errors(filename)
     ]
 
@@ -259,7 +259,7 @@ def error_classes(filename, threshold):
     elif fac >= threshold:
         return 'Facet'
     else:
-        return 'None'
+        return 'Valid'
 
 
 def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
@@ -335,7 +335,7 @@ def exists(sub_error, error_type, errors, threshold):
         errors,
         threshold
     )
-    if errors[ERROR_CATEGORY_INDEX[error_type]] == 'None':
+    if errors[ERROR_CATEGORY_INDEX[error_type]] == 'Valid':
         return 0
     elif sub_error not in errors[ERROR_CATEGORY_INDEX[error_type]].keys():
         return 0
@@ -400,8 +400,8 @@ def error_couple(filename, first, second):
 
 def similtaneous_errors_list(labels_dir, files, first, second):
     return filter(
-        lambda couple: couple[0] not in ERROR_DICTIONARY['None']
-        and couple[1] not in ERROR_DICTIONARY['None'],
+        lambda couple: couple[0] not in ERROR_DICTIONARY['Valid']
+        and couple[1] not in ERROR_DICTIONARY['Valid'],
         [
             error_couple(os.path.join(labels_dir, f), first, second)
             for f in files
@@ -448,7 +448,7 @@ def print_similtaneous_summary(labels_dir, files, first, second):
 
 def list_category_errors(error_category, labels_dir, files):
     return filter(
-        lambda _error: _error not in ERROR_DICTIONARY['None'],
+        lambda _error: _error not in ERROR_DICTIONARY['Valid'],
         [
             get_category_errors(os.path.join(labels_dir, f), error_category)
             for f
