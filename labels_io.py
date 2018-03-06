@@ -34,16 +34,16 @@ ERROR_DICTIONARY = {
     'Footprint': ['footprint', 'footprint_error'],
     'Height': ['too_low'],
     'Valid': ['Valid', 'None', ''],
-    'Half building': ['half_building', 'half_bulding'],
-    'Changed': ['changed'],
+    'Half building': ['Half building', 'half_building', 'half_bulding'],
+    'Changed': ['Changed', 'changed'],
     'Unknown': ['Unknown'],
-    'Occlusion': ['occlusion', 'vegetation']
+    'Occlusion': ['Occlusion', 'occlusion', 'vegetation']
 }
 
 UNQUALIFIED_ERROR_LIST = [
-    'half_building',
-    'changed',
-    'occlusion',
+    'Half building',
+    'Changed',
+    'Occlusion',
     'Unknown'
 ]
 
@@ -150,19 +150,46 @@ def read_shp(filename):
     label_logger.info('Extracting labels from shapefile %s', filename)
     records = shapefile.Reader(filename).records()
     label_logger.debug('Records in %s are: %s', filename, records)
-    return functools.reduce(
-        lambda lhs, rhs: (
-            lhs[0] + rhs[0],
-            lhs[1] + rhs[1],
-            lhs[2] + rhs[2]
-        ),
-        [get_errors(feature) for feature in records]
+    unformatted_errors = unify_errors(
+        functools.reduce(
+            lambda lhs, rhs: (
+                lhs[0] + rhs[0],
+                lhs[1] + rhs[1],
+                lhs[2] + rhs[2]
+            ),
+            [get_errors(feature) for feature in records]
+        )
     )
+
+    return [
+        {
+            error:
+            functools.reduce(
+                max,
+                [
+                    _unified_errors[synonym]
+                    for synonym in ERROR_DICTIONARY[error]
+                    if synonym in _unified_errors.keys()
+                ]
+            )
+            for error in set(
+                [entry(key) for key in _unified_errors.keys()]
+            )
+        } if _unified_errors != 'Valid' else 'Valid'
+        for _unified_errors in unformatted_errors
+    ]
 
 
 def read_csv(filename):
-    print(LABELS(2, ['Building, Facet']))
-    return
+    print(UNQUALIFIED_ERROR_LIST + LABELS(2, ['Building', 'Facet']))
+    with open(filename, 'r') as label_file:
+        return {
+            building: list(zip(
+                labels[::2],
+                [int(float(proba) * 10) for proba in labels[1::2]]
+            ))
+            for building, *labels in csv.reader(label_file, delimiter=',')
+        }
 
 
 def read(filename, filetype='ESRI Shapefile'):
@@ -233,12 +260,12 @@ def lint(errors):
     return linted if linted != {} else 'Valid'
 
 
-def unify_errors(filename):
-    label_logger.debug('Unifying errors in building %s', filename)
-    unique_errors = [list(set(t)) for t in read(filename)]
+def unify_errors(errors):
+    label_logger.debug('Unifying errors in %s', errors)
+    unique_errors = [list(set(t)) for t in errors]
     label_logger.debug(
         'Unique errors in %s are: %s',
-        filename,
+        errors,
         unique_errors
     )
     max_score_errors = [
@@ -260,13 +287,10 @@ def unify_errors(filename):
     ]
     label_logger.debug(
         'Maximum score errors in %s are: %s',
-        filename,
-        list(max_score_errors)
-    )
-    return map(
-        lint,
+        errors,
         max_score_errors
     )
+    return [lint(error) for error in max_score_errors]
 
 
 def class_error(errors):
@@ -274,57 +298,17 @@ def class_error(errors):
     return 0 if errors == 'Valid' else max(errors.values())
 
 
-def errors_per_building(filename):
-    label_logger.info('Labels in %s', filename)
-    return [
-        {
-            error:
-            functools.reduce(
-                max,
-                [
-                    _unified_errors[synonym]
-                    for synonym in ERROR_DICTIONARY[error]
-                    if synonym in _unified_errors.keys()
-                ]
-            )
-            for error in set(
-                [entry(key) for key in _unified_errors.keys()]
-            )
-        } if _unified_errors != 'Valid' else 'Valid'
-        for _unified_errors in unify_errors(filename)
-    ]
-
-
-def error_class_score(filename):
-    return [
-        class_error(error)
-        for error in errors_per_building(filename)
-    ]
-
-
-def error_classes(filename, threshold):
-    unq, bul, fac = error_class_score(filename)
-    if unq >= threshold:
-        return 'Unqualifiable'
-    elif bul >= threshold:
-        return 'Building'
-    elif fac >= threshold:
-        return 'Facet'
-    else:
-        return 'Valid'
-
-
-def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
+def errors(error_dict, hierarchical=True, depth=2, LoD=2, threshold=5):
     label_logger.info(
-        '%srrors in %s with depth %s, LoD %s and threshold %s',
-        'Hierarchical e' if hierarchical else 'E',
-        filename,
+        'Extracting %s hierarchical errors in %s with depth %s, LoD %s and threshold %s',
+        '' if hierarchical else 'non',
+        error_dict,
         depth,
         LoD,
         threshold
     )
     label_logger.info('Getting errors in array shape...')
-    unq_array, bul_array, fac_array = error_arrays(filename, threshold)
+    unq_array, bul_array, fac_array = error_arrays(error_dict, threshold)
     label_logger.debug(
         'Error arrays are %s: ',
         [unq_array, bul_array, fac_array]
@@ -371,9 +355,9 @@ def errors(filename, hierarchical=True, depth=2, LoD=2, threshold=5):
                 )
         else:
             return 'Unqualifiable' if unq > 0 else (
-                int(LoD > 0) * bul_array
+                (LoD > 0) * bul_array
                 +
-                int(LoD > 1) * fac_array
+                (LoD > 1) * fac_array
             )
     else:
         raise ValueError
@@ -418,19 +402,12 @@ def error_array(error_dict, threshold, error_type):
     )
 
 
-def error_arrays(filename, threshold):
+def error_arrays(error_dict, threshold):
     label_logger.info(
-        'Errors of %s in array shape with threshold %s',
-        filename,
+        'Errors %s in array shape with threshold %s',
+        error_dict,
         threshold
     )
-    label_logger.info(
-        'Errors of %s in dictionary shape with threshold %s',
-        filename,
-        threshold
-    )
-    error_dict = errors_per_building(filename)
-
     return [
         error_array(error_dict, threshold, error_type)
         for error_type in ['Unqualifiable', 'Building', 'Facet']
@@ -438,7 +415,7 @@ def error_arrays(filename, threshold):
 
 
 def get_category_errors(filename, error_category):
-    return errors_per_building(filename)[
+    return read(filename)[
         ERROR_CATEGORY_INDEX[error_category]
     ]
 
@@ -610,12 +587,13 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    print(errors_per_building(os.path.join(labels_dir, files[0])))
-    print(error_arrays(os.path.join(labels_dir, files[0]), 5))
+    error_dict = read(os.path.join(labels_dir, files[0]))
+    print(error_dict)
+    print(error_arrays(error_dict, 5))
     print(
         [
             errors(
-                os.path.join(labels_dir, _file),
+                read(os.path.join(labels_dir, _file)),
                 hierarchical=True,
                 depth=3,
                 LoD=2
