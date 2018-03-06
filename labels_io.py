@@ -12,6 +12,8 @@ import fnmatch
 
 import shapefile
 
+import utils
+
 label_logger = logging.getLogger('qualcity.' + __name__)
 
 
@@ -32,10 +34,10 @@ ERROR_DICTIONARY = {
     'Footprint': ['footprint', 'footprint_error'],
     'Height': ['too_low'],
     'Valid': ['Valid', 'None', ''],
-    'half_building': ['half_building', 'half_bulding'],
-    'changed': ['changed'],
+    'Half building': ['half_building', 'half_bulding'],
+    'Changed': ['changed'],
     'Unknown': ['Unknown'],
-    'occlusion': ['occlusion', 'vegetation']
+    'Occlusion': ['occlusion', 'vegetation']
 }
 
 UNQUALIFIED_ERROR_LIST = [
@@ -159,14 +161,64 @@ def read_shp(filename):
 
 
 def read_csv(filename):
+    print(LABELS(2, ['Building, Facet']))
     return
 
 
 def read(filename, filetype='ESRI Shapefile'):
-    if filetype == 'ESRI Shapefile':
+    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return read_shp(filename)
-    elif filetype == 'csv':
+    elif utils.caseless_equal(filetype, 'csv'):
         return read_csv(filename)
+    else:
+        raise LookupError('Unsupported filetype %s', filetype)
+
+
+def write_csv(filename, errors_per_building):
+    with open(filename, 'w') as label_file:
+        for building, errors in errors_per_building.items():
+            labels = list(
+                sum(
+                    [
+                        error_score_pair
+                        for level_errs in [
+                            [
+                                (
+                                    (
+                                        'Building ' + error
+                                        if level == 1 and 'segmentation' in error
+                                        else (
+                                            'Facet ' + error
+                                            if level == 2 and 'r segmentation' in error
+                                            else error
+                                        )
+                                    ),
+                                    '{:.3f}'.format(score / 10)
+                                )
+                                for error, score in level_errors.items()
+                            ]
+                            if isinstance(level_errors, dict)
+                            else []
+                            for level, level_errors in enumerate(errors)
+                        ]
+                        for error_score_pair in level_errs
+                    ],
+                    ()
+                )
+            )
+            label_file.write(
+                ', '.join(
+                    [building]
+                    +
+                    (labels if labels else ['Valid', '1.000'])
+                )
+                + '\n'
+            )
+
+
+def write(filename, errors, filetype='csv'):
+    if utils.caseless_equal(filetype, 'csv'):
+        write_csv(filename, errors)
     else:
         raise LookupError('Unsupported filetype %s', filetype)
 
@@ -558,28 +610,40 @@ def main():
     )
     files = fnmatch.filter(os.listdir(labels_dir), '*.shp')
 
-    label_logger.setLevel(logging.DEBUG)
-    fh = logging.StreamHandler()
-    fh.setLevel(logging.WARN)
-    label_logger.addHandler(fh)
-
-    print(list(errors_per_building(os.path.join(labels_dir, files[0]))))
-    print(list(error_arrays(os.path.join(labels_dir, files[0]), 5)))
+    print(errors_per_building(os.path.join(labels_dir, files[0])))
+    print(error_arrays(os.path.join(labels_dir, files[0]), 5))
     print(
-        list(
-            map(
-                lambda fil: errors(
-                    os.path.join(labels_dir, fil),
-                    hierarchical=True,
-                    depth=3,
-                    LoD=2
-                ),
-                files
+        [
+            errors(
+                os.path.join(labels_dir, _file),
+                hierarchical=True,
+                depth=3,
+                LoD=2
             )
-        )
+            for _file in files
+        ]
     )
 
     print(LABELS(2, ['Building']))
+
+    write(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS'
+        + '/ground_truth.csv',
+        {
+            os.path.splitext(_file)[0]:
+            errors_per_building(
+                os.path.join(labels_dir, _file)
+            )
+            for _file in files
+        }
+    )
+
+    # print(
+    #     read(
+    #         ,
+    #         'CSV'
+    #     )
+    # )
 
 
 if __name__ == '__main__':
