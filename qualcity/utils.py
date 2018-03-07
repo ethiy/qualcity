@@ -147,33 +147,3 @@ def resolve(string):
         v_exc = ValueError('Could not resolve %r: %s' % (string, exc))
         v_exc.__cause__, v_exc.traceback__ = exc, tb
         raise v_exc
-
-
-def main():
-    print(median([-5, -5, -3, -4, 0, -1]))
-    print(median((-5, -5, -3, -4, 0, -1)))
-    print(mean((-5, -5, -3, -4, 0, -1)))
-    print(median([-5, -5, -4, 0, -1]))
-    print(mean([-5, -5, -4, 0, -1]))
-
-    print(
-        fuse(
-            {'4': 545, '10': 641, '8': 45},
-            {'4': 15, '10': 8574, '7': 9473}
-        )
-    )
-
-    stat(max)
-    print(
-        stats([12, 5, 0, 11.1], ['max', 'min', 'histogram'])
-    )
-    print(
-        stats([12, 5, 0, 11.1], 'histogram', bins=range(0, 20))
-    )
-
-    print(resolve('sklearn.decomposition.PCA').__doc__)
-    resolve('sklearn.decomp.PCA')
-
-
-if __name__ == '__main__':
-    main()
