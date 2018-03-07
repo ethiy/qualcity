@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 from setuptools import setup, find_packages
@@ -22,7 +22,7 @@ def requirements():
 
 setup(
     name='qualcity',
-    version='0.1.0-alpha',
+    version='0.1.0a0',
     description='3D Building model qualification.',
     long_description=readme(),
     classifiers=[
