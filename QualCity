@@ -105,14 +105,17 @@ def config_logger(arguments):
         logger.debug(yaml.dump(configuration))
 
 
-def altimetric_features(depth, raster_dir, resolution):
+def altimetric_features(depth, raster_dir, dsm_dir, **kwargs):
     if depth < 1:
-        raise ValueError
+        raise NotImplementedError(
+            'Depth 0 is not implemented for altimetric error'
+        )
     return qualcity.altimetric_features.histogram_features(
         raster_dir,
-        qualcity.altimetric_features.DSM_DIR,
-        resolution,
-        resolution
+        dsm_dir,
+        '*.' + kwargs['ext'],
+        kwargs['high_res'],
+        kwargs['low_res']
     )
 
 

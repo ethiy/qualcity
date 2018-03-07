@@ -2,11 +2,13 @@ scene:
     /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
 
 labels:
-    labels_dir:
-        /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-    depth: 3
+    labels_path:
+        /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/ground_truth.csv
+    depth: 2
     LoD: 2
     hierarchical: False
+    filetype: csv
+    threshold: 5
 
 features:
     geometric:
@@ -25,7 +27,10 @@ features:
     altimetric:
         raster_dir:
             /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
-        resolution: 5
+        dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
+        ext: tiff
+        high_res: 5
+        low_res: 5
 
 processing:
     visualization:
@@ -47,11 +52,21 @@ processing:
                 - o
                 - ^
     classification:
+        data_separation:
+            cross_validation:
+                parameters:
+                    n_splits: 4
         training:
             model:
-                filename: model.pkl
-                save: model
+                algorithm:
+                    sklearn.ensemble.RandomForestClassifier
+                parameters:
+                    max_depth: 4
+                    n_estimators: 800
+                strategy:
+                    sklearn.multiclass.OneVsRestClassifier
+                save:
+                    onevrest_rf-d4-n800_nonhier-depth3-lod1
         testing:
             predictions:
-                probabilities: False
                 filename: predictions
