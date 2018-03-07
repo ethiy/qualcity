@@ -16,8 +16,6 @@ import gdalconst
 
 import matplotlib.pyplot as plt
 
-import labels_io
-
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 

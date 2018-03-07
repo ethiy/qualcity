@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-"""qualcity.
+"""QualCity.
 
 Usage:
-    qualcity.py (-h | --help)
-    qualcity.py pipeline <pipline_conf> [logger <log_conf>] [(-v | --verbose)]
+    QualCity (-h | --help)
+    QualCity pipeline <pipline_conf> [logger <log_conf>] [(-v | --verbose)]
 
 Options:
     -h --help           Show this screen.
@@ -42,10 +42,10 @@ import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 
-import altimetric_difference
-import geometry_io
-import labels_io
-import utils
+import qualcity.altimetric_difference
+import qualcity.geometry_io
+import qualcity.labels_io
+import qualcity.utils
 
 FIGURE_COUNTER = 1
 
@@ -108,9 +108,9 @@ def config_logger(arguments):
 def altimetric_features(depth, raster_dir, resolution):
     if depth < 1:
         raise ValueError
-    return altimetric_difference.histogram_features(
+    return qualcity.altimetric_difference.histogram_features(
         raster_dir,
-        altimetric_difference.DSM_DIR,
+        qualcity.altimetric_difference.DSM_DIR,
         resolution,
         resolution
     )
@@ -118,12 +118,12 @@ def altimetric_features(depth, raster_dir, resolution):
 
 def features(depth, feat_type, **kwargs):
     return {
-        'geometric': lambda kwargs: geometry_io.geometric_features(
+        'geometric': lambda kwargs: qualcity.geometry_io.geometric_features(
             kwargs['graph_dir'],
             kwargs['attributes'],
             kwargs['statistics'],
             **kwargs['paramaters']
-        ) if 'paramaters' in kwargs.keys() else geometry_io.geometric_features(
+        ) if 'paramaters' in kwargs.keys() else qualcity.geometry_io.geometric_features(
             kwargs['graph_dir'],
             kwargs['attributes'],
             kwargs['statistics']
@@ -135,7 +135,7 @@ def features(depth, feat_type, **kwargs):
 def get_features(depth, config):
     logger.info('Getting features ...')
     return functools.reduce(
-        utils.fuse,
+        qualcity.utils.fuse,
         [
             features(depth, feat_type, **config[feat_type])
             for feat_type in config.keys()
@@ -158,7 +158,7 @@ def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     return [
         (building, label)
         for building, label in sorted(
-            labels_io.labels_map(
+            qualcity.labels_io.labels_map(
                 labels_path,
                 hierarchical,
                 depth,
@@ -289,7 +289,7 @@ def visualize_category(ax, color, marker, label, features):
 
 def build_maniflod(algorithm, **parameters):
     logger.info('Building a manifold transformer...')
-    return utils.resolve(algorithm)(
+    return qualcity.utils.resolve(algorithm)(
         **parameters
     )
 
@@ -304,7 +304,7 @@ def build_reductor(algorithm, **parameters):
         logger.error('Cannot visualize less than two dimensions!')
         raise ValueError
 
-    return utils.resolve(algorithm)(
+    return qualcity.utils.resolve(algorithm)(
         **parameters
     )
 
@@ -315,7 +315,7 @@ def build_classifier(**classifier_args):
     if 'filename' in classifier_args:
         return skPickler.load(classifier_args['filename'])
     else:
-        model = utils.resolve(
+        model = qualcity.utils.resolve(
             classifier_args['algorithm']
         )(**classifier_args['parameters'])
         logger.info(
@@ -325,7 +325,7 @@ def build_classifier(**classifier_args):
         )
         if 'strategy' in classifier_args.keys():
             logger.info('Adding strategy: %s', classifier_args['strategy'])
-            model = utils.resolve(classifier_args['strategy'])(model)
+            model = qualcity.utils.resolve(classifier_args['strategy'])(model)
         return model
 
 
@@ -1096,16 +1096,16 @@ def label_names(config, labels):
         return (
             {
                 'Valid': None,
-                'Building': labels_io.LABELS(
+                'Building': qualcity.labels_io.LABELS(
                     config['LoD'],
                     ['Building']
                 ),
-                'Facet': labels_io.LABELS(
+                'Facet': qualcity.labels_io.LABELS(
                     config['LoD'],
                     ['Facet']
                 )
             } if config['hierarchical']
-            else labels_io.LABELS(
+            else qualcity.labels_io.LABELS(
                 config['LoD'],
                 ['Building', 'Facet']
             )

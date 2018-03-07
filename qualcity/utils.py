@@ -12,7 +12,7 @@ import unicodedata
 
 import numpy as np
 
-utils_logger = logging.getLogger('qualcity.' + __name__)
+utils_logger = logging.getLogger(__name__)
 
 
 def normalize_caseless(string):

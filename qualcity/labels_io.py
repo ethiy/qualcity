@@ -14,9 +14,9 @@ import shapefile
 
 import numpy as np
 
-import utils
+import qualcity.utils
 
-label_logger = logging.getLogger('qualcity.' + __name__)
+label_logger = logging.getLogger(__name__)
 
 
 SHAPEFILE = "ESRI Shapefile"
@@ -107,7 +107,7 @@ def labels_map(
     threshold,
     filetype='csv'
 ):
-    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if qualcity.utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return {
             os.path.splitext(shape)[0]: errors(
                 read(os.path.join(labels_path, shape), filetype),
@@ -121,7 +121,7 @@ def labels_map(
                 '*.shp'
             )
         }
-    elif utils.caseless_equal(filetype, 'csv'):
+    elif qualcity.utils.caseless_equal(filetype, 'csv'):
         return {
             building: errors(
                 error_dicts,
@@ -253,9 +253,9 @@ def read_csv(filename):
 
 
 def read(filename, filetype='ESRI Shapefile'):
-    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if qualcity.utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return read_shp(filename)
-    elif utils.caseless_equal(filetype, 'csv'):
+    elif qualcity.utils.caseless_equal(filetype, 'csv'):
         return read_csv(filename)
     else:
         raise LookupError('Unsupported filetype %s', filetype)
@@ -273,10 +273,16 @@ def write_csv(filename, errors_per_building):
                                 (
                                     (
                                         'Building ' + error
-                                        if level == 1 and 'segmentation' in error
+                                        if (
+                                            level == 1
+                                            and 'segmentation' in error
+                                        )
                                         else (
                                             'Facet ' + error
-                                            if level == 2 and 'r segmentation' in error
+                                            if (
+                                                level == 2
+                                                and 'r segmentation' in error
+                                            )
                                             else error
                                         )
                                     ),
@@ -304,7 +310,7 @@ def write_csv(filename, errors_per_building):
 
 
 def write(filename, errors, filetype='csv'):
-    if utils.caseless_equal(filetype, 'csv'):
+    if qualcity.utils.caseless_equal(filetype, 'csv'):
         write_csv(filename, errors)
     else:
         raise LookupError('Unsupported filetype %s', filetype)

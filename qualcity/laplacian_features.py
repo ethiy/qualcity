@@ -3,7 +3,7 @@
 import networkx as nx
 import numpy as np
 
-from graph_util import compute_weight
+from qualcity.graph_util import compute_weight
 
 
 def laplacian_eigen_vectors(graph, attribute, operation):

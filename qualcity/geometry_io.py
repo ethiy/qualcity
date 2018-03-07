@@ -16,9 +16,9 @@ import networkx as nx
 
 import matplotlib.pyplot as plt
 
-import utils
+import qualcity.utils
 
-geom_logger = logging.getLogger('qualcity.' + __name__)
+geom_logger = logging.getLogger(__name__)
 
 NODE_ATTRIBUTES = ['degree', 'area']
 EDGE_ATTRIBUTES = ['centroid', 'angle']
@@ -106,7 +106,7 @@ def get_relations(lines):
 
 def node_statistics(faces, attribute, statistics, **kwargs):
     geom_logger.info('Facet %s statistics: %s', attribute, statistics)
-    return utils.stats(
+    return qualcity.utils.stats(
         [
             face[NODE_ATTRIBUTES.index(attribute)]
             for face in faces.values()
@@ -129,7 +129,7 @@ def edge_statistics(faces, attribute, statistics, relations=[], **kwargs):
             for j in faces.keys()
             if i != j
         ]
-    return utils.stats(
+    return qualcity.utils.stats(
         [
             np.linalg.norm(
                 faces[idx][
