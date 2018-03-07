@@ -196,56 +196,74 @@ def format_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
 def visualize_features(features, labels, label_names, **visualization_args):
     logger.info('Visualizing features...')
     try:
-        if not isinstance(label_names, tuple):
-            logger.error('Not yet implemented')
-            raise NotImplementedError
-        features = build_maniflod(
+        embedding = build_maniflod(
             visualization_args['manifold']['algorithm'],
             **visualization_args['manifold']['parameters']
-        ).fit_transform(features)
-        logger.debug('New transformed features: %s', features)
-        logger.info('Fitted and transformed features.')
-
-        features = build_reductor(
+        )
+        dim_reductor = build_reductor(
             visualization_args['dimension_reduction']['algorithm'],
             **visualization_args['dimension_reduction']['parameters']
-        ).fit_transform(features)
-        logger.debug('New reduced features: %s', features)
-        logger.info('Fitted and reduced features.')
-
-        features_per_errors = {
-            cat: np.array(
-                [
-                    features[idx]
-                    for idx, _
-                    in [
-                        (idx, label)
-                        for idx, label in enumerate(labels)
-                        if label == cat
-                    ]
-                ]
-            )
-            for cat in sorted(list(set(labels)), reverse=True)
-        }
-        logger.debug('separated features: %s', features_per_errors)
-        logger.info('Safely separated features by categories.')
-
-        if (
-            visualization_args['dimension_reduction']['parameters']
-            ['n_components'] == 2
-        ):
-            fig, ax = plt.subplots()
-        else:
-            global FIGURE_COUNTER
-            figure = plt.figure(FIGURE_COUNTER)
-            FIGURE_COUNTER += 1
-            ax = Axes3D(figure)
-
-        visualize_categories(
-            ax,
-            features_per_errors,
-            **visualization_args['style']
         )
+        if isinstance(label_names, list):
+            for label_name, _labels in zip(label_names, zip(*labels)):
+                visualize_features(
+                    features,
+                    _labels,
+                    (None, label_name),
+                    **visualization_args
+                )
+        elif isinstance(label_names, tuple):
+            features = embedding.fit_transform(features)
+            logger.debug('New transformed features: %s', features)
+            logger.info('Fitted and transformed features.')
+
+            features = dim_reductor.fit_transform(features)
+            logger.debug('New reduced features: %s', features)
+            logger.info('Fitted and reduced features.')
+
+            features_per_errors = {
+                cat: np.array(
+                    [
+                        features[idx]
+                        for idx, _
+                        in [
+                            (idx, label)
+                            for idx, label in enumerate(labels)
+                            if label == cat
+                        ]
+                    ]
+                )
+                for cat in ([0, 1] if None in label_names else label_names)
+            }
+            logger.debug('separated features: %s', features_per_errors)
+            logger.info('Safely separated features by categories.')
+
+            if (
+                visualization_args['dimension_reduction']['parameters']
+                ['n_components'] == 2
+            ):
+                fig, ax = plt.subplots()
+            else:
+                figure = plt.figure()
+                ax = Axes3D(figure)
+
+            ax.set_title(
+                ' '.join(
+                    ['Feature visualization for']
+                    + (
+                        [label_names[1]]
+                        if None in label_names else list(label_names)
+                    )
+                )
+            )
+            visualize_categories(
+                ax,
+                features_per_errors,
+                **visualization_args['style']
+            )
+        else:
+            logger.error('Not yet implemented')
+            raise NotImplementedError('Not yet implemented')
     except NotImplementedError:
         logger.warn('Skipped visualization')
     logger.info('Succesfully visualized categories')
