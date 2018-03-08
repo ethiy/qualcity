@@ -16,7 +16,7 @@ import gdalconst
 
 import matplotlib.pyplot as plt
 
-raster_utils_logger = logging.getLogger(__name__)
+geo_raster_logger = logging.getLogger(__name__)
 
 
 class GeoRaster:
@@ -135,7 +135,7 @@ class GeoRaster:
             not isinstance(row_slice, slice)
             or not isinstance(col_slice, slice)
         ):
-            raise TypeError('%s is not a slice', key)
+            raise TypeError('Cannot slice with %s', key)
         return GeoRaster(
             (
                 self.reference_point[0]
@@ -226,17 +226,20 @@ class GeoRaster:
             for x, y in bbox
         ]
 
-    def crop(self, bbox):
+    def crop(self, bbox, margins=(0, 0)):
         """
             Crop the corresponding matrix to the bounding box and the defined
             margins.
             :param bbox: bounding box
             :type bbox: list
+            :param margins: crop margins
+            :type margins: tuple
             :return: croped GeoRaster
             :rtype: GeoRaster
         """
         (i_max, j_min), (i_min, j_max) = self.get_slice(bbox)
-        return self[i_min: i_max, j_min:j_max]
+        imar, jmar = margins
+        return self[i_min - imar: i_max + imar, j_min - jmar:j_max + jmar]
 
 
 def main():
@@ -246,6 +249,7 @@ def main():
         '*.geotiff'
     )
     sample = GeoRaster.from_file(os.path.join(ortho_dir, image_names[0]))
+    # sample.image = sample.image[:, :, 1]
     print(sample.bbox())
     print(sample.reference_point)
     plt.figure()
