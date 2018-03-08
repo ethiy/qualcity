@@ -155,8 +155,8 @@ class GeoRaster:
         bbox = georaster.bbox()
         return [
             (
-                (y - self.reference_point[1])/self.pixel_sizes[1],
-                (x - self.reference_point[0])/self.pixel_sizes[0]
+                int((x - self.reference_point[0])/self.pixel_sizes[0]),
+                int((y - self.reference_point[1])/self.pixel_sizes[1])
             )
             for x, y in bbox
         ]
@@ -171,25 +171,10 @@ class GeoRaster:
             :rtype: GeoRaster
         """
         (i_min, j_min), (i_max, j_max) = self.crop_slice(georaster)
-        (pi_min, pi_max), (pj_min, pj_max) = [
-            (
-                max(math.floor(l_min), 0),
-                min(math.ceil(l_max), self.image.shape[0])
-            )
-            for l_min, l_max in [(i_min, i_max), (j_min, j_max)]
-        ]
-        if pi_min >= pi_max or pj_min >= pj_max:
-            return GeoRaster(
-                georaster.bbox()[0],
-                self.pixel_sizes,
-                np.array(0, dtype=self.image.dtype, ndmin=len(self.shape()))
-            )
-        else:
-            return GeoRaster(
-                georaster.bbox()[0],
-                self.pixel_sizes,
-                self.image[pi_min: pi_max, pj_min: pj_max, :]
-            )
+        return self.slice(
+            slice(i_min, i_max),
+            slice(j_min, j_max)
+        )
 
 
 def main():
@@ -203,20 +188,20 @@ def main():
     print(sample.bbox())
     plt.figure()
     cropped = sample.slice(
-        slice(sample.height() * 2, None),
-        slice(sample.width()//2, None)
+        slice(sample.width() * 2, None),
+        slice(sample.width() // 2, None)
     )
-    print(cropped.reference_point, cropped.bbox(), cropped.shape())
+    print(cropped.reference_point, cropped.bbox())
+    print(cropped.shape())
     cropped.plot()
 
     plt.figure()
     sample.crop(
         sample.slice(
             slice(None, None),
-            slice(sample.width()//2, None)
+            slice(sample.width() // 2, None)
         )
     ).plot()
-
     plt.show()
 
 
