@@ -14,8 +14,6 @@ import numpy as np
 import gdal
 import gdalconst
 
-import matplotlib.pyplot as plt
-
 alti_logger = logging.getLogger(__name__)
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'

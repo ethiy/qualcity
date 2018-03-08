@@ -11,9 +11,6 @@ class UtilsTest(unittest.TestCase):
     Test case for the 'utils' 'qualcity' submodule.
     """
 
-    def setUp(self):
-        pass
-
     def test_median(self):
         self.assertEqual(median([-5, -5, -3, -4, 0, -1]), -3.5)
         self.assertEqual(median([-5, -5, -4, 0, -1]), -4.0)

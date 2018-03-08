@@ -14,8 +14,6 @@ import numpy as np
 
 import networkx as nx
 
-import matplotlib.pyplot as plt
-
 import qualcity.utils
 
 geom_logger = logging.getLogger(__name__)
