@@ -8,169 +8,76 @@ import logging
 
 import math
 import operator
+import functools
 
 import numpy as np
 
-import gdal
-import gdalconst
+import qualcity.GeoRaster
 
 alti_logger = logging.getLogger(__name__)
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 
-def bounding_box(dsm):
-    alti_logger.info('Getting %s bounding_box', dsm)
-    dataset = gdal.Open(dsm, gdalconst.GA_ReadOnly)
-    alti_logger.info('Getting geo-transform from %s', dsm)
-    Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
-    alti_logger.debug(
-        'Geo-transform -> origin: %s, pixel resolution: %s',
-        (Ox, Oy),
-        (px, py)
+def crop(bbox, dsm_path, margins):
+    crop = qualcity.GeoRaster.GeoRaster.from_file(
+        dsm_path,
+        dtype=np.float
+    ).crop(
+        bbox,
+        margins
     )
-    return (
-        (Ox, Oy),
-        (
-            Ox + px * dataset.RasterXSize,
-            Oy + py * dataset.RasterYSize
-        ),
-        (px, py)
-    )
+    return crop if crop.size() else None
 
 
-def intersection(dsm, building):
-    alti_logger.info('Intersection of %s and %s', dsm, building)
-    dsm_bb = bounding_box(dsm)
-    alti_logger.debug('%s bounding box: %s', dsm, dsm_bb)
-    intersection = overlap(
-        dsm_bb,
-        bounding_box(building)
-    )
-    alti_logger.debug('%s overlap with %s -> %s', dsm, building, intersection)
-    if (
-        intersection[1][0] < intersection[0][0]
-        or intersection[1][1] > intersection[0][1]
-    ):
-        alti_logger.debug('No overlap between %s, %s', dsm, building)
-        return None
-    else:
-        return (
-            (
-                int(
-                    math.floor(
-                        (intersection[0][0] - dsm_bb[0][0]) / dsm_bb[2][0]
-                    )
-                ),
-                int(
-                    math.floor(
-                        (intersection[0][1] - dsm_bb[0][1]) / dsm_bb[2][1]
-                    )
-                )
-            ),
-            (
-                int(
-                    math.floor(
-                        (intersection[1][0] - dsm_bb[0][0]) / dsm_bb[2][0]
-                    )
-                ),
-                int(
-                    math.floor(
-                        (intersection[1][1] - dsm_bb[0][1]) / dsm_bb[2][1]
-                    )
-                )
-            )
-        )
-
-
-def overlap(bb_1, bb_2):
-    alti_logger.info('Overlap between %s and %s', bb_1, bb_2)
-    return (
-        (
-            max(bb_2[0][0], bb_1[0][0]),
-            min(bb_2[0][1], bb_1[0][1])
-        ),
-        (
-            min(bb_2[1][0], bb_1[1][0]),
-            max(bb_2[1][1], bb_1[1][1])
-        )
-    )
-
-
-def crop(filename, roi):
-    alti_logger.info('Croping region of interest %s from %s', roi, filename)
-    dataset = gdal.Open(filename, gdalconst.GA_ReadOnly)
-    return dataset.GetRasterBand(1).ReadAsArray(
-        roi[0][0],
-        roi[0][1],
-        roi[1][0] - roi[0][0],
-        roi[1][1] - roi[0][1]
-    ).astype(np.float)
-
-
-def read(filename):
-    alti_logger.info('Reading %s', filename)
-    dataset = gdal.Open(filename, gdalconst.GA_ReadOnly)
-    return dataset.GetRasterBand(1).ReadAsArray().astype(np.float)
-
-
-def get_dsms(dsm_dir):
-    alti_logger.info('Getting Stored DSMs in %s', dsm_dir)
-    return fnmatch.filter(
-        [os.path.join(dsm_dir, filename) for filename in os.listdir(dsm_dir)],
-        '*.geotiff'
-    )
-
-
-def building_intersections(filename, dsms):
+def find_building(bbox, dsm_dir, ext, margins=(0, 0)):
     alti_logger.info(
-        'Getting intersections between DSMs in %s and %s',
-        dsms,
-        filename
+        'Getting %s corresponding DSM in %s with extention %s',
+        bbox,
+        dsm_dir,
+        ext
     )
-    return [
-        crop(
-            dsm,
-            intersection(dsm, filename)
+    dsm_crops = [
+        crop(bbox, os.path.join(dsm_dir, dsm_name), margins)
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            ext
         )
-        for dsm in dsms
-        if intersection(dsm, filename) is not None
     ]
-
-
-def find_building(filename, dsms):
-    alti_logger.info(
-        'Getting max intersecting DSM in %s with %s',
-        dsms,
-        filename
-    )
-    return max(
-        building_intersections(filename, dsms),
-        key=lambda crop: crop.shape
+    if len(dsm_crops) > 1:
+        print(bbox)
+        print([dsm_crp.shape() for dsm_crp in dsm_crops if dsm_crp])
+    return functools.reduce(
+        operator.add,
+        [dsm_crp for dsm_crp in dsm_crops if dsm_crp]
     )
 
 
-def altimetric_difference(filename, dsm_dir):
+def altimetric_difference(filename, dsm_dir, ext):
     alti_logger.info(
         'Getting altimetric residual for %s with max instersecting DSM in %s',
         filename,
         dsm_dir
     )
-    building_dsm = find_building(filename, get_dsms(dsm_dir))
+    print(filename)
+    model_dsm = qualcity.GeoRaster.GeoRaster.from_file(
+        filename,
+        dtype=np.float
+    )
+    alti_logger.debug(
+        'Building DSM from 3d model %s -> %s ',
+        filename,
+        model_dsm
+    )
+    building_dsm = find_building(model_dsm.bbox(), dsm_dir, ext)
     alti_logger.debug(
         'Max instersecting DSM in %s with %s -> %s ',
         dsm_dir,
         filename,
         building_dsm
     )
-    model_dsm = read(filename)
-    alti_logger.debug(
-        'Building DSM from 3d model %s -> %s ',
-        filename,
-        model_dsm
-    )
-    if building_dsm.shape == model_dsm.shape:
-        return building_dsm - model_dsm
+    if building_dsm.shape() == model_dsm.shape():
+        return building_dsm.image - model_dsm.image
     else:
         alti_logger.warn(
             '%s border building -> ToDo: try merging with georasters!',
@@ -235,7 +142,8 @@ def qualifiable_building_diffs(raster_dir, dsm_dir, ext='*.tiff'):
     return {
         raster: altimetric_difference(
             os.path.join(raster_dir, raster),
-            dsm_dir
+            dsm_dir,
+            ext='*.geotiff'
         )
         for raster in fnmatch.filter(
             os.listdir(raster_dir),

@@ -65,11 +65,35 @@ class GeoRaster:
             )
         )
 
+    def clone(self):
+        """
+            return clone
+        """
+        return GeoRaster(
+            self.reference_point,
+            self.pixel_sizes,
+            self.image
+        )
+
+    def __str__(self):
+        return (
+            'Reference point: ' + str(self.reference_point)
+            + '\nPixel resolution: ' + str(self.pixel_sizes)
+            + '\nImage: ' + str(self.image)
+        )
+
     def __eq__(self, other):
         return (
             self.reference_point == other.reference_point
             and self.pixel_sizes == other.pixel_sizes
             and(self.image == other.image).all()
+        )
+
+    def __mul__(self, other):
+        return GeoRaster(
+            self.reference_point,
+            self.pixel_sizes,
+            other * self.image
         )
 
     def __add__(self, other):
@@ -78,13 +102,16 @@ class GeoRaster:
         elif not other.size():
             return self
         else:
-            (x_min, x_max), (y_min, y_max) = [
-                (min(collec), max(collec))
-                for collec in [
-                    [item for subtup in dim for item in subtup]
-                    for dim in zip(zip(*self.bbox()), zip(*other.bbox()))
-                ]
-            ]
+            smin, smax = self.bbox()
+            omin, omax = other.bbox()
+            print(smin, smax)
+            print(omin, omax)
+            # print(list(zip(smin, omin)))
+            # print(list(zip(smax, omax)))
+            x_min, y_min = [min(s, o) for s, o in zip(smin, omin)]
+            x_max, y_max = [max(s, o) for s, o in zip(smax, omax)]
+            x_max = max(smax[0], omax[0])
+            y_min = min(smin[1], omin[1])
             if self.pixel_sizes != other.pixel_sizes:
                 raise NotImplementedError(
                     'Multiresolution raster union is not yet implemented!'
@@ -100,8 +127,8 @@ class GeoRaster:
                     np.full(
                         tuple(
                             [
-                                int((x_max - x_min)/self.pixel_sizes[0]),
-                                int((y_min - y_max)/self.pixel_sizes[1])
+                                int((y_min - y_max)/self.pixel_sizes[1]) + 1,
+                                int((x_max - x_min)/self.pixel_sizes[0]) + 1
                             ]
                             + list(self.shape()[2:])
                         ),
@@ -109,12 +136,19 @@ class GeoRaster:
                         dtype=self.dtype()
                     )
                 )
+                print(result.reference_point)
+                print(result.shape())
+                print(result.bbox())
 
                 for raster in [self, other]:
                     (i_max, j_min), (i_min, j_max) = result.get_slice(
                         raster.bbox()
                     )
-                    result.image[i_min: i_max, j_min: j_max] = raster.image
+                    print((i_max, j_min), (i_min, j_max))
+                    result.image[i_min: i_max, j_min: j_max] = raster.image[
+                        : i_max - i_min,
+                        : j_max - j_min
+                    ]
 
                 return result
 
@@ -220,8 +254,8 @@ class GeoRaster:
         """
         return [
             (
-                int((y - self.reference_point[1])/self.pixel_sizes[1]),
-                int((x - self.reference_point[0])/self.pixel_sizes[0])
+                int(round((y - self.reference_point[1])/self.pixel_sizes[1])),
+                int(round((x - self.reference_point[0])/self.pixel_sizes[0]))
             )
             for x, y in bbox
         ]
@@ -239,36 +273,76 @@ class GeoRaster:
         """
         (i_max, j_min), (i_min, j_max) = self.get_slice(bbox)
         imar, jmar = margins
-        return self[i_min - imar: i_max + imar, j_min - jmar:j_max + jmar]
+        return self[
+            max(i_min - imar, 0): max(i_max + imar, 0),
+            max(j_min - jmar, 0): max(j_max + jmar, 0)
+        ]
 
 
 def main():
     ortho_dir = '/home/ethiy/Data/Elancourt/OrthoImages'
-    image_names = fnmatch.filter(
-        os.listdir(ortho_dir),
+    dsm_dir = '/home/ethiy/Data/Elancourt/DSM'
+    raster_dir = os.path.join(
+        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
+        'export-3DS/rasters'
+    )
+    dsms = fnmatch.filter(
+        os.listdir(dsm_dir),
         '*.geotiff'
     )
-    sample = GeoRaster.from_file(os.path.join(ortho_dir, image_names[0]))
-    # sample.image = sample.image[:, :, 1]
-    print(sample.bbox())
-    print(sample.reference_point)
-    plt.figure()
-    cropped = sample[:500, 100:]
-    print(cropped.reference_point)
-    print(cropped.shape())
-    print(cropped.bbox())
-    cropped.plot()
+    rasters = fnmatch.filter(
+        os.listdir(raster_dir),
+        '*.tiff'
+    )
+    # sample = GeoRaster.from_file(os.path.join(ortho_dir, image_names[0]))
+    # # sample.image = sample.image[:, :, 1]
+    # print(sample)
+    # print(sample.bbox())
+    # print(sample.reference_point)
+    # plt.figure()
+    # cropped = sample[:500, 100:]
+    # print(cropped.reference_point)
+    # print(cropped.shape())
+    # print(cropped.bbox())
+    # cropped.plot()
+    #
+    # plt.figure()
+    # _cropped = sample.crop(cropped.bbox())
+    # print(_cropped == cropped)
+    # _cropped.plot()
+    #
+    # addition = sample[:, 2500:] + sample[2500:, :2500] + sample[:2500, :2500]
+    # print(addition.bbox())
+    # print(addition == sample)
+    # plt.figure()
+    # addition.plot()
+    # plt.show()
 
+    # print(rasters[0])
+    raster = GeoRaster.from_file(
+        os.path.join(raster_dir, '20466.tiff'),
+        dtype=np.float
+    )
+    print(raster.bbox())
+    l = []
+    d = []
+    for dsm in dsms:
+        print(dsm)
+        crop = GeoRaster.from_file(
+            os.path.join(dsm_dir, dsm),
+            dtype=np.float
+        ).crop(
+            raster.bbox()
+        )
+        print(crop.shape())
+        if crop.size():
+            l.append(crop)
+            d.append(crop.bbox())
+    print(d)
+    im = (l[0] + l[1])
+    print(im.shape())
     plt.figure()
-    _cropped = sample.crop(cropped.bbox())
-    print(_cropped == cropped)
-    _cropped.plot()
-
-    addition = sample[:, 2500:] + sample[2500:, :2500] + sample[:2500, :2500]
-    print(addition.bbox())
-    print(addition == sample)
-    plt.figure()
-    addition.plot()
+    plt.imshow(im.image[:,:, 0], cmap='gray')
     plt.show()
 
 
