@@ -19,6 +19,36 @@ import matplotlib.pyplot as plt
 geo_raster_logger = logging.getLogger(__name__)
 
 
+def bounding_box(dsm_name):
+    geo_raster_logger.info('Getting %s bounding_box', dsm_name)
+    dataset = gdal.Open(dsm_name, gdalconst.GA_ReadOnly)
+    geo_raster_logger.info('Getting geo-transform from %s', dsm_name)
+    Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
+    geo_raster_logger.debug(
+        'Geo-transform -> origin: %s, pixel resolution: %s',
+        (Ox, Oy),
+        (px, py)
+    )
+    return (
+        (
+            Ox,
+            Oy + py * dataset.RasterYSize
+        ),
+        (
+            Ox + px * dataset.RasterXSize,
+            Oy
+        )
+    )
+
+
+def overlap(lbb, rbb):
+    geo_raster_logger.info('Overlap between %s and %s', lbb, rbb)
+    return (
+        max(lbb[0][0], rbb[0][0]) < min(lbb[1][0], rbb[1][0])
+        and max(lbb[0][1], rbb[0][1]) < min(lbb[1][1], rbb[1][1])
+    )
+
+
 class GeoRaster:
     """
         Geographic raster.
@@ -104,14 +134,12 @@ class GeoRaster:
         else:
             smin, smax = self.bbox()
             omin, omax = other.bbox()
-            print(smin, smax)
-            print(omin, omax)
+            # print(smin, smax)
+            # print(omin, omax)
             # print(list(zip(smin, omin)))
             # print(list(zip(smax, omax)))
             x_min, y_min = [min(s, o) for s, o in zip(smin, omin)]
             x_max, y_max = [max(s, o) for s, o in zip(smax, omax)]
-            x_max = max(smax[0], omax[0])
-            y_min = min(smin[1], omin[1])
             if self.pixel_sizes != other.pixel_sizes:
                 raise NotImplementedError(
                     'Multiresolution raster union is not yet implemented!'
@@ -136,19 +164,16 @@ class GeoRaster:
                         dtype=self.dtype()
                     )
                 )
-                print(result.reference_point)
-                print(result.shape())
-                print(result.bbox())
+                # print(result.reference_point)
+                # print(result.shape())
+                # print(result.bbox())
 
                 for raster in [self, other]:
                     (i_max, j_min), (i_min, j_max) = result.get_slice(
                         raster.bbox()
                     )
                     print((i_max, j_min), (i_min, j_max))
-                    result.image[i_min: i_max, j_min: j_max] = raster.image[
-                        : i_max - i_min,
-                        : j_max - j_min
-                    ]
+                    result.image[i_min: i_min + raster.height(), j_min: j_min + raster.width()] = raster.image
 
                 return result
 
@@ -327,18 +352,28 @@ def main():
     l = []
     d = []
     for dsm in dsms:
-        print(dsm)
-        crop = GeoRaster.from_file(
-            os.path.join(dsm_dir, dsm),
-            dtype=np.float
-        ).crop(
-            raster.bbox()
-        )
-        print(crop.shape())
-        if crop.size():
-            l.append(crop)
-            d.append(crop.bbox())
-    print(d)
+        if overlap(
+            bounding_box(os.path.join(dsm_dir, dsm)),
+            bounding_box(os.path.join(raster_dir, '20466.tiff'))
+        ):
+            l.append(
+                GeoRaster.from_file(
+                    os.path.join(dsm_dir, dsm),
+                    dtype=np.float
+                ).crop(
+                    raster.bbox()
+                )
+            )
+        # # print(dsm)
+        # # print(overlap(raster.bbox(), _dsm.bbox()))
+        # crop = _dsm.crop(
+        #     raster.bbox()
+        # )
+        # print(crop.shape())
+        # if crop.size():
+        #     l.append(crop)
+        #     d.append(crop.bbox())
+    # print(d)
     im = (l[0] + l[1])
     print(im.shape())
     plt.figure()
