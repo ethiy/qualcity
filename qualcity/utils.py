@@ -94,13 +94,13 @@ def stats(attribute, statistics, **kwargs):
                 +
                 [
                     stat(attribute)
-                ]
+                ] if callable(stat) else None
             ),
             [stat(statistic) for statistic in statistics if callable(stat)],
             []
         )
     else:
-        raise LookupError
+        raise LookupError('%s unknown', statistics)
 
 
 def fuse(dict_1, dict_2):

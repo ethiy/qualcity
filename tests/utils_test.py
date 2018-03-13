@@ -34,13 +34,15 @@ class UtilsTest(unittest.TestCase):
         )
 
     def test_stat_func(self):
-        with self.assertRaises(KeyError):
-            utils.stat(max)
+        self.assertIsNone(utils.stat(max))
 
-        with self.assertRaises(KeyError):
-            utils.stats([12, 5, 0, 11.1], ['max', 'min', 'histogram'])
+        self.assertIsNone(
+            utils.stats(
+                [12, 5, 0, 11.1], ['max', 'min', 'histogram']
+            )
+        )
 
-        assertEqual(
+        self.assertEqual(
             utils.stats([12, 5, 0, 11.1], 'histogram', bins=range(0, 20)),
             [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
         )
