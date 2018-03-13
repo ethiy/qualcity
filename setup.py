@@ -37,11 +37,8 @@ setup(
         'Programming Language :: Python :: 3.5'
     ],
     scripts=['QualCity'],
-    python_requires='>=3.5',
     keywords='qualification building 3d reconstruction graphs computer vision',
-    project_urls={
-        'Source': 'https://github.com/ethiy/qualcity'
-    },
+    url='https://github.com/ethiy/qualcity',
     author='Oussama Ennafii [IGN :: LaSTIG]',
     author_email='oussama.ennafii@ign.fr',
     license='MIT',
