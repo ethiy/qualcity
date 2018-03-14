@@ -29,19 +29,22 @@ setup(
         'License :: MIT License',
         'Intended Audience :: Developers',
         'Intended Audience :: Research',
+        'Topic :: Scientific/Engineering',
+        'Programming Language :: Python :: 3.5'
+    ],
+    platforms=[
+        'Environment :: Console',
         'Operating System :: POSIX',
         'Operating System :: MacOS',
         'Operating System :: Unix',
-        'Operating System :: Windows',
-        'Topic :: Scientific/Engineering',
-        'Programming Language :: Python :: 3.5'
+        'Operating System :: Windows'
     ],
     scripts=['QualCity'],
     keywords='qualification building 3d reconstruction graphs computer vision',
     url='https://github.com/ethiy/qualcity',
     author='Oussama Ennafii [IGN :: LaSTIG]',
     author_email='oussama.ennafii@ign.fr',
-    license='MIT',
+    license='License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     packages=find_packages(exclude=['tests']),
     install_requires=requirements(),
     include_package_data=True,
