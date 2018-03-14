@@ -29,6 +29,7 @@ features:
             /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
         dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
         ext: tiff
+        dsm_ext: geotiff
         high_res: 5
         low_res: 5
 
