@@ -12,44 +12,38 @@ import functools
 
 import numpy as np
 
-import qualcity.GeoRaster
+from .GeoRaster import overlap, bounding_box, GeoRaster
 
 alti_logger = logging.getLogger(__name__)
 
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 
-def crop(bbox, dsm_path, margins):
-    crop = qualcity.GeoRaster.GeoRaster.from_file(
-        dsm_path,
-        dtype=np.float
-    ).crop(
-        bbox,
-        margins
-    )
-    return crop if crop.size() else None
-
-
-def find_building(bbox, dsm_dir, ext, margins=(0, 0)):
+def find_building(bbox, dsm_dir, ext):
     alti_logger.info(
         'Getting %s corresponding DSM in %s with extention %s',
         bbox,
         dsm_dir,
         ext
     )
-    dsm_crops = [
-        crop(bbox, os.path.join(dsm_dir, dsm_name), margins)
-        for dsm_name in fnmatch.filter(
-            os.listdir(dsm_dir),
-            ext
-        )
-    ]
-    if len(dsm_crops) > 1:
-        print(bbox)
-        print([dsm_crp.shape() for dsm_crp in dsm_crops if dsm_crp])
     return functools.reduce(
-        operator.add,
-        [dsm_crp for dsm_crp in dsm_crops if dsm_crp]
+        lambda lhs, rhs: lhs.union(rhs),
+        [
+            GeoRaster.from_file(
+                os.path.join(dsm_dir, dsm_name),
+                dtype=np.float
+            ).crop(bbox)
+            for dsm_name in fnmatch.filter(
+                os.listdir(dsm_dir),
+                ext
+            )
+            if overlap(
+                bbox,
+                bounding_box(
+                    os.path.join(dsm_dir, dsm_name)
+                )
+            )
+        ]
     )
 
 
@@ -59,8 +53,7 @@ def altimetric_difference(filename, dsm_dir, ext):
         filename,
         dsm_dir
     )
-    print(filename)
-    model_dsm = qualcity.GeoRaster.GeoRaster.from_file(
+    model_dsm = GeoRaster.from_file(
         filename,
         dtype=np.float
     )
@@ -69,21 +62,14 @@ def altimetric_difference(filename, dsm_dir, ext):
         filename,
         model_dsm
     )
-    building_dsm = find_building(model_dsm.bbox(), dsm_dir, ext)
+    building_dsm = find_building(model_dsm.bbox, dsm_dir, ext)
     alti_logger.debug(
         'Max instersecting DSM in %s with %s -> %s ',
         dsm_dir,
         filename,
         building_dsm
     )
-    if building_dsm.shape() == model_dsm.shape():
-        return building_dsm.image - model_dsm.image
-    else:
-        alti_logger.warn(
-            '%s border building -> ToDo: try merging with georasters!',
-            filename
-        )
-        return None
+    return (building_dsm - model_dsm).image
 
 
 def histogram_bins(diffs, low_res, high_res):
@@ -131,7 +117,7 @@ def histogram_bins(diffs, low_res, high_res):
     )
 
 
-def qualifiable_building_diffs(raster_dir, dsm_dir, ext='*.tiff'):
+def dsm_diff(raster_dir, dsm_dir, ext='*.tiff'):
     alti_logger.info(
         'Getting residuals for all buildings in %s wrt DSMs in %s '
         + 'with extension %s',
@@ -152,7 +138,14 @@ def qualifiable_building_diffs(raster_dir, dsm_dir, ext='*.tiff'):
     }
 
 
-def histograms(raster_dir, dsm_dir, ext='*.tiff', low_res=5, high_res=5):
+def histograms(
+    raster_dir,
+    dsm_dir,
+    ext='*.tiff',
+    dsm_ext='*.getiff',
+    low_res=5,
+    high_res=5
+):
     alti_logger.info(
         'Computing histograms for residuals of all buildings in %s wrt DSMs '
         + 'in %s with extension %s with %s low values resolution'
@@ -163,7 +156,7 @@ def histograms(raster_dir, dsm_dir, ext='*.tiff', low_res=5, high_res=5):
         low_res,
         high_res
     )
-    diffs = qualifiable_building_diffs(raster_dir, dsm_dir, ext)
+    diffs = dsm_diff(raster_dir, dsm_dir, ext)
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
         + 'with extension %s',
@@ -192,7 +185,8 @@ def histograms(raster_dir, dsm_dir, ext='*.tiff', low_res=5, high_res=5):
 def histogram_features(
     raster_dir,
     dsm_dir,
-    ext='*.tiff',
+    ext='tiff',
+    dsm_ext='geotiff',
     low_res=5,
     high_res=5
 ):
@@ -202,7 +196,8 @@ def histogram_features(
         + 'and %s high values resolution',
         raster_dir,
         dsm_dir,
-        ext,
+        '*.' + ext,
+        '*.' + dsm_ext,
         low_res,
         high_res
     )
