@@ -4,7 +4,7 @@ scene:
 labels:
     labels_path:
         /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/ground_truth.csv
-    depth: 2
+    depth: 0
     LoD: 2
     hierarchical: False
     filetype: csv

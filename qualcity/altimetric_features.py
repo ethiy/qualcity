@@ -81,9 +81,7 @@ def histogram_bins(diffs, low_res, high_res):
         high_res
     )
     sorted_diffs = sorted(
-        np.hstack(
-            tuple([diff.flatten() for diff in diffs if diff is not None])
-        )
+        np.hstack([diff.flatten() for diff in diffs])
     )
     alti_logger.debug(
         'Sorted residuals: %s',
@@ -191,13 +189,13 @@ def histogram_features(
     high_res=5
 ):
     alti_logger.info(
-        'Computing histogram features for all buildings in %s wrt DSMs '
-        + 'in %s with extension %s with %s low values resolution'
+        'Computing histogram features for all buildings in %s with extension '
+        + '%s wrt DSMs in %s with extension %s with %s low values resolution'
         + 'and %s high values resolution',
         raster_dir,
+        dsm_ext,
         dsm_dir,
-        '*.' + ext,
-        '*.' + dsm_ext,
+        ext,
         low_res,
         high_res
     )
@@ -208,7 +206,8 @@ def histogram_features(
         in histograms(
             raster_dir,
             dsm_dir,
-            ext,
+            '*.' + ext,
+            '*.' + dsm_ext,
             low_res,
             high_res
         ).items()

@@ -106,16 +106,10 @@ def config_logger(arguments):
 
 
 def altimetric_features(depth, raster_dir, dsm_dir, **kwargs):
-    if depth < 1:
-        raise NotImplementedError(
-            'Depth 0 is not implemented for altimetric error'
-        )
     return qualcity.altimetric_features.histogram_features(
         raster_dir,
         dsm_dir,
-        '*.' + kwargs['ext'],
-        kwargs['high_res'],
-        kwargs['low_res']
+        **kwargs
     )
 
 
@@ -135,7 +129,7 @@ def features(depth, feat_type, **kwargs):
     }[feat_type](kwargs)
 
 
-def get_features(depth, config):
+def get_features(depth, **config):
     logger.info('Getting features ...')
     return functools.reduce(
         qualcity.utils.fuse,
@@ -146,14 +140,11 @@ def get_features(depth, config):
     )
 
 
-def format_features(depth, buildings, config):
-    features = get_features(depth, config)
+def format_features(depth, buildings, **config):
+    features = get_features(depth, **config)
     features = [features[building] for building in buildings]
 
-    if depth == 0:
-        raise NotImplementedError
-    else:
-        return [np.hstack(feature) for feature in features]
+    return [np.hstack(feature) for feature in features]
 
 
 def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
@@ -1162,7 +1153,7 @@ def main():
     features = format_features(
         configuration['labels']['depth'],
         buildings,
-        configuration['features']
+        **configuration['features']
     )
     logger.debug(features)
     logger.info('Features safely loaded.')
