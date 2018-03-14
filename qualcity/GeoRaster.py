@@ -6,6 +6,7 @@ import fnmatch
 
 import logging
 
+import operator
 import functools
 import math
 
@@ -71,6 +72,23 @@ class GeoRaster:
         self.pixel_sizes = pixel_sizes
         self.image = image
 
+        self.size = self.image.size
+        self.shape = self.image.shape
+        (self.height, self.width) = self.shape[:2]
+
+        self.bbox = (
+            (
+                self.reference_point[0],
+                self.reference_point[1] + self.pixel_sizes[1] * self.height
+            ),
+            (
+                self.reference_point[0] + self.pixel_sizes[0] * self.width,
+                self.reference_point[1]
+            )
+        )
+
+        self.dtype = self.image.dtype
+
     @classmethod
     def from_file(cls, filename, dtype=np.uint8):
         """
@@ -92,18 +110,29 @@ class GeoRaster:
                     dataset.GetRasterBand(band).ReadAsArray().astype(dtype)
                     for band in range(1, dataset.RasterCount + 1)
                 ]
-            )
+            ) if dataset.RasterCount > 1
+            else dataset.GetRasterBand(1).ReadAsArray().astype(dtype)
         )
 
     def clone(self):
         """
-            return clone
+            Return a copy
+            :return: the GeoRaster copy
+            :rtype: GeoRaster
         """
         return GeoRaster(
             self.reference_point,
             self.pixel_sizes,
             self.image
         )
+
+    def empty(self):
+        """
+            Checks if the image is empty
+            :return: the predicat truthness
+            :rtype: bool
+        """
+        return not bool(self.size)
 
     def __str__(self):
         return (
@@ -120,62 +149,22 @@ class GeoRaster:
         )
 
     def __mul__(self, other):
-        return GeoRaster(
-            self.reference_point,
-            self.pixel_sizes,
-            other * self.image
-        )
+        return self.apply(other, operator.mul)
+
+    def __rmul__(self, other):
+        return self.apply(other, lambda x, y: y * x)
 
     def __add__(self, other):
-        if not self.size():
-            return other
-        elif not other.size():
-            return self
-        else:
-            smin, smax = self.bbox()
-            omin, omax = other.bbox()
-            # print(smin, smax)
-            # print(omin, omax)
-            # print(list(zip(smin, omin)))
-            # print(list(zip(smax, omax)))
-            x_min, y_min = [min(s, o) for s, o in zip(smin, omin)]
-            x_max, y_max = [max(s, o) for s, o in zip(smax, omax)]
-            if self.pixel_sizes != other.pixel_sizes:
-                raise NotImplementedError(
-                    'Multiresolution raster union is not yet implemented!'
-                )
-            elif self.dtype() != other.dtype():
-                raise TypeError('Cannot merge two different dtype images')
-            elif self.shape()[2:] != other.shape()[2:]:
-                raise ValueError('Operands could not be broadcast together')
-            else:
-                result = GeoRaster(
-                    (x_min, y_max),
-                    self.pixel_sizes,
-                    np.full(
-                        tuple(
-                            [
-                                int((y_min - y_max)/self.pixel_sizes[1]) + 1,
-                                int((x_max - x_min)/self.pixel_sizes[0]) + 1
-                            ]
-                            + list(self.shape()[2:])
-                        ),
-                        -np.inf,
-                        dtype=self.dtype()
-                    )
-                )
-                # print(result.reference_point)
-                # print(result.shape())
-                # print(result.bbox())
+        return self.apply(other, operator.add)
 
-                for raster in [self, other]:
-                    (i_max, j_min), (i_min, j_max) = result.get_slice(
-                        raster.bbox()
-                    )
-                    print((i_max, j_min), (i_min, j_max))
-                    result.image[i_min: i_min + raster.height(), j_min: j_min + raster.width()] = raster.image
+    def __radd__(self, other):
+        return self.apply(other, operator.add)
 
-                return result
+    def __sub__(self, other):
+        return self.apply(other, operator.sub)
+
+    def __rsub__(self, other):
+        return self.apply(other, lambda x, y: y - x)
 
     def __getitem__(self, key):
         """
@@ -194,80 +183,23 @@ class GeoRaster:
             not isinstance(row_slice, slice)
             or not isinstance(col_slice, slice)
         ):
-            raise TypeError('Cannot slice with %s', key)
+            raise TypeError('Cannot slice with {}'.format(key))
         return GeoRaster(
             (
                 self.reference_point[0]
-                + self.pixel_sizes[0] * col_slice.indices(self.width())[0],
+                + self.pixel_sizes[0] * col_slice.indices(self.width)[0],
                 self.reference_point[1]
-                + self.pixel_sizes[1] * row_slice.indices(self.height())[0]
+                + self.pixel_sizes[1] * row_slice.indices(self.height)[0]
             ),
             self.pixel_sizes,
             self.image[row_slice, col_slice]
         )
-
-    def dtype(self):
-        """
-            Get image dtype.
-            :return: image dtype.
-            :rtype: type
-        """
-        return self.image.dtype
-
-    def size(self):
-        """
-            Get image size.
-            :return: image size.
-            :rtype: int
-        """
-        return self.image.size
-
-    def shape(self):
-        """
-            Get image shape.
-            :return: image shape.
-            :rtype: tuple
-        """
-        return self.image.shape
-
-    def height(self):
-        """
-            Get image height.
-            :return: image height.
-            :rtype: int
-        """
-        return self.image.shape[0]
-
-    def width(self):
-        """
-            Get image width.
-            :return: image width.
-            :rtype: int
-        """
-        return self.image.shape[1]
 
     def plot(self, **kwargs):
         """
             Plot georaster image.
         """
         plt.imshow(self.image, **kwargs)
-
-    def bbox(self):
-        """
-            Get crop points in coordinates in Georaster.
-            :return: bounding box
-            :rtype: list
-        """
-        return (
-            (
-                self.reference_point[0],
-                self.reference_point[1] + self.pixel_sizes[1] * self.height()
-            ),
-            (
-                self.reference_point[0] + self.pixel_sizes[0] * self.width(),
-                self.reference_point[1]
-            )
-        )
 
     def get_slice(self, bbox):
         """
@@ -303,6 +235,64 @@ class GeoRaster:
             max(j_min - jmar, 0): max(j_max + jmar, 0)
         ]
 
+    def union(self, other):
+        return self.apply(other, lambda x, y: y)
+
+    def apply(self, other, func, nan=0):
+        if not isinstance(other, GeoRaster):
+            return GeoRaster(
+                self.reference_point,
+                self.pixel_sizes,
+                func(self.image, other)
+            )
+        else:
+            if self.pixel_sizes != other.pixel_sizes:
+                raise NotImplementedError(
+                    'Multiresolution raster union is not yet implemented!'
+                )
+            if self.dtype != other.dtype:
+                raise TypeError('Cannot merge two different dtype images')
+            if self.shape[2:] != other.shape[2:]:
+                raise ValueError('Operands could not be broadcast together')
+
+            smin, smax = self.bbox
+            omin, omax = other.bbox
+            x_min, y_min = [min(s, o) for s, o in zip(smin, omin)]
+            x_max, y_max = [max(s, o) for s, o in zip(smax, omax)]
+
+            result = GeoRaster(
+                (x_min, y_max),
+                self.pixel_sizes,
+                np.full(
+                    tuple(
+                        [
+                            int(round((y_min - y_max)/self.pixel_sizes[1])),
+                            int(round((x_max - x_min)/self.pixel_sizes[0]))
+                        ]
+                        + list(self.shape[2:])
+                    ),
+                    nan,
+                    dtype=self.dtype
+                )
+            )
+
+            (i_max, j_min), (i_min, j_max) = result.get_slice(
+                self.bbox
+            )
+            result.image[i_min: i_max, j_min: j_max] = self.image[
+                :i_max - i_min,
+                :j_max - j_min
+            ]
+
+            (i_max, j_min), (i_min, j_max) = result.get_slice(
+                other.bbox
+            )
+            result.image[i_min: i_max, j_min: j_max] = func(
+                result.image[i_min: i_max, j_min: j_max],
+                other.image[:i_max - i_min, :j_max - j_min]
+            )
+            return result
+
 
 def main():
     ortho_dir = '/home/ethiy/Data/Elancourt/OrthoImages'
@@ -322,22 +312,22 @@ def main():
     # sample = GeoRaster.from_file(os.path.join(ortho_dir, image_names[0]))
     # # sample.image = sample.image[:, :, 1]
     # print(sample)
-    # print(sample.bbox())
+    # print(sample.bbox)
     # print(sample.reference_point)
     # plt.figure()
     # cropped = sample[:500, 100:]
     # print(cropped.reference_point)
-    # print(cropped.shape())
-    # print(cropped.bbox())
+    # print(cropped.shape)
+    # print(cropped.bbox)
     # cropped.plot()
     #
     # plt.figure()
-    # _cropped = sample.crop(cropped.bbox())
+    # _cropped = sample.crop(cropped.bbox)
     # print(_cropped == cropped)
     # _cropped.plot()
     #
     # addition = sample[:, 2500:] + sample[2500:, :2500] + sample[:2500, :2500]
-    # print(addition.bbox())
+    # print(addition.bbox)
     # print(addition == sample)
     # plt.figure()
     # addition.plot()
@@ -348,7 +338,7 @@ def main():
         os.path.join(raster_dir, '20466.tiff'),
         dtype=np.float
     )
-    print(raster.bbox())
+    print(raster.bbox)
     l = []
     d = []
     for dsm in dsms:
@@ -361,23 +351,24 @@ def main():
                     os.path.join(dsm_dir, dsm),
                     dtype=np.float
                 ).crop(
-                    raster.bbox()
+                    raster.bbox
                 )
             )
         # # print(dsm)
-        # # print(overlap(raster.bbox(), _dsm.bbox()))
+        # # print(overlap(raster.bbox, _dsm.bbox))
         # crop = _dsm.crop(
-        #     raster.bbox()
+        #     raster.bbox
         # )
-        # print(crop.shape())
-        # if crop.size():
+        # print(crop.shape)
+        # if crop.size:
         #     l.append(crop)
-        #     d.append(crop.bbox())
+        #     d.append(crop.bbox)
     # print(d)
-    im = (l[0] + l[1])
-    print(im.shape())
+    im = l[0] + -1 * l[1]
+    print(im.shape)
+    print(l[0] + -1 * l[1] == l[0] - l[1])
     plt.figure()
-    plt.imshow(im.image[:,:, 0], cmap='gray')
+    im.plot(cmap='gray')
     plt.show()
 
 
