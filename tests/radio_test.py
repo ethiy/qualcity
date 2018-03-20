@@ -8,7 +8,7 @@ import fnmatch
 
 import numpy as np
 
-import matplotlib.pyplot as plt
+from matplotlib.image import imread, imsave
 
 from qualcity import radiometric_features as radiof
 from qualcity import GeoBuilding
@@ -40,7 +40,7 @@ class GeoRadiometricTest(unittest.TestCase):
         )
         self.assertFalse(
             (
-                building_ortho.image - (255 * plt.imread(
+                building_ortho.image - (255 * imread(
                     os.path.join(
                         os.path.dirname(os.path.realpath(__file__)),
                         '../ressources/tests/building_20466_clip.png'
@@ -54,6 +54,22 @@ class GeoRadiometricTest(unittest.TestCase):
                 (623485.300003052, 6851964.71999817),
                 (623499.900003052, 6851975.91999817)
             )
+        )
+
+        self.assertFalse(
+            (
+                radiof.find_building(
+                    self.building,
+                    self.ortho_dir,
+                    '*.geotiff',
+                    False
+                ).image - (255 * imread(
+                    os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)),
+                        '../ressources/tests/building_20466_crop.png'
+                    )
+                )[:, :, :3]).astype(np.uint8)
+            ).all()
         )
 
 

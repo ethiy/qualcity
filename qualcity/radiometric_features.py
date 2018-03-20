@@ -16,7 +16,7 @@ from qualcity import GeoBuilding, GeoRaster
 radio_logger = logging.getLogger(__name__)
 
 
-def find_building(building, ortho_dir, ext):
+def find_building(building, ortho_dir, ext, clip=True):
     radio_logger.info(
         'Getting %s corresponding DSM in %s with extention %s',
         building,
@@ -41,18 +41,25 @@ def find_building(building, ortho_dir, ext):
                 for ortho in orthos
             ]
         )
-    }
+    } if clip else {}
     return functools.reduce(
         lambda lhs, rhs: lhs.union(rhs),
         [
-            GeoRaster.GeoRaster.from_file(
-                os.path.join(ortho_dir, ortho),
-                dtype=np.uint8
-            ).crop(building.bbox) * masks[
-                GeoRaster.resolution(
-                    os.path.join(ortho_dir, ortho)
-                )
-            ]
+            (
+                GeoRaster.GeoRaster.from_file(
+                    os.path.join(ortho_dir, ortho),
+                    dtype=np.uint8
+                ).crop(building.bbox) * masks[
+                    GeoRaster.resolution(
+                        os.path.join(ortho_dir, ortho)
+                    )
+                ]
+                if clip else
+                GeoRaster.GeoRaster.from_file(
+                    os.path.join(ortho_dir, ortho),
+                    dtype=np.uint8
+                ).crop(building.bbox)
+            )
             for ortho in orthos
             if GeoRaster.overlap(
                 building.bbox,
