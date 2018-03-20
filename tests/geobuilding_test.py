@@ -8,6 +8,8 @@ import unittest
 import os
 import fnmatch
 
+import numpy as np
+
 
 class GeoBuildingTest(unittest.TestCase):
     """
@@ -37,6 +39,29 @@ class GeoBuildingTest(unittest.TestCase):
         self.assertEqual(
             len(self.building),
             12
+        )
+
+    def test_rasterization(self):
+        mask = self.building.rasterize(
+            (0.06, -0.06),
+        )
+        self.assertFalse(
+            (
+                mask.image - np.genfromtxt(
+                    os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)),
+                        '../ressources/tests/building_20466_rasterized.out'
+                    ),
+                    dtype=int
+                )
+            ).all()
+        )
+        self.assertEqual(
+            mask.bbox,
+            (
+                (623485.300003052, 6851964.63999817),
+                (623499.880003052, 6851975.91999817)
+            )
         )
 
 
