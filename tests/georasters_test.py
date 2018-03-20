@@ -23,10 +23,6 @@ class GeoRasterTest(unittest.TestCase):
             '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
             'export-3DS/rasters'
         )
-        dsms = fnmatch.filter(
-            os.listdir(self.dsm_dir),
-            '*.geotiff'
-        )
 
         self.dsm = GeoRaster.GeoRaster.from_file(
             os.path.join(self.raster_dir, '20466.tiff'),
