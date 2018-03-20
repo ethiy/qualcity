@@ -20,10 +20,17 @@ import matplotlib.pyplot as plt
 geo_raster_logger = logging.getLogger(__name__)
 
 
-def bounding_box(dsm_name, margins=(0, 0)):
-    geo_raster_logger.info('Getting %s bounding_box', dsm_name)
-    dataset = gdal.Open(dsm_name, gdalconst.GA_ReadOnly)
-    geo_raster_logger.info('Getting geo-transform from %s', dsm_name)
+def resolution(raster):
+    geo_raster_logger.info('Getting %s resolution', raster)
+    dataset = gdal.Open(raster, gdalconst.GA_ReadOnly)
+    Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
+    return (px, py)
+
+
+def bounding_box(raster, margins=(0, 0)):
+    geo_raster_logger.info('Getting %s bounding box', raster)
+    dataset = gdal.Open(raster, gdalconst.GA_ReadOnly)
+    geo_raster_logger.info('Getting geo-transform from %s', raster)
     Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
     geo_raster_logger.debug(
         'Geo-transform -> origin: %s, pixel resolution: %s',

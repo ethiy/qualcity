@@ -41,6 +41,14 @@ class GeoRasterTest(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, 'Cannot slice with'):
             GeoRaster.overlap(self.ortho, self.dsm)
 
+    def test_resolution(self):
+        self.assertEqual(
+            GeoRaster.resolution(
+                os.path.join(self.raster_dir, '20466.tiff')
+            ),
+            (.06, -.06)
+        )
+
     def test_bounding_box(self):
         self.assertEqual(
             GeoRaster.bounding_box(
