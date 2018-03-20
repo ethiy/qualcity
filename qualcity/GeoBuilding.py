@@ -62,40 +62,41 @@ class GeoBuilding:
     def __len__(self):
         return len(self.geometry.geoms)
 
-    def rasterize(self, pixel_sizes, dtype=bool, jobs=8):
+    def rasterize(self, pixel_sizes, dtype=bool, jobs=8, channels=1):
         pool = mp.Pool(8)
+        mask = np.array(
+            [
+                pool.map(
+                    lambda w: self.geometry.contains(
+                        shapely.geometry.Point(
+                            self.bbox[0][0] + pixel_sizes[0] * (w + .5),
+                            self.bbox[1][1] + pixel_sizes[1] * (h + .5),
+                        )
+                    ),
+                    range(
+                        int(
+                            round(
+                                (self.bbox[1][0] - self.bbox[0][0])
+                                /
+                                pixel_sizes[0]
+                            )
+                        )
+                    )
+                )
+                for h in range(
+                    int(
+                        round(
+                            (self.bbox[0][1] - self.bbox[1][1])
+                            /
+                            pixel_sizes[1]
+                        )
+                    )
+                )
+            ],
+            dtype=dtype
+        )
         return GeoRaster.GeoRaster(
             (self.bbox[0][0], self.bbox[1][1]),
             pixel_sizes,
-            np.array(
-                [
-                    pool.map(
-                        lambda w: self.geometry.contains(
-                            shapely.geometry.Point(
-                                self.bbox[0][0] + pixel_sizes[0] * (w + .5),
-                                self.bbox[1][1] + pixel_sizes[1] * (h + .5),
-                            )
-                        ),
-                        range(
-                            int(
-                                round(
-                                    (self.bbox[1][0] - self.bbox[0][0])
-                                    /
-                                    pixel_sizes[0]
-                                )
-                            )
-                        )
-                    )
-                    for h in range(
-                        int(
-                            round(
-                                (self.bbox[0][1] - self.bbox[1][1])
-                                /
-                                pixel_sizes[1]
-                            )
-                        )
-                    )
-                ],
-                dtype=dtype
-            )
+            mask if channels == 1 else np.stack((mask,)*channels, -1)
         )
