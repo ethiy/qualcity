@@ -56,6 +56,15 @@ class UtilsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Could not resolve'):
             utils.resolve('sklearn.decomp.PCA')
 
+    def test_chunk(self):
+        self.assertEqual(
+            utils.chunk(
+                range(35),
+                10
+            ),
+            [range(10), range(10, 20), range(20, 30), range(30, 35)]
+        )
+
 
 def main():
     unittest.main()

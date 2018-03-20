@@ -30,6 +30,11 @@ def check_iterable(iterable):
         raise AttributeError
 
 
+def chunk(iterable, size):
+    check_iterable(iterable)
+    return [iterable[i: i + size] for i in range(0, len(iterable), size)]
+
+
 def median(iterable):
     utils_logger.debug('Computing the median of %s', iterable)
     check_iterable(iterable)
