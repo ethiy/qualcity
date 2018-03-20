@@ -99,12 +99,12 @@ class GeoRasterTest(unittest.TestCase):
             ((621025.6, 6850900.0), (622000.0, 6851000.0))
         )
 
-    def test_applying(self):
+    def test_operators(self):
         with self.assertRaisesRegex(
             NotImplementedError,
             'Multiresolution raster union is not yet implemented!'
         ):
-            self.dsm.apply(self.ortho, lambda x, y: max(x, y))
+            self.dsm.operator(self.ortho, lambda x, y: max(x, y))
 
         self.assertEqual(
             self.dsm + self.dsm,
@@ -113,6 +113,12 @@ class GeoRasterTest(unittest.TestCase):
         self.assertEqual(
             self.dsm[40:, 85:].union(self.dsm[:45]).union(self.dsm[35:, :91]),
             self.dsm
+        )
+
+    def test_func_apply(self):
+        self.assertEqual(
+            self.dsm.apply(lambda x: 2 * x),
+            2 * self.dsm
         )
 
 

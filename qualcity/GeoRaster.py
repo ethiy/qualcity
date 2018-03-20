@@ -149,22 +149,22 @@ class GeoRaster:
         )
 
     def __mul__(self, other):
-        return self.apply(other, operator.mul)
+        return self.operator(other, operator.mul)
 
     def __rmul__(self, other):
-        return self.apply(other, lambda x, y: y * x)
+        return self.operator(other, lambda x, y: y * x)
 
     def __add__(self, other):
-        return self.apply(other, operator.add)
+        return self.operator(other, operator.add)
 
     def __radd__(self, other):
-        return self.apply(other, operator.add)
+        return self.operator(other, operator.add)
 
     def __sub__(self, other):
-        return self.apply(other, operator.sub)
+        return self.operator(other, operator.sub)
 
     def __rsub__(self, other):
-        return self.apply(other, lambda x, y: y - x)
+        return self.operator(other, lambda x, y: y - x)
 
     def __getitem__(self, key):
         """
@@ -236,9 +236,20 @@ class GeoRaster:
         ]
 
     def union(self, other):
-        return self.apply(other, lambda x, y: y)
+        return self.operator(other, lambda x, y: y)
 
-    def apply(self, other, func, nan=0):
+    def apply(self, func, inplace=False):
+        if inplace:
+            self.image = np.vectorize(func)(self.image)
+            return self
+        else:
+            return GeoRaster(
+                self.reference_point,
+                self.pixel_sizes,
+                np.vectorize(func)(self.image)
+            )
+
+    def operator(self, other, func, nan=0):
         if not isinstance(other, GeoRaster):
             return GeoRaster(
                 self.reference_point,
