@@ -10,11 +10,6 @@ qualcity.egg-info
 __pycache__
 *.egg
 
-# Trees
-*.ps
-*.dot
-*.png
-
 # Log files
 *.log
 

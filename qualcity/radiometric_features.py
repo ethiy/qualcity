@@ -11,21 +11,54 @@ import functools
 
 import numpy as np
 
-from .GeoRaster import overlap, bounding_box, GeoRaster
+from qualcity import GeoBuilding, GeoRaster
 
-ortho_logger = logging.getLogger(__name__)
-
-
-def ():
-    pass
+radio_logger = logging.getLogger(__name__)
 
 
-def main():
-    ortho_dir = '/home/ethiy/Data/Elancourt/OrthoImages'
-    figure = plt.figure()
-    merge_orthos(ortho_dir, ext='*.geotiff').plot()
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()
+def find_building(building, ortho_dir, ext):
+    radio_logger.info(
+        'Getting %s corresponding DSM in %s with extention %s',
+        building,
+        ortho_dir,
+        ext
+    )
+    orthos = fnmatch.filter(
+        os.listdir(ortho_dir),
+        ext
+    )
+    masks = {
+        res: building.rasterize(
+            res,
+            dtype=np.uint8,
+            channels=3
+        )
+        for res in set(
+            [
+                GeoRaster.resolution(
+                    os.path.join(ortho_dir, ortho)
+                )
+                for ortho in orthos
+            ]
+        )
+    }
+    return functools.reduce(
+        lambda lhs, rhs: lhs.union(rhs),
+        [
+            GeoRaster.GeoRaster.from_file(
+                os.path.join(ortho_dir, ortho),
+                dtype=np.uint8
+            ).crop(building.bbox) * masks[
+                GeoRaster.resolution(
+                    os.path.join(ortho_dir, ortho)
+                )
+            ]
+            for ortho in orthos
+            if GeoRaster.overlap(
+                building.bbox,
+                GeoRaster.bounding_box(
+                    os.path.join(ortho_dir, ortho)
+                )
+            )
+        ]
+    )
