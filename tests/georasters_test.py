@@ -1,14 +1,14 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-from qualcity import GeoRaster
-
 import unittest
 
 import os
 import fnmatch
 
 import numpy as np
+
+from qualcity import GeoRaster
 
 
 class GeoRasterTest(unittest.TestCase):
