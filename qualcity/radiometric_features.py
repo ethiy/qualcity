@@ -18,30 +18,41 @@ radio_logger = logging.getLogger(__name__)
 
 def find_building(building, ortho_dir, ext, clip=True):
     radio_logger.info(
-        'Getting %s corresponding DSM in %s with extention %s',
+        (
+            'Cliping' if clip else 'Cropping'
+            + ' %s corresponding DSM in %s with extention %s'
+        ),
         building,
         ortho_dir,
-        ext
+        ext,
+        clip
     )
     orthos = fnmatch.filter(
         os.listdir(ortho_dir),
         ext
     )
-    masks = {
-        res: building.rasterize(
-            res,
-            dtype=np.uint8,
-            channels=3
+    radio_logger.debug('Orthoimage names in %s: %s', ortho_dir, orthos)
+    masks = {}
+    if clip:
+        radio_logger.debug(
+            'All rasterized masks corresponding to building: %s',
+            masks
         )
-        for res in set(
-            [
-                GeoRaster.resolution(
-                    os.path.join(ortho_dir, ortho)
-                )
-                for ortho in orthos
-            ]
-        )
-    } if clip else {}
+        masks = {
+            res: building.rasterize(
+                res,
+                dtype=np.uint8,
+                channels=3
+            )
+            for res in set(
+                [
+                    GeoRaster.resolution(
+                        os.path.join(ortho_dir, ortho)
+                    )
+                    for ortho in orthos
+                ]
+            )
+        }
     return functools.reduce(
         lambda lhs, rhs: lhs.union(rhs),
         [
