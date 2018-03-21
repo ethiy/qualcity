@@ -34,13 +34,12 @@ class GeoRadiometricTest(unittest.TestCase):
             )
         )
 
-    def test_find_building(self):
-        building_ortho = operator.mul(
-            *radiof.find_building(
-                self.building,
-                self.ortho_dir,
-                '*.geotiff'
-            )
+    def test_process_building(self):
+        building_ortho = radiof.process_building(
+            self.building,
+            self.ortho_dir,
+            '*.geotiff',
+            lambda x, y: x * y
         )
         self.assertFalse(
             (
@@ -62,11 +61,11 @@ class GeoRadiometricTest(unittest.TestCase):
 
         self.assertFalse(
             (
-                radiof.find_building(
+                radiof.process_building(
                     self.building,
                     self.ortho_dir,
                     '*.geotiff',
-                    False
+                    lambda x, y: (x, y)
                 )[0].image - (255 * imread(
                     os.path.join(
                         os.path.dirname(os.path.realpath(__file__)),

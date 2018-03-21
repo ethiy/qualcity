@@ -16,7 +16,7 @@ from qualcity import GeoBuilding, GeoRaster
 radio_logger = logging.getLogger(__name__)
 
 
-def find_building(building, ortho_dir, ext, clip=True, jobs=1):
+def process_building(building, ortho_dir, ext, func, clip=True):
     radio_logger.info(
         (
             'Cliping' if clip else 'Cropping'
@@ -39,12 +39,14 @@ def find_building(building, ortho_dir, ext, clip=True, jobs=1):
             masks
         )
         masks = {
-            res: building.rasterize(
-                res,
-                dtype=np.uint8,
-                channels=3,
-                jobs=jobs
-            )
+            res:
+                building.rasterize(
+                    res,
+                    dtype=np.uint8
+                ).apply(
+                    lambda mask: np.stack((mask, ) * 3, -1),
+                    vectorize=False
+                )
             for res in set(
                 [
                     GeoRaster.resolution(
@@ -54,31 +56,100 @@ def find_building(building, ortho_dir, ext, clip=True, jobs=1):
                 ]
             )
         }
-    return functools.reduce(
-        lambda lhs, rhs: (
-            lhs[0].union(rhs[0]),
-            lhs[1].union(rhs[1]) if clip else None
-        ),
-        [
-            (
+    return func(
+        *functools.reduce(
+            lambda lhs, rhs: (
+                lhs[0].union(rhs[0]),
+                lhs[1].union(rhs[1]) if clip else None
+            ),
+            [
                 (
-                    GeoRaster.GeoRaster.from_file(
-                        os.path.join(ortho_dir, ortho),
-                        dtype=np.uint8
-                    ).crop(building.bbox),
-                    masks[
-                        GeoRaster.resolution(
-                            os.path.join(ortho_dir, ortho)
-                        )
-                    ] if clip else None
+                    (
+                        GeoRaster.GeoRaster.from_file(
+                            os.path.join(ortho_dir, ortho),
+                            dtype=np.uint8
+                        ).crop(building.bbox),
+                        masks[
+                            GeoRaster.resolution(
+                                os.path.join(ortho_dir, ortho)
+                            )
+                        ] if clip else None
+                    )
                 )
-            )
-            for ortho in orthos
-            if GeoRaster.overlap(
-                building.bbox,
-                GeoRaster.bounding_box(
-                    os.path.join(ortho_dir, ortho)
+                for ortho in orthos
+                if GeoRaster.overlap(
+                    building.bbox,
+                    GeoRaster.bounding_box(
+                        os.path.join(ortho_dir, ortho)
+                    )
                 )
-            )
-        ]
+            ]
+        )
     )
+
+
+def histogram(ortho, mask, **hist_parameters):
+    if mask is None:
+        return [
+            np.histogram(
+                ortho.image[..., channel].flatten(),
+                **hist_parameters
+            )
+            for channel in range(ortho.shape[-1])
+        ]
+    else:
+        return [
+            np.histogram(
+                np.array(
+                    [
+                        pixel
+                        for pixel, clipped in zip(
+                            ortho.image[..., channel].flatten(),
+                            mask.image[..., channel].flatten()
+                        )
+                        if clipped
+                    ]
+                ),
+                **hist_parameters
+            )
+            for channel in range(ortho.shape[-1])
+        ]
+
+
+def histogram_features(
+    vector_dir,
+    ortho_dir,
+    ext='geotiff',
+    vector_ext='shp',
+    clip=True,
+    **parameters
+):
+    radio_logger.info(
+        'Computing histogram features for all buildings in %s with extension '
+        + '%s wrt Orthos in %s with extension %s with parameters %s',
+        vector_dir,
+        vector_ext,
+        ortho_dir,
+        ext,
+        parameters
+    )
+
+    return {
+        os.path.splitext(building)[0]:
+        process_building(
+            GeoBuilding.GeoBuilding.from_file(
+                os.path.join(
+                    vector_dir,
+                    building
+                )
+            ),
+            ortho_dir,
+            '*.' + ext,
+            clip=clip,
+            func=lambda x, mask: histogram(x, mask, **parameters)
+        )
+        for building in fnmatch.filter(
+            os.listdir(vector_dir),
+            '*.' + vector_ext
+        )
+    }
