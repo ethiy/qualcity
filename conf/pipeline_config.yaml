@@ -4,7 +4,7 @@ scene:
 labels:
     labels_path:
         /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/ground_truth.csv
-    depth: 0
+    depth: 3
     LoD: 2
     hierarchical: False
     filetype: csv
@@ -32,6 +32,13 @@ features:
         dsm_ext: geotiff
         high_res: 5
         low_res: 5
+    radiometric:
+        vector_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+        ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
+        ext: 'geotiff'
+        vector_ext: 'shp'
+        clip: True
+        bins: 5
 
 processing:
     visualization:
