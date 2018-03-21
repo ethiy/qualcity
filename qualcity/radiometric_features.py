@@ -16,7 +16,7 @@ from qualcity import GeoBuilding, GeoRaster
 radio_logger = logging.getLogger(__name__)
 
 
-def find_building(building, ortho_dir, ext, clip=True):
+def find_building(building, ortho_dir, ext, clip=True, jobs=1):
     radio_logger.info(
         (
             'Cliping' if clip else 'Cropping'
@@ -42,7 +42,8 @@ def find_building(building, ortho_dir, ext, clip=True):
             res: building.rasterize(
                 res,
                 dtype=np.uint8,
-                channels=3
+                channels=3,
+                jobs=jobs
             )
             for res in set(
                 [

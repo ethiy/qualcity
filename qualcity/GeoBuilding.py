@@ -63,10 +63,14 @@ class GeoBuilding:
         return len(self.geometry.geoms)
 
     def rasterize(self, pixel_sizes, dtype=bool, jobs=8, channels=1):
-        pool = mp.Pool(8)
+        pool = mp.Pool(jobs)
+        transform = (
+            mp.Pool(jobs).map
+            if jobs > 1 else lambda x, y: list(map(x, y))
+        )
         mask = np.array(
             [
-                pool.map(
+                transform(
                     lambda w: self.geometry.contains(
                         shapely.geometry.Point(
                             self.bbox[0][0] + pixel_sizes[0] * (w + .5),
