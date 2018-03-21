@@ -6,8 +6,6 @@ import fnmatch
 
 import logging
 
-import pathos.multiprocessing as mp
-
 import shapefile
 import shapely.geometry
 
@@ -67,22 +65,17 @@ class GeoBuilding:
     def __len__(self):
         return len(self.geometry.geoms)
 
-    def rasterize(self, pixel_sizes, dtype=bool, jobs=8, channels=1):
-        pool = mp.Pool(jobs)
-        transform = (
-            mp.Pool(jobs).map
-            if jobs > 1 else lambda x, y: list(map(x, y))
-        )
+    def rasterize(self, pixel_sizes, dtype=bool):
         mask = np.array(
             [
-                transform(
-                    lambda w: self.geometry.contains(
+                [
+                    self.geometry.contains(
                         shapely.geometry.Point(
                             self.bbox[0][0] + pixel_sizes[0] * (w + .5),
                             self.bbox[1][1] + pixel_sizes[1] * (h + .5),
                         )
-                    ),
-                    range(
+                    )
+                    for w in range(
                         int(
                             round(
                                 (self.bbox[1][0] - self.bbox[0][0])
@@ -91,7 +84,7 @@ class GeoBuilding:
                             )
                         )
                     )
-                )
+                ]
                 for h in range(
                     int(
                         round(
@@ -107,5 +100,5 @@ class GeoBuilding:
         return GeoRaster.GeoRaster(
             (self.bbox[0][0], self.bbox[1][1]),
             pixel_sizes,
-            mask if channels == 1 else np.stack((mask,)*channels, -1)
+            mask
         )
