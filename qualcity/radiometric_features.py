@@ -19,13 +19,12 @@ radio_logger = logging.getLogger(__name__)
 def process_building(building, ortho_dir, ext, func, clip=True):
     radio_logger.info(
         (
-            'Cliping' if clip else 'Cropping'
-            + ' %s corresponding DSM in %s with extention %s'
+            '%s %s corresponding DSM in %s with extention %s'
         ),
-        building,
+        'Cliping' if clip else 'Cropping',
+        building.bbox,
         ortho_dir,
-        ext,
-        clip
+        ext
     )
     orthos = fnmatch.filter(
         os.listdir(ortho_dir),
