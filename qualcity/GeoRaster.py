@@ -245,15 +245,17 @@ class GeoRaster:
     def union(self, other):
         return self.operator(other, lambda x, y: y)
 
-    def apply(self, func, inplace=False):
+    def apply(self, func, vectorize=True, inplace=False):
+        if vectorize:
+            func = np.vectorize(func)
         if inplace:
-            self.image = np.vectorize(func)(self.image)
+            self.image = func(self.image)
             return self
         else:
             return GeoRaster(
                 self.reference_point,
                 self.pixel_sizes,
-                np.vectorize(func)(self.image)
+                func(self.image)
             )
 
     def operator(self, other, func, nan=0):
