@@ -39,14 +39,13 @@ def process_building(building, ortho_dir, ext, func, clip=True):
             masks
         )
         masks = {
-            res:
-                building.rasterize(
-                    res,
-                    dtype=np.uint8
-                ).apply(
-                    lambda mask: np.stack((mask, ) * 3, -1),
-                    vectorize=False
-                )
+            res: building.rasterize(
+                res,
+                dtype=np.uint8
+            ).apply(
+                lambda mask: np.stack((mask, ) * 3, -1),
+                vectorize=False
+            )
             for res in set(
                 [
                     GeoRaster.resolution(
