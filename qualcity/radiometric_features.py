@@ -54,22 +54,23 @@ def find_building(building, ortho_dir, ext, clip=True):
             )
         }
     return functools.reduce(
-        lambda lhs, rhs: lhs.union(rhs),
+        lambda lhs, rhs: (
+            lhs[0].union(rhs[0]),
+            lhs[1].union(rhs[1]) if clip else None
+        ),
         [
             (
-                GeoRaster.GeoRaster.from_file(
-                    os.path.join(ortho_dir, ortho),
-                    dtype=np.uint8
-                ).crop(building.bbox) * masks[
-                    GeoRaster.resolution(
-                        os.path.join(ortho_dir, ortho)
-                    )
-                ]
-                if clip else
-                GeoRaster.GeoRaster.from_file(
-                    os.path.join(ortho_dir, ortho),
-                    dtype=np.uint8
-                ).crop(building.bbox)
+                (
+                    GeoRaster.GeoRaster.from_file(
+                        os.path.join(ortho_dir, ortho),
+                        dtype=np.uint8
+                    ).crop(building.bbox),
+                    masks[
+                        GeoRaster.resolution(
+                            os.path.join(ortho_dir, ortho)
+                        )
+                    ] if clip else None
+                )
             )
             for ortho in orthos
             if GeoRaster.overlap(

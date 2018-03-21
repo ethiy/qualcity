@@ -6,6 +6,8 @@ import unittest
 import os
 import fnmatch
 
+import operator
+
 import numpy as np
 
 from matplotlib.image import imread, imsave
@@ -33,10 +35,12 @@ class GeoRadiometricTest(unittest.TestCase):
         )
 
     def test_find_building(self):
-        building_ortho = radiof.find_building(
-            self.building,
-            self.ortho_dir,
-            '*.geotiff'
+        building_ortho = operator.mul(
+            *radiof.find_building(
+                self.building,
+                self.ortho_dir,
+                '*.geotiff'
+            )
         )
         self.assertFalse(
             (
@@ -63,7 +67,7 @@ class GeoRadiometricTest(unittest.TestCase):
                     self.ortho_dir,
                     '*.geotiff',
                     False
-                ).image - (255 * imread(
+                )[0].image - (255 * imread(
                     os.path.join(
                         os.path.dirname(os.path.realpath(__file__)),
                         '../ressources/tests/building_20466_crop.png'
