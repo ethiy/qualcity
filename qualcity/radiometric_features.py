@@ -94,7 +94,7 @@ def histogram(ortho, mask, **hist_parameters):
             np.histogram(
                 ortho.image[..., channel].flatten(),
                 **hist_parameters
-            )
+            )[0]
             for channel in range(ortho.shape[-1])
         ]
     else:
@@ -111,7 +111,7 @@ def histogram(ortho, mask, **hist_parameters):
                     ]
                 ),
                 **hist_parameters
-            )
+            )[0]
             for channel in range(ortho.shape[-1])
         ]
 
@@ -136,17 +136,20 @@ def histogram_features(
 
     return {
         os.path.splitext(building)[0]:
-        process_building(
-            GeoBuilding.GeoBuilding.from_file(
-                os.path.join(
-                    vector_dir,
-                    building
-                )
+        np.concatenate(
+            process_building(
+                GeoBuilding.GeoBuilding.from_file(
+                    os.path.join(
+                        vector_dir,
+                        building
+                    )
+                ),
+                ortho_dir,
+                '*.' + ext,
+                clip=clip,
+                func=lambda x, mask: histogram(x, mask, **parameters)
             ),
-            ortho_dir,
-            '*.' + ext,
-            clip=clip,
-            func=lambda x, mask: histogram(x, mask, **parameters)
+            axis=-1
         )
         for building in fnmatch.filter(
             os.listdir(vector_dir),
