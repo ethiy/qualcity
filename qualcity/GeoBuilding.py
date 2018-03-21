@@ -44,11 +44,16 @@ class GeoBuilding:
             :return: cls
             :rtype: GeoBuilding
         """
+        sr = shapefile.Reader(filename)
+        facets = sr.shapes()
+        sr.shp.close() if sr.shp else None
+        sr.shx.close() if sr.shx else None
+        sr.dbf.close() if sr.dbf else None
         return cls(
             shapely.geometry.MultiPolygon(
                 [
                     shapely.geometry.shape(shp)
-                    for shp in shapefile.Reader(filename).shapes()
+                    for shp in facets
                 ]
             )
         )
