@@ -13,6 +13,8 @@ Options:
 
 """
 
+__version__ = '0.1.0a0'
+
 import docopt
 
 import time
@@ -45,7 +47,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from qualcity import altimetric_features
 from qualcity import radiometric_features
 from qualcity import geometric_features
-from qualcity import labels
+import qualcity.labels
 from qualcity import utils
 
 FIGURE_COUNTER = 1
@@ -106,7 +108,7 @@ def config_logger(arguments):
         logger.debug(yaml.dump(configuration))
 
 
-def features(depth, feat_type, **kwargs):
+def features(feat_type, **kwargs):
     return {
         'geometric':
         lambda kwargs: geometric_features.geometric_features(
@@ -128,22 +130,18 @@ def features(depth, feat_type, **kwargs):
     }[feat_type](kwargs)
 
 
-def get_features(depth, **config):
+def get_features(buildings, **config):
     logger.info('Getting features ...')
-    return functools.reduce(
-        utils.fuse,
-        [
-            features(depth, feat_type, **config[feat_type])
-            for feat_type in config.keys()
-        ]
-    )
-
-
-def format_features(depth, buildings, **config):
-    features = get_features(depth, **config)
-    features = [features[building] for building in buildings]
-
-    return [np.hstack(feature) for feature in features]
+    feature_dicts = [
+        features(feat_type, **config[feat_type])
+        for feat_type in config.keys()
+    ]
+    return [
+        np.concatenate(
+            [feature_dict[building] for feature_dict in  feature_dicts]
+        )
+        for building in buildings
+    ]
 
 
 def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
@@ -151,7 +149,7 @@ def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     return [
         (building, label)
         for building, label in sorted(
-            labels.labels_map(
+            qualcity.labels.labels_map(
                 labels_path,
                 hierarchical,
                 depth,
@@ -1107,16 +1105,16 @@ def label_names(config, labels):
         return (
             {
                 'Valid': None,
-                'Building': labels.LABELS(
+                'Building': qualcity.labels.LABELS(
                     config['LoD'],
                     ['Building']
                 ),
-                'Facet': labels.LABELS(
+                'Facet': qualcity.labels.LABELS(
                     config['LoD'],
                     ['Facet']
                 )
             } if config['hierarchical']
-            else labels.LABELS(
+            else qualcity.labels.LABELS(
                 config['LoD'],
                 ['Building', 'Facet']
             )
@@ -1149,8 +1147,7 @@ def main():
     logger.debug('Labels are: %s', labels)
     logger.info('Labels safely loaded.')
 
-    features = format_features(
-        configuration['labels']['depth'],
+    features = get_features(
         buildings,
         **configuration['features']
     )
