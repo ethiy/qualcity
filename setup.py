@@ -2,6 +2,7 @@
 # -*- coding: <utf-8> -*-
 
 from setuptools import setup, find_packages
+from QualCity import __version__
 
 
 def readme():
@@ -22,7 +23,7 @@ def requirements():
 
 setup(
     name='qualcity',
-    version='0.1.0a0',
+    version=__version__,
     description='3D Building model qualification.',
     long_description=readme(),
     classifiers=[

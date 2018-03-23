@@ -1127,7 +1127,7 @@ def main():
     arguments = docopt.docopt(
         __doc__,
         help=True,
-        version=None,
+        version=__version__,
         options_first=False
     )
 
