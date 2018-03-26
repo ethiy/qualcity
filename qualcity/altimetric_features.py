@@ -19,39 +19,44 @@ alti_logger = logging.getLogger(__name__)
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 
-def find_building(bbox, dsm_dir, ext):
+def dsm_bounding_boxes(dsm_dir, dsm_ext):
     alti_logger.info(
-        'Getting %s corresponding DSM in %s with extention %s',
-        bbox,
+        'Computing all bounding boxes for DSMs in %s with extention %s',
         dsm_dir,
-        ext
+        dsm_ext
+    )
+    return {
+        os.path.join(dsm_dir, dsm_name): bounding_box(
+            os.path.join(dsm_dir, dsm_name)
+        )
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            dsm_ext
+        )
+    }
+
+
+def find_building(bbox, dsm_bboxes):
+    alti_logger.info(
+        'Getting %s corresponding DSM in %s',
+        bbox,
+        dsm_bboxes
     )
     return functools.reduce(
         lambda lhs, rhs: lhs.union(rhs),
         [
-            GeoRaster.from_file(
-                os.path.join(dsm_dir, dsm_name),
-                dtype=np.float
-            ).crop(bbox)
-            for dsm_name in fnmatch.filter(
-                os.listdir(dsm_dir),
-                ext
-            )
-            if overlap(
-                bbox,
-                bounding_box(
-                    os.path.join(dsm_dir, dsm_name)
-                )
-            )
+            GeoRaster.from_file(dsm_name, dtype=np.float).crop(bbox)
+            for dsm_name, dsm_bbox in dsm_bboxes.items()
+            if overlap(bbox, dsm_bbox)
         ]
     )
 
 
-def altimetric_difference(filename, dsm_dir, ext):
+def altimetric_difference(filename, dsm_bboxes):
     alti_logger.info(
         'Getting altimetric residual for %s with max instersecting DSM in %s',
         filename,
-        dsm_dir
+        dsm_bboxes
     )
     model_dsm = GeoRaster.from_file(
         filename,
@@ -62,10 +67,10 @@ def altimetric_difference(filename, dsm_dir, ext):
         filename,
         model_dsm
     )
-    building_dsm = find_building(model_dsm.bbox, dsm_dir, ext)
+    building_dsm = find_building(model_dsm.bbox, dsm_bboxes)
     alti_logger.debug(
         'Max instersecting DSM in %s with %s -> %s ',
-        dsm_dir,
+        dsm_bboxes,
         filename,
         building_dsm
     )
@@ -115,19 +120,21 @@ def histogram_bins(diffs, low_res, high_res):
     )
 
 
-def dsm_diff(raster_dir, dsm_dir, ext='*.tiff'):
+def dsm_diff(raster_dir, dsm_dir, ext, dsm_ext):
     alti_logger.info(
-        'Getting residuals for all buildings in %s wrt DSMs in %s '
-        + 'with extension %s',
+        'Getting residuals for all buildings in %s (with extension %s) '
+        + 'wrt DSMs in %s (with extension %s)',
         raster_dir,
+        ext,
         dsm_dir,
-        ext
+        dsm_ext
     )
+    dsm_bboxes = dsm_bounding_boxes(dsm_dir, dsm_ext)
+    alti_logger.debug(dsm_bboxes)
     return {
         raster: altimetric_difference(
             os.path.join(raster_dir, raster),
-            dsm_dir,
-            ext='*.geotiff'
+            dsm_bboxes
         )
         for raster in fnmatch.filter(
             os.listdir(raster_dir),
@@ -154,7 +161,7 @@ def histograms(
         low_res,
         high_res
     )
-    diffs = dsm_diff(raster_dir, dsm_dir, ext)
+    diffs = dsm_diff(raster_dir, dsm_dir, ext, dsm_ext)
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
         + 'with extension %s',
