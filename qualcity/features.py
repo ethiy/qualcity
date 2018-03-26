@@ -38,14 +38,15 @@ def feature(feat_type, **kwargs):
 
 def get_features(buildings, **config):
     feature_logger.info('Getting features ...')
+    feature_dicts = [
+        feature(feat_type, **config[feat_type])
+        for feat_type in config.keys()
+    ]
     return [
         np.concatenate(
             [
                 feature_dict[building]
-                for feature_dict in [
-                    feature(feature_type, **config[feature_type])
-                    for feature_type in config.keys()
-                ]
+                for feature_dict in feature_dicts
             ]
         )
         for building in buildings
