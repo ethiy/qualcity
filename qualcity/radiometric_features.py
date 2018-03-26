@@ -19,7 +19,7 @@ radio_logger = logging.getLogger(__name__)
 def process_building(building, ortho_dir, ext, func, clip=True):
     radio_logger.info(
         (
-            '%s %s corresponding DSM in %s with extention %s'
+            '%s %s corresponding Orthoimage in %s with extention %s'
         ),
         'Cliping' if clip else 'Cropping',
         building.bbox,
