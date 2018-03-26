@@ -29,6 +29,8 @@ import logging.config
 import qualcity.features
 import qualcity.labels
 import qualcity.learning
+import qualcity.utils
+
 
 logger = logging.getLogger('qualcity')
 default_config = {
@@ -125,7 +127,7 @@ def format_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
 
 def build_maniflod(algorithm, **parameters):
     logger.info('Building a manifold transformer...')
-    return utils.resolve(algorithm)(
+    return qualcity.utils.resolve(algorithm)(
         **parameters
     )
 
@@ -140,7 +142,7 @@ def build_reductor(algorithm, **parameters):
         logger.error('Cannot visualize less than two dimensions!')
         raise ValueError
 
-    return utils.resolve(algorithm)(
+    return qualcity.utils.resolve(algorithm)(
         **parameters
     )
 
