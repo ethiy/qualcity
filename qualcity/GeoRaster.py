@@ -15,6 +15,8 @@ import numpy as np
 import gdal
 import gdalconst
 
+import shapely.geometry
+
 import matplotlib.pyplot as plt
 
 geo_raster_logger = logging.getLogger(__name__)
@@ -244,6 +246,45 @@ class GeoRaster:
 
     def union(self, other):
         return self.operator(other, lambda x, y: y)
+
+    def intersection(self, line):
+        return np.array(
+            [
+                [
+                    True
+                    for j in range(self.width)
+                    if shapely.geometry.Polygon(
+                        [
+                            (
+                                self.reference_point[0]
+                                + j * self.pixel_sizes[0],
+                                self.reference_point[1]
+                                + i * self.pixel_sizes[1]
+                            ),
+                            (
+                                self.reference_point[0]
+                                + j * self.pixel_sizes[0],
+                                self.reference_point[1]
+                                + (i + 1) * self.pixel_sizes[1]
+                            ),
+                            (
+                                self.reference_point[0]
+                                + (j + 1) * self.pixel_sizes[0],
+                                self.reference_point[1]
+                                + (i + 1) * self.pixel_sizes[1]
+                            ),
+                            (
+                                self.reference_point[0]
+                                + (j + 1) * self.pixel_sizes[0],
+                                self.reference_point[1]
+                                + i * self.pixel_sizes[1]
+                            )
+                        ]
+                    ).intersects(line)
+                ]
+                for i in range(self.height)
+            ]
+        )
 
     def apply(self, func, vectorize=True, inplace=False):
         if vectorize:
