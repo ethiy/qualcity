@@ -8,6 +8,9 @@ from . import altimetric_features
 from . import radiometric_features
 from . import geometric_features
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 feature_logger = logging.getLogger(__name__)
 
 
