@@ -2,38 +2,45 @@
 
 import logging
 
+import ast
+
 import numpy as np
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from . import altimetric_features
 from . import radiometric_features
 from . import geometric_features
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 feature_logger = logging.getLogger(__name__)
 
 
 def feature(feat_type, **kwargs):
-    return {
-        'geometric':
-        lambda kwargs: geometric_features.geometric_features(
-            kwargs['graph_dir'],
-            kwargs['attributes'],
-            kwargs['statistics'],
-            **kwargs['paramaters']
+    if feat_type == 'geometric':
+        if 'paramaters' in kwargs.keys():
+            return geometric_features.geometric_features(
+                kwargs['graph_dir'],
+                kwargs['attributes'],
+                kwargs['statistics'],
+                **kwargs['paramaters']
+            )
+        else:
+            return geometric_features.geometric_features(
+                kwargs['graph_dir'],
+                kwargs['attributes'],
+                kwargs['statistics']
+            )
+    elif feat_type == 'altimetric':
+        if 'margins' in kwargs.keys():
+            kwargs['margins'] = ast.literal_eval(kwargs['margins'])
+        return altimetric_features.histogram_features(**kwargs)
+    elif feat_type == 'radiometric':
+        return radiometric_features.histogram_features(**kwargs)
+    else:
+        raise NotImplementedError(
+            'Attribute type {} not implemented'.format(feat_type)
         )
-        if 'paramaters' in kwargs.keys()
-        else geometric_features.geometric_features(
-            kwargs['graph_dir'],
-            kwargs['attributes'],
-            kwargs['statistics']
-        ),
-        'altimetric':
-        lambda kwargs: altimetric_features.histogram_features(**kwargs),
-        'radiometric':
-        lambda kwargs: radiometric_features.histogram_features(**kwargs)
-    }[feat_type](kwargs)
 
 
 def get_features(buildings, **config):
