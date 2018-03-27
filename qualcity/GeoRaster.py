@@ -248,43 +248,39 @@ class GeoRaster:
         return self.operator(other, lambda x, y: y)
 
     def intersection(self, line):
-        return np.array(
-            [
+        return [
+            (i, j)
+            for i in range(self.height)
+            for j in range(self.width)
+            if shapely.geometry.Polygon(
                 [
-                    True
-                    for j in range(self.width)
-                    if shapely.geometry.Polygon(
-                        [
-                            (
-                                self.reference_point[0]
-                                + j * self.pixel_sizes[0],
-                                self.reference_point[1]
-                                + i * self.pixel_sizes[1]
-                            ),
-                            (
-                                self.reference_point[0]
-                                + j * self.pixel_sizes[0],
-                                self.reference_point[1]
-                                + (i + 1) * self.pixel_sizes[1]
-                            ),
-                            (
-                                self.reference_point[0]
-                                + (j + 1) * self.pixel_sizes[0],
-                                self.reference_point[1]
-                                + (i + 1) * self.pixel_sizes[1]
-                            ),
-                            (
-                                self.reference_point[0]
-                                + (j + 1) * self.pixel_sizes[0],
-                                self.reference_point[1]
-                                + i * self.pixel_sizes[1]
-                            )
-                        ]
-                    ).intersects(line)
+                    (
+                        self.reference_point[0]
+                        + j * self.pixel_sizes[0],
+                        self.reference_point[1]
+                        + i * self.pixel_sizes[1]
+                    ),
+                    (
+                        self.reference_point[0]
+                        + j * self.pixel_sizes[0],
+                        self.reference_point[1]
+                        + (i + 1) * self.pixel_sizes[1]
+                    ),
+                    (
+                        self.reference_point[0]
+                        + (j + 1) * self.pixel_sizes[0],
+                        self.reference_point[1]
+                        + (i + 1) * self.pixel_sizes[1]
+                    ),
+                    (
+                        self.reference_point[0]
+                        + (j + 1) * self.pixel_sizes[0],
+                        self.reference_point[1]
+                        + i * self.pixel_sizes[1]
+                    )
                 ]
-                for i in range(self.height)
-            ]
-        )
+            ).intersects(line)
+        ]
 
     def apply(self, func, vectorize=True, inplace=False):
         if vectorize:
