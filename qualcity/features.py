@@ -70,14 +70,17 @@ def visualize_features(
                     features,
                     _labels,
                     (None, label_name),
-                    **visualization_args
+                    embedding,
+                    reductor,
+                    visualization_dimension,
+                    **style_args
                 )
         elif isinstance(label_names, tuple):
             features = embedding.fit_transform(features)
             feature_logger.debug('New transformed features: %s', features)
             feature_logger.info('Fitted and transformed features.')
 
-            features = dim_reductor.fit_transform(features)
+            features = reductor.fit_transform(features)
             feature_logger.debug('New reduced features: %s', features)
             feature_logger.info('Fitted and reduced features.')
 
@@ -116,7 +119,7 @@ def visualize_features(
             visualize_categories(
                 ax,
                 features_per_errors,
-                **visualization_args['style']
+                **style_args
             )
         else:
             feature_logger.error('Not yet implemented')

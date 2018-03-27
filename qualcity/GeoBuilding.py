@@ -7,6 +7,7 @@ import fnmatch
 import logging
 
 import shapefile
+
 import shapely.geometry
 
 import numpy as np

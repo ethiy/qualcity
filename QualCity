@@ -26,6 +26,8 @@ import yaml
 import logging
 import logging.config
 
+import matplotlib.pyplot as plt
+
 import qualcity.features
 import qualcity.labels
 import qualcity.learning
@@ -161,8 +163,8 @@ def visualize(features, labels, label_names, **visualization_args):
             visualization_args['dimension_reduction']['algorithm'],
             **visualization_args['dimension_reduction']['parameters']
         ),
-        visualization_args['dimension_reduction']['parameters']['n_components']
-        ** kwargs['style']
+        visualization_args['dimension_reduction']['parameters']['n_components'],
+        **visualization_args['style']
     )
     logger.info('Visualization process ended.')
 

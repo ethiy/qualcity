@@ -28,7 +28,7 @@ learning_logger = logging.getLogger(__name__)
 
 
 def build_classifier(**classifier_args):
-    logger.info('Building a classifier...')
+    learning_logger.info('Building a classifier...')
 
     if 'filename' in classifier_args:
         return skPickler.load(classifier_args['filename'])
@@ -36,13 +36,13 @@ def build_classifier(**classifier_args):
         model = utils.resolve(
             classifier_args['algorithm']
         )(**classifier_args['parameters'])
-        logger.info(
+        learning_logger.info(
             'Constructed classifier: %s, with parameters %s',
             classifier_args['algorithm'],
             classifier_args['parameters']
         )
         if 'strategy' in classifier_args.keys():
-            logger.info('Adding strategy: %s', classifier_args['strategy'])
+            learning_logger.info('Adding strategy: %s', classifier_args['strategy'])
             model = utils.resolve(classifier_args['strategy'])(model)
         return model
 
@@ -69,7 +69,7 @@ def data_split(features, labels, **separation_args):
     else:
         learning_logger.error(
             'Separation %s not implemented.',
-            kwargs['classification']['data_separation']
+            separation_args['classification']['data_separation']
         )
         raise NotImplementedError
 

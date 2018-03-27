@@ -19,23 +19,6 @@ alti_logger = logging.getLogger(__name__)
 DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 
-def dsm_bounding_boxes(dsm_dir, dsm_ext):
-    alti_logger.info(
-        'Computing all bounding boxes for DSMs in %s with extention %s',
-        dsm_dir,
-        dsm_ext
-    )
-    return {
-        os.path.join(dsm_dir, dsm_name): bounding_box(
-            os.path.join(dsm_dir, dsm_name)
-        )
-        for dsm_name in fnmatch.filter(
-            os.listdir(dsm_dir),
-            dsm_ext
-        )
-    }
-
-
 def find_building(bbox, dsm_bboxes):
     alti_logger.info(
         'Getting %s corresponding DSM in %s',
@@ -129,7 +112,20 @@ def dsm_diff(raster_dir, dsm_dir, ext, dsm_ext):
         dsm_dir,
         dsm_ext
     )
-    dsm_bboxes = dsm_bounding_boxes(dsm_dir, dsm_ext)
+    alti_logger.info(
+        'Computing all bounding boxes for DSMs in %s with extention %s',
+        dsm_dir,
+        dsm_ext
+    )
+    dsm_bboxes = {
+        os.path.join(dsm_dir, dsm_name): bounding_box(
+            os.path.join(dsm_dir, dsm_name)
+        )
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            dsm_ext
+        )
+    }
     alti_logger.debug(dsm_bboxes)
     return {
         raster: altimetric_difference(
