@@ -12,7 +12,7 @@ import functools
 
 import numpy as np
 
-from .GeoRaster import overlap, bounding_box, GeoRaster
+from . import GeoRaster
 
 alti_logger = logging.getLogger(__name__)
 
@@ -21,64 +21,98 @@ DSM_DIR = '/home/ethiy/Data/Elancourt/DSM'
 
 def find_building(bbox, dsm_bboxes):
     alti_logger.info(
-        'Getting %s corresponding DSM in %s',
-        bbox,
-        dsm_bboxes
+        'Find instersecting DSM in %s with  %s',
+        dsm_bboxes,
+        bbox
     )
     return functools.reduce(
         lambda lhs, rhs: lhs.union(rhs),
         [
-            GeoRaster.from_file(dsm_name, dtype=np.float).crop(bbox)
+            GeoRaster.GeoRaster.from_file(dsm_name, dtype=np.float).crop(bbox)
             for dsm_name, dsm_bbox in dsm_bboxes.items()
-            if overlap(bbox, dsm_bbox)
+            if GeoRaster.overlap(bbox, dsm_bbox)
         ]
     )
 
 
-def altimetric_difference(filename, dsm_bboxes):
+def dsm_residual(model_name, margins, dsm_bboxes):
     alti_logger.info(
-        'Getting altimetric residual for %s with max instersecting DSM in %s',
-        filename,
+        'Getting dsm residual for %s with (margins %s) with instersecting '
+        + 'DSM in %s',
+        model_name,
+        margins,
         dsm_bboxes
     )
-    model_dsm = GeoRaster.from_file(
-        filename,
-        dtype=np.float
-    )
-    alti_logger.debug(
-        'Building DSM from 3d model %s -> %s ',
-        filename,
-        model_dsm
-    )
-    building_dsm = find_building(model_dsm.bbox, dsm_bboxes)
-    alti_logger.debug(
-        'Max instersecting DSM in %s with %s -> %s ',
-        dsm_bboxes,
-        filename,
-        building_dsm
-    )
-    return (building_dsm - model_dsm).image
+    return (
+        find_building(
+            GeoRaster.geo_info(model_name, margins)[0],
+            dsm_bboxes
+        )
+        -
+        GeoRaster.GeoRaster.from_file(
+            model_name,
+            dtype=np.float
+        )
+    ).image
 
 
-def histogram_bins(diffs, low_res, high_res):
+def dsm_residuals(model_dir, dsm_dir, margins, model_ext, dsm_ext):
+    alti_logger.info(
+        'Getting residuals for all buildings in %s (with extension %s and'
+        + ' margins %s) wrt DSMs in %s (with extension %s)',
+        model_dir,
+        model_ext,
+        margins,
+        dsm_dir,
+        dsm_ext
+    )
+    dsm_bboxes = {
+        os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
+            os.path.join(dsm_dir, dsm_name)
+        )[0]
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            dsm_ext
+        )
+    }
+    alti_logger.debug(
+        'All bounding boxes for DSMs in %s (with extension %s): %s',
+        dsm_dir,
+        dsm_ext,
+        dsm_bboxes
+    )
+    return {
+        model_name: dsm_residual(
+            os.path.join(model_dir, model_name),
+            margins,
+            dsm_bboxes
+        )
+        for model_name in fnmatch.filter(
+            os.listdir(model_dir),
+            model_ext
+        )
+    }
+
+
+def partition(residuals, low_res, high_res):
     alti_logger.info(
         'Getting histogram bins for %s with %s low values resolution'
         + 'and %s high values resolution',
-        diffs,
+        residuals,
         low_res,
         high_res
     )
-    sorted_diffs = sorted(
-        np.hstack([diff.flatten() for diff in diffs])
+    sorted_residuals = sorted(
+        np.hstack([diff.flatten() for diff in residuals])
     )
     alti_logger.debug(
         'Sorted residuals: %s',
-        sorted_diffs
+        sorted_residuals
     )
     min_max, max_min = max(
         zip(
-            sorted_diffs[1:],
-            sorted_diffs[:-1]
+            sorted_residuals[1:],
+            sorted_residuals[:-1]
         ),
         key=lambda x: operator.sub(*x)
     )
@@ -90,126 +124,96 @@ def histogram_bins(diffs, low_res, high_res):
     return np.hstack(
         (
             np.linspace(
-                math.floor(sorted_diffs[0]),
+                math.floor(sorted_residuals[0]),
                 math.ceil(max_min),
                 low_res
             ),
             np.linspace(
                 math.floor(min_max),
-                math.ceil(sorted_diffs[-1]),
+                math.ceil(sorted_residuals[-1]),
                 high_res
             )
         )
     )
 
 
-def dsm_diff(raster_dir, dsm_dir, ext, dsm_ext):
-    alti_logger.info(
-        'Getting residuals for all buildings in %s (with extension %s) '
-        + 'wrt DSMs in %s (with extension %s)',
-        raster_dir,
-        ext,
-        dsm_dir,
-        dsm_ext
-    )
-    alti_logger.info(
-        'Computing all bounding boxes for DSMs in %s with extention %s',
-        dsm_dir,
-        dsm_ext
-    )
-    dsm_bboxes = {
-        os.path.join(dsm_dir, dsm_name): bounding_box(
-            os.path.join(dsm_dir, dsm_name)
-        )
-        for dsm_name in fnmatch.filter(
-            os.listdir(dsm_dir),
-            dsm_ext
-        )
-    }
-    alti_logger.debug(dsm_bboxes)
-    return {
-        raster: altimetric_difference(
-            os.path.join(raster_dir, raster),
-            dsm_bboxes
-        )
-        for raster in fnmatch.filter(
-            os.listdir(raster_dir),
-            ext
-        )
-    }
-
-
 def histograms(
-    raster_dir,
+    model_dir,
     dsm_dir,
-    ext='*.tiff',
+    margins=(0, 0),
+    model_ext='*.tiff',
     dsm_ext='*.getiff',
     low_res=5,
     high_res=5
 ):
     alti_logger.info(
         'Computing histograms for residuals of all buildings in %s wrt DSMs '
-        + 'in %s with extension %s with %s low values resolution'
-        + 'and %s high values resolution',
-        raster_dir,
+        + 'in %s (with extension %s and margins %s) with %s low values '
+        + 'resolution and %s high values resolution',
+        model_dir,
         dsm_dir,
-        ext,
+        model_ext,
+        margins,
         low_res,
         high_res
     )
-    diffs = dsm_diff(raster_dir, dsm_dir, ext, dsm_ext)
+    residuals = dsm_residuals(model_dir, dsm_dir, margins, model_ext, dsm_ext)
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
-        + 'with extension %s',
-        raster_dir,
+        + '(with extension %s and margins %s)',
+        model_dir,
         dsm_dir,
-        ext
+        model_ext,
+        margins
     )
-    bins = histogram_bins(diffs.values(), low_res, high_res)
+    bins = partition(residuals.values(), low_res, high_res)
     alti_logger.debug(
         'Histogram bins for %s with %s low values resolution'
         + 'and %s high values resolution',
-        diffs.values(),
+        residuals.values(),
         low_res,
         high_res
     )
     return {
-        raster: np.histogram(
-            diff.flatten(),
+        model_name: np.histogram(
+            residual.flatten(),
             bins
-        ) if diff is not None
+        ) if residual is not None
         else (None, None)
-        for raster, diff in diffs.items()
+        for model_name, residual in residuals.items()
     }
 
 
 def histogram_features(
-    raster_dir,
+    model_dir,
     dsm_dir,
-    ext='tiff',
+    margins=(0, 0),
+    model_ext='tiff',
     dsm_ext='geotiff',
     low_res=5,
     high_res=5
 ):
     alti_logger.info(
         'Computing histogram features for all buildings in %s with extension '
-        + '%s wrt DSMs in %s with extension %s with %s low values resolution'
-        + 'and %s high values resolution',
-        raster_dir,
+        + '%s and margins %s wrt DSMs in %s (with extension %s) with %s low '
+        + 'values resolution and %s high values resolution',
+        model_dir,
         dsm_ext,
+        margins,
         dsm_dir,
-        ext,
+        model_ext,
         low_res,
         high_res
     )
 
     return {
-        os.path.splitext(raster)[0]: histogram
-        for raster, (histogram, _)
+        os.path.splitext(model_name)[0]: histogram
+        for model_name, (histogram, _)
         in histograms(
-            raster_dir,
+            model_dir,
             dsm_dir,
-            '*.' + ext,
+            margins,
+            '*.' + model_ext,
             '*.' + dsm_ext,
             low_res,
             high_res
@@ -218,12 +222,12 @@ def histogram_features(
 
 
 def main():
-    raster_dir = os.path.join(
+    model_dir = os.path.join(
         '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
         'export-3DS/rasters'
     )
 
-    hists = histograms(raster_dir, DSM_DIR, 100, 100)
+    hists = histograms(model_dir, DSM_DIR, 100, 100)
     print(hists)
 
     plt.clf()
