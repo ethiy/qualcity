@@ -22,32 +22,32 @@ import matplotlib.pyplot as plt
 geo_raster_logger = logging.getLogger(__name__)
 
 
-def resolution(raster):
-    geo_raster_logger.info('Getting %s resolution', raster)
-    dataset = gdal.Open(raster, gdalconst.GA_ReadOnly)
-    Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
-    return (px, py)
-
-
-def bounding_box(raster, margins=(0, 0)):
-    geo_raster_logger.info('Getting %s bounding box', raster)
-    dataset = gdal.Open(raster, gdalconst.GA_ReadOnly)
-    geo_raster_logger.info('Getting geo-transform from %s', raster)
+def geo_info(raster_name, margins=(0, 0)):
+    geo_raster_logger.info(
+        'Getting %s bounding box and resolution.',
+        raster_name
+    )
+    dataset = gdal.Open(raster_name, gdalconst.GA_ReadOnly)
+    geo_raster_logger.debug('%s open for read only.', raster_name)
     Ox, px, _, Oy, _, py = dataset.GetGeoTransform()
     geo_raster_logger.debug(
-        'Geo-transform -> origin: %s, pixel resolution: %s',
+        '%s Geo-transform: origin = %s, pixel resolution = %s.',
+        raster_name,
         (Ox, Oy),
         (px, py)
     )
     return (
         (
-            Ox - px * margins[0],
-            Oy + py * (dataset.RasterYSize - margins[1])
+            (
+                Ox - px * margins[0],
+                Oy + py * (dataset.RasterYSize - margins[1])
+            ),
+            (
+                Ox + px * (dataset.RasterXSize + margins[0]),
+                Oy + py * margins[1]
+            )
         ),
-        (
-            Ox + px * (dataset.RasterXSize + margins[0]),
-            Oy + py * margins[1]
-        )
+        (px, py)
     )
 
 
