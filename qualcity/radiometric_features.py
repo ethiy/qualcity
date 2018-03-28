@@ -243,7 +243,7 @@ def gradient(
     vector_dir,
     building,
     ortho_infos,
-    normalized=False,
+    weight=(True, True, True),
     resolution=10
 ):
     radio_logger.info(
@@ -254,7 +254,6 @@ def gradient(
         '' if normalized else 'no',
         resolution
     )
-    print(building)
     vector_building = GeoBuilding.GeoBuilding.from_file(
         os.path.join(
             vector_dir,
@@ -265,9 +264,20 @@ def gradient(
         vector_building,
         ortho_infos,
         clip=False,
-        margins=(10, 10)
+        margins=(20, 20)
     )
+    ortho.plot()
+    vector_building.plot(resolution=(5, -5), margins=(20, 20))
+    radio_logger.debug(
+        'Cropped orthoimage corresponding to %s with margins %s: %s',
+        building,
+        (10, 10),
+        ortho
+    )
+    plt.show()
     bins = [tick/resolution for tick in range(0, resolution + 1)]
+    radio_logger.debug('Histogram bins: %s', bins)
+    print(building)
     return functools.reduce(
         operator.add,
         [
@@ -323,7 +333,7 @@ def gradient(
             )
             for line_string in vector_building.geometry.boundary
         ]
-    )
+    ).reshape(1, -1)
 
 
 def get_method(vector_dir, ortho_infos, method, **method_args):
