@@ -264,7 +264,6 @@ def gradient(
         vector_building,
         ortho_infos,
         clip=False,
-        margins=(20, 20)
     )
     ortho.plot()
     vector_building.plot(resolution=(5, -5), margins=(20, 20))
