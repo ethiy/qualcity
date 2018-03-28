@@ -124,7 +124,14 @@ def find_building(building, ortho_infos, clip, margins):
                     masks[ortho_res]
                 )
                 for ortho, (ortho_bbox, ortho_res) in ortho_infos.items()
-                if GeoRaster.overlap(building.bbox, ortho_bbox)
+                if GeoRaster.overlap(
+                    add_margins(
+                        building.bbox,
+                        ortho_res,
+                        margins
+                    ),
+                    ortho_bbox
+                )
             ]
         )
     else:
@@ -142,7 +149,14 @@ def find_building(building, ortho_infos, clip, margins):
                     )
                 )
                 for ortho, (ortho_bbox, ortho_res) in ortho_infos.items()
-                if GeoRaster.overlap(building.bbox, ortho_bbox)
+                if GeoRaster.overlap(
+                    add_margins(
+                        building.bbox,
+                        ortho_res,
+                        margins
+                    ),
+                    ortho_bbox
+                )
             ]
         )
 
