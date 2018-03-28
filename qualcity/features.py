@@ -36,7 +36,7 @@ def feature(feat_type, **kwargs):
             kwargs['margins'] = ast.literal_eval(kwargs['margins'])
         return altimetric_features.histogram_features(**kwargs)
     elif feat_type == 'radiometric':
-        return radiometric_features.histogram_features(**kwargs)
+        return radiometric_features.radiometric_features(**kwargs)
     else:
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)
