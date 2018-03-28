@@ -67,20 +67,21 @@ class GeoBuilding:
     def __len__(self):
         return len(self.geometry.geoms)
 
-    def plot(self, resolution, georeference=False, **kwargs):
+    def plot(self, resolution, margins, georeference=False, **kwargs):
         for line_string in self.geometry.boundary:
             plt.plot(
                 *[
                     [
                         (
                             value - reference * int(not georeference)
-                        ) * res
+                        ) * res + margin
                         for value in axe
                     ]
-                    for res, axe, reference in zip(
+                    for res, axe, reference, margin in zip(
                         resolution,
                         line_string.xy,
-                        [self.bbox[0][0], self.bbox[1][1]]
+                        [self.bbox[0][0], self.bbox[1][1]],
+                        margins
                     )
                 ],
                 **kwargs
