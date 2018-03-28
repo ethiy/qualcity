@@ -7,8 +7,9 @@ import fnmatch
 import logging
 
 import operator
-
 import functools
+
+from tqdm import tqdm
 
 import numpy as np
 
@@ -242,9 +243,12 @@ def geometric_features(graph_dir, attributes, statistics, **parameters):
                 **parameters
             )
         )
-        for graph in fnmatch.filter(
-            os.listdir(graph_dir),
-            '*.txt'
+        for graph in tqdm(
+            fnmatch.filter(
+                os.listdir(graph_dir),
+                '*.txt'
+            ),
+            desc='Geometric features'
         )
     }
 

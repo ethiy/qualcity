@@ -10,6 +10,8 @@ import math
 import operator
 import functools
 
+from tqdm import tqdm
+
 import numpy as np
 
 from . import GeoRaster
@@ -209,15 +211,18 @@ def histogram_features(
     return {
         os.path.splitext(model_name)[0]: histogram
         for model_name, (histogram, _)
-        in histograms(
-            model_dir,
-            dsm_dir,
-            margins,
-            '*.' + model_ext,
-            '*.' + dsm_ext,
-            low_res,
-            high_res
-        ).items()
+        in tqdm(
+            histograms(
+                model_dir,
+                dsm_dir,
+                margins,
+                '*.' + model_ext,
+                '*.' + dsm_ext,
+                low_res,
+                high_res
+            ).items(),
+            desc='Altimetric features'
+        )
     }
 
 

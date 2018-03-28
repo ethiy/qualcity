@@ -1,14 +1,15 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-import operator
+import os
+import fnmatch
 
 import logging
 
+import operator
 import functools
 
-import os
-import fnmatch
+from tqdm import tqdm
 
 import shapefile
 
@@ -130,7 +131,10 @@ def labels_map(
                 LoD,
                 threshold
             )
-            for building, error_dicts in read(labels_path, filetype).items()
+            for building, error_dicts in tqdm(
+                read(labels_path, filetype).items(),
+                desc='Ground truth parsing'
+            )
         }
 
 
