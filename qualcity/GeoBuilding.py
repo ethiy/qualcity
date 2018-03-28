@@ -34,6 +34,7 @@ class GeoBuilding:
         """
         self.geometry = geometry
         self.bbox = tuple(utils.chunk(self.geometry.bounds, 2))
+        self.area = self.geometry.area
 
     @classmethod
     def from_file(cls, filename):
