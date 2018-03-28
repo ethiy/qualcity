@@ -64,8 +64,11 @@ def scalar_product(lvector, rvector):
 
 
 def correlation(lvector, rvector):
-    return scalar_product(lvector, rvector) / (
-        norm([(0, 0), lvector]) * norm([(0, 0), rvector])
+    return (
+        scalar_product(lvector, rvector) / (
+            math.hypot(*lvector) * math.hypot(*rvector)
+        )
+        if math.hypot(*lvector) != 0 else math.inf
     )
 
 
