@@ -11,6 +11,7 @@ import shapefile
 import shapely.geometry
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from qualcity import utils, GeoRaster
 
@@ -65,6 +66,25 @@ class GeoBuilding:
 
     def __len__(self):
         return len(self.geometry.geoms)
+
+    def plot(self, resolution, georeference=False, **kwargs):
+        for line_string in self.geometry.boundary:
+            plt.plot(
+                *[
+                    [
+                        (
+                            value - reference * int(not georeference)
+                        ) * res
+                        for value in axe
+                    ]
+                    for res, axe, reference in zip(
+                        resolution,
+                        line_string.xy,
+                        [self.bbox[0][0], self.bbox[1][1]]
+                    )
+                ],
+                **kwargs
+            )
 
     def rasterize(self, pixel_sizes, dtype=bool):
         mask = np.array(
