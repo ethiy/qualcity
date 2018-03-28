@@ -3,6 +3,8 @@
 import os
 import fnmatch
 
+import ast
+
 import logging
 
 import math
@@ -10,6 +12,8 @@ import operator
 import functools
 
 import numpy as np
+
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import shapely.ops
@@ -248,10 +252,10 @@ def gradient(
 ):
     radio_logger.info(
         'Compute gradient features for building %s using orthoimages in %s '
-        + ' with %s normalization and histogram resolution %s',
+        + ' with %s weighting and histogram resolution %s',
         building,
         ortho_infos,
-        '' if normalized else 'no',
+        '' if sum(weight) else 'no',
         resolution
     )
     vector_building = GeoBuilding.GeoBuilding.from_file(
@@ -264,64 +268,61 @@ def gradient(
         vector_building,
         ortho_infos,
         clip=False,
+        margins=(2, 2)
     )
-    ortho.plot()
-    vector_building.plot(resolution=(5, -5), margins=(20, 20))
     radio_logger.debug(
         'Cropped orthoimage corresponding to %s with margins %s: %s',
         building,
-        (10, 10),
+        (2, 2),
         ortho
     )
-    plt.show()
     bins = [tick/resolution for tick in range(0, resolution + 1)]
     radio_logger.debug('Histogram bins: %s', bins)
-    print(building)
-    return functools.reduce(
-        operator.add,
+    return sum(
         [
-            np.concatenate(
+            sum(
                 [
-                    np.array(
+                    np.concatenate(
                         [
-                            functools.reduce(operator.add, hist)
-                            for hist in zip(
+                            np.histogram(
+                                np.abs(np.array(channel)),
+                                bins=bins,
+                                range=(-1, 1)
+                            )[0]
+                            *
+                            (norm(line) * weight[0] + 1 - weight[0])
+                            /
+                            (line_string.length * weight[1] + 1 - weight[1])
+                            *
+                            (vector_building.area * weight[2] + 1 - weight[2])
+                            for channel in zip(
                                 *[
-                                    np.histogram(
-                                        np.abs(np.array(channel)),
-                                        bins=bins,
-                                        range=(-1, 1)
-                                    )[0] * norm(line) / line_string.length
-                                    for channel in zip(
-                                        *[
-                                            [
-                                                correlation(
-                                                    channel_gradient,
-                                                    normal(line)
-                                                )
-                                                for channel_gradient in zip(
-                                                    (
-                                                        ortho.image[i + 1, j]
-                                                        +
-                                                        ortho.image[i - 1, j]
-                                                        -
-                                                        2 * ortho.image[i, j]
-                                                    ),
-                                                    (
-                                                        ortho.image[i, j + 1]
-                                                        +
-                                                        ortho.image[i, j - 1]
-                                                        -
-                                                        2 * ortho.image[i, j]
-                                                    )
-                                                )
-                                            ]
-                                            for i, j in ortho.intersection(
-                                                shapely.geometry.LineString(
-                                                    line
-                                                )
+                                    [
+                                        correlation(
+                                            channel_gradient,
+                                            normal(line)
+                                        )
+                                        for channel_gradient in zip(
+                                            (
+                                                ortho.image[i + 1, j]
+                                                +
+                                                ortho.image[i - 1, j]
+                                                -
+                                                2 * ortho.image[i, j]
+                                            ),
+                                            (
+                                                ortho.image[i, j + 1]
+                                                +
+                                                ortho.image[i, j - 1]
+                                                -
+                                                2 * ortho.image[i, j]
                                             )
-                                        ]
+                                        )
+                                    ]
+                                    for i, j in ortho.intersection(
+                                        shapely.geometry.LineString(
+                                            line
+                                        )
                                     )
                                 ]
                             )
@@ -332,7 +333,7 @@ def gradient(
             )
             for line_string in vector_building.geometry.boundary
         ]
-    ).reshape(1, -1)
+    )
 
 
 def get_method(vector_dir, ortho_infos, method, **method_args):
@@ -352,6 +353,7 @@ def get_method(vector_dir, ortho_infos, method, **method_args):
             **method_args
         )
     elif method == 'gradient':
+        method_args['weight'] = ast.literal_eval(method_args['weight'])
         return lambda building: gradient(
             vector_dir,
             building,
@@ -404,11 +406,14 @@ def radiometric_features(
     return {
         os.path.splitext(building)[0]:
         np.concatenate(
-            method(building),
+            method(building).reshape(1, -1),
             axis=-1
         )
-        for building in fnmatch.filter(
-            os.listdir(vector_dir),
-            '*.' + vector_ext
+        for building in tqdm(
+            fnmatch.filter(
+                os.listdir(vector_dir),
+                '*.' + vector_ext
+            ),
+            desc='Radiometric features'
         )
     }
