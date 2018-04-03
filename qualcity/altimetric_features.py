@@ -58,44 +58,6 @@ def dsm_residual(model_name, margins, dsm_bboxes):
     ).image
 
 
-def dsm_residuals(model_dir, dsm_dir, margins, model_ext, dsm_ext):
-    alti_logger.info(
-        'Getting residuals for all buildings in %s (with extension %s and'
-        + ' margins %s) wrt DSMs in %s (with extension %s)',
-        model_dir,
-        model_ext,
-        margins,
-        dsm_dir,
-        dsm_ext
-    )
-    dsm_bboxes = {
-        os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
-            os.path.join(dsm_dir, dsm_name)
-        )[0]
-        for dsm_name in fnmatch.filter(
-            os.listdir(dsm_dir),
-            dsm_ext
-        )
-    }
-    alti_logger.debug(
-        'All bounding boxes for DSMs in %s (with extension %s): %s',
-        dsm_dir,
-        dsm_ext,
-        dsm_bboxes
-    )
-    return {
-        model_name: dsm_residual(
-            os.path.join(model_dir, model_name),
-            margins,
-            dsm_bboxes
-        )
-        for model_name in fnmatch.filter(
-            os.listdir(model_dir),
-            model_ext
-        )
-    }
-
-
 def partition(residuals, low_res, high_res):
     alti_logger.info(
         'Getting histogram bins for %s with %s low values resolution'
@@ -141,10 +103,9 @@ def partition(residuals, low_res, high_res):
 
 def histograms(
     model_dir,
-    dsm_dir,
+    dsm_bboxes,
     margins=(0, 0),
     model_ext='*.tiff',
-    dsm_ext='*.getiff',
     low_res=5,
     high_res=5
 ):
@@ -153,18 +114,28 @@ def histograms(
         + 'in %s (with extension %s and margins %s) with %s low values '
         + 'resolution and %s high values resolution',
         model_dir,
-        dsm_dir,
+        dsm_bboxes,
         model_ext,
         margins,
         low_res,
         high_res
     )
-    residuals = dsm_residuals(model_dir, dsm_dir, margins, model_ext, dsm_ext)
+    residuals = {
+        model_name: dsm_residual(
+            os.path.join(model_dir, model_name),
+            margins,
+            dsm_bboxes
+        )
+        for model_name in fnmatch.filter(
+            os.listdir(model_dir),
+            model_ext
+        )
+    }
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
         + '(with extension %s and margins %s)',
         model_dir,
-        dsm_dir,
+        dsm_bboxes,
         model_ext,
         margins
     )
@@ -207,22 +178,32 @@ def histogram_features(
         low_res,
         high_res
     )
-
+    dsm_bboxes = {
+        os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
+            os.path.join(dsm_dir, dsm_name)
+        )[0]
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            '*.' + dsm_ext
+        )
+    }
+    alti_logger.debug(
+        'All bounding boxes for DSMs in %s (with extension %s): %s',
+        dsm_dir,
+        dsm_ext,
+        dsm_bboxes
+    )
     return {
         os.path.splitext(model_name)[0]: histogram
         for model_name, (histogram, _)
-        in tqdm(
-            histograms(
-                model_dir,
-                dsm_dir,
-                margins,
-                '*.' + model_ext,
-                '*.' + dsm_ext,
-                low_res,
-                high_res
-            ).items(),
-            desc='Altimetric features'
-        )
+        in histograms(
+            model_dir,
+            dsm_bboxes,
+            margins,
+            '*.' + model_ext,
+            low_res,
+            high_res
+        ).items()
     }
 
 
