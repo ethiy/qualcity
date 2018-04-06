@@ -50,8 +50,8 @@ def normal(line):
     if (x0, y0) != (x1, y1):
         length = norm(line)
         return (
-            (x1 - x0) / length,
-            (y0 - y1) / length
+            (y0 - y1) / length,
+            (x1 - x0) / length
         )
     else:
         raise RuntimeError('{} is a point not a line'.format(line))
