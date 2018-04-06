@@ -17,7 +17,7 @@ from qualcity import GeoRaster
 
 class GeoRadiometricTest(unittest.TestCase):
     """
-    Test case for the 'GeoBuilding' 'qualcity' submodule.
+    Test case for the 'radiometric_features' 'qualcity' submodule.
     """
 
     def setUp(self):

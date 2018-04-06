@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 import os
@@ -286,36 +285,3 @@ def read(filename):
         'normal'
     )
     return G
-
-
-def main():
-    graph_dir = os.path.join(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS',
-        'dual_graphs'
-    )
-    print(
-        read(os.path.join(graph_dir, '3078.txt')).node[1]
-    )
-    print(
-        features(
-            os.path.join(graph_dir, '3078.txt'),
-            ['degree', 'area', 'centroid'],
-            ['min', 'max']
-        )
-    )
-
-    print(
-        features(
-            os.path.join(graph_dir, '3078.txt'),
-            ['degree', 'area'],
-            'histogram',
-            bins=10
-        )
-    )
-
-    nx.draw(read(os.path.join(graph_dir, '3078.txt')))
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()
