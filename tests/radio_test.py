@@ -10,10 +10,13 @@ import operator
 
 import numpy as np
 
+import shapely.geometry
+
 from matplotlib.image import imread, imsave
 
 from qualcity import radiometric_features as radiof
 from qualcity import GeoBuilding
+from qualcity import GeoRaster
 
 
 class GeoRadiometricTest(unittest.TestCase):
@@ -33,45 +36,56 @@ class GeoRadiometricTest(unittest.TestCase):
                 '20466.shp'
             )
         )
+        self.ortho_infos = {
+            os.path.join(self.ortho_dir, ortho_name): GeoRaster.geo_info(
+                os.path.join(self.ortho_dir, ortho_name)
+            )
+            for ortho_name in fnmatch.filter(
+                os.listdir(self.ortho_dir),
+                '*.geotiff'
+            )
+        }
 
-    def test_process_building(self):
-        building_ortho = radiof.process_building(
+    def test_clip_building(self):
+        ortho, mask = radiof.find_building(
             self.building,
-            self.ortho_dir,
-            '*.geotiff',
-            lambda x, y: x * y
+            self.ortho_infos,
+            clip=True,
+            margins=(0, 0)
         )
         self.assertFalse(
             (
-                building_ortho.image - (255 * imread(
-                    os.path.join(
-                        os.path.dirname(os.path.realpath(__file__)),
-                        '../ressources/tests/building_20466_clip.png'
-                    )
-                )[:, :, :3]).astype(np.uint8)
+                (ortho * mask).image
+                -
+                (
+                    255 * imread(
+                        os.path.join(
+                            os.path.dirname(os.path.realpath(__file__)),
+                            '../ressources/tests/building_20466_clip.png'
+                        )
+                    )[:, :, :3]
+                ).astype(np.uint8)
             ).all()
         )
-        self.assertEqual(
-            building_ortho.bbox,
-            (
-                (623485.300003052, 6851964.71999817),
-                (623499.900003052, 6851975.91999817)
-            )
-        )
 
+    def test_crop_building(self):
         self.assertFalse(
             (
-                radiof.process_building(
+                radiof.find_building(
                     self.building,
-                    self.ortho_dir,
-                    '*.geotiff',
-                    lambda x, y: (x, y)
-                )[0].image - (255 * imread(
-                    os.path.join(
-                        os.path.dirname(os.path.realpath(__file__)),
-                        '../ressources/tests/building_20466_crop.png'
-                    )
-                )[:, :, :3]).astype(np.uint8)
+                    self.ortho_infos,
+                    clip=False,
+                    margins=(0, 0)
+                ).image
+                -
+                (
+                    255 * imread(
+                        os.path.join(
+                            os.path.dirname(os.path.realpath(__file__)),
+                            '../ressources/tests/building_20466_crop.png'
+                        )
+                    )[:, :, :3]
+                ).astype(np.uint8)
             ).all()
         )
 
