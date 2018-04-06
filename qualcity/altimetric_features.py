@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
 import os
@@ -205,35 +204,3 @@ def histogram_features(
             high_res
         ).items()
     }
-
-
-def main():
-    model_dir = os.path.join(
-        '/home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704',
-        'export-3DS/rasters'
-    )
-
-    hists = histograms(model_dir, DSM_DIR, 100, 100)
-    print(hists)
-
-    plt.clf()
-    map(
-        lambda hist, bins, color: plt.step(bins[1:], hist, c=color),
-        zip(
-            (
-                zip(
-                    *[
-                        _hist
-                        for _hist in hists.values()
-                        if _hist[0] is not None
-                    ]
-                ),
-                plt.cm.rainbow(np.linspace(0, 1, len(hists)))
-            )
-        )
-    )
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()

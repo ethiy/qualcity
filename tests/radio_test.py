@@ -6,11 +6,7 @@ import unittest
 import os
 import fnmatch
 
-import operator
-
 import numpy as np
-
-import shapely.geometry
 
 from matplotlib.image import imread, imsave
 
