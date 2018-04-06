@@ -12,6 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from . import altimetric_features
 from . import radiometric_features
 from . import geometric_features
+from . import utils
 
 feature_logger = logging.getLogger(__name__)
 
@@ -43,11 +44,11 @@ def feature(feat_type, **kwargs):
         )
 
 
-def get_features(buildings, **config):
+def get_features(buildings, **feature_types):
     feature_logger.info('Getting features ...')
     feature_dicts = [
-        feature(feat_type, **config[feat_type])
-        for feat_type in config.keys()
+        feature(feat_type, **feature_types[feat_type])
+        for feat_type in feature_types.keys()
     ]
     return [
         np.concatenate(
@@ -60,11 +61,28 @@ def get_features(buildings, **config):
     ]
 
 
+def build_maniflod(algorithm, **parameters):
+    feature_logger.info('Building a manifold transformer...')
+    return utils.resolve(algorithm)(
+        **parameters
+    )
+
+
+def transform(features, **manifold_args):
+    feature_logger.info(
+        'Transforming features using %s...',
+        manifold_args['algorithm']
+    )
+    return build_maniflod(
+        manifold_args['algorithm'],
+        **manifold_args['parameters']
+    ).fit_transform(features)
+
+
 def visualize_features(
     features,
     labels,
     label_names,
-    embedding,
     reductor,
     visualization_dimension,
     **style_args
@@ -77,16 +95,11 @@ def visualize_features(
                     features,
                     _labels,
                     (None, label_name),
-                    embedding,
                     reductor,
                     visualization_dimension,
                     **style_args
                 )
         elif isinstance(label_names, tuple):
-            features = embedding.fit_transform(features)
-            feature_logger.debug('New transformed features: %s', features)
-            feature_logger.info('Fitted and transformed features.')
-
             features = reductor.fit_transform(features)
             feature_logger.debug('New reduced features: %s', features)
             feature_logger.info('Fitted and reduced features.')

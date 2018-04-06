@@ -4,48 +4,53 @@ scene:
 labels:
     labels_path:
         /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/ground_truth.csv
-    depth: 3
+    depth: 2
     LoD: 2
     hierarchical: False
     filetype: csv
     threshold: 5
 
 features:
-    geometric:
-        graph_dir:
-            /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
-        statistics:
-            - mean
-            - median
-            - max
-            - min
-        attributes:
-            - degree
-            - angle_with_relations
-            - centroid_with_relations
-            - area
-    altimetric:
-        raster_dir:
-            /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
-        dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
-        ext: tiff
-        dsm_ext: geotiff
-        high_res: 5
-        low_res: 5
-    radiometric:
-        vector_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-        ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
-        ext: 'geotiff'
-        vector_ext: 'shp'
-        clip: True
-        bins: 5
-
+    types:
+        geometric:
+            graph_dir:
+                /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
+            statistics:
+                - mean
+                - median
+                - max
+                - min
+            attributes:
+                - degree
+                - angle_with_relations
+                - centroid_with_relations
+                - area
+        altimetric:
+            model_dir:
+                /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
+            dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
+            margins: (0, 0)
+            model_ext: tiff
+            dsm_ext: geotiff
+            high_res: 5
+            low_res: 5
+        radiometric:
+            vector_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
+            ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            method: gradient
+            parameters:
+                resolution: 10
+                weight: (True, True, True)
+    manifold:
+        algorithm: sklearn.decomposition.KernelPCA
+        parameters:
+            kernel: 'rbf'
+            gamma: .0000001
+            n_components: 10
 processing:
     visualization:
-        manifold:
-            algorithm: sklearn.decomposition.KernelPCA
-            parameters:
-                n_components: 10
         dimension_reduction:
             algorithm: sklearn.decomposition.PCA
             parameters:
@@ -63,18 +68,18 @@ processing:
         data_separation:
             cross_validation:
                 parameters:
-                    n_splits: 4
+                    n_splits: 10
         training:
             model:
                 algorithm:
                     sklearn.ensemble.RandomForestClassifier
                 parameters:
                     max_depth: 4
-                    n_estimators: 800
+                    n_estimators: 1000
                 strategy:
                     sklearn.multiclass.OneVsRestClassifier
                 save:
-                    onevrest_rf-d4-n800_nonhier-depth3-lod1
+                    onevrest_rf-d4-n1000_nonhier-depth3-lod2
         testing:
             predictions:
                 filename: predictions

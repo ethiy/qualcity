@@ -127,13 +127,6 @@ def format_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     return zip(*labels)
 
 
-def build_maniflod(algorithm, **parameters):
-    logger.info('Building a manifold transformer...')
-    return qualcity.utils.resolve(algorithm)(
-        **parameters
-    )
-
-
 def build_reductor(algorithm, **parameters):
     logger.info('Building a dimension reductor...')
 
@@ -155,10 +148,6 @@ def visualize(features, labels, label_names, **visualization_args):
         features,
         labels,
         label_names,
-        build_maniflod(
-            visualization_args['manifold']['algorithm'],
-            **visualization_args['manifold']['parameters']
-        ),
         build_reductor(
             visualization_args['dimension_reduction']['algorithm'],
             **visualization_args['dimension_reduction']['parameters']
@@ -252,10 +241,18 @@ def main():
 
     features = qualcity.features.get_features(
         buildings,
-        **configuration['features']
+        **configuration['features']['types']
     )
     logger.debug(features)
     logger.info('Features safely loaded.')
+
+    if 'manifold' in configuration['features']:
+        features = qualcity.features.transform(
+            features,
+            **configuration['features']['manifold']
+        )
+    logger.debug(features)
+    logger.info('Features safely transformed.')
 
     process(
         features,
