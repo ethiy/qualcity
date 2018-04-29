@@ -10,6 +10,9 @@ qualcity.egg-info
 __pycache__
 *.egg
 
+# venv files
+virtenv
+
 # Log files
 *.log
 
