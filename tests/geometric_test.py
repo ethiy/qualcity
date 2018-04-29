@@ -10,7 +10,7 @@ import operator
 
 import numpy as np
 
-from qualcity import geometric_features as geo
+from city import geometric_features as geo
 
 
 class GeoGeometricTest(unittest.TestCase):

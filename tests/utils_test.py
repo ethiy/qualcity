@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-from qualcity import utils
+from city import utils
 
 import unittest
 

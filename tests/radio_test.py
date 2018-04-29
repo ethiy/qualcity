@@ -10,9 +10,9 @@ import numpy as np
 
 from matplotlib.image import imread, imsave
 
-from qualcity import radiometric_features as radiof
-from qualcity import GeoBuilding
-from qualcity import GeoRaster
+from city import radiometric_features as radiof
+from city import GeoBuilding
+from city import GeoRaster
 
 
 class GeoRadiometricTest(unittest.TestCase):

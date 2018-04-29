@@ -8,7 +8,7 @@ import fnmatch
 
 import numpy as np
 
-from qualcity import GeoRaster
+from city import GeoRaster
 
 
 class GeoRasterTest(unittest.TestCase):

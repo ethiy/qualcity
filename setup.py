@@ -2,8 +2,7 @@
 # -*- coding: <utf-8> -*-
 
 from setuptools import setup, find_packages
-from QualCity import __version__
-
+from city import config
 
 def readme():
     """
@@ -23,7 +22,7 @@ def requirements():
 
 setup(
     name='qualcity',
-    version=__version__,
+    version=config.__version__,
     description='3D Building model qualification.',
     long_description=readme(),
     classifiers=[
@@ -31,7 +30,8 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: Research',
         'Topic :: Scientific/Engineering',
-        'Programming Language :: Python :: 3.5'
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6'
     ],
     platforms=[
         'Environment :: Console',
@@ -40,7 +40,7 @@ setup(
         'Operating System :: Unix',
         'Operating System :: Windows'
     ],
-    scripts=['QualCity'],
+    scripts=['qualcity'],
     keywords='qualification building 3d reconstruction graphs computer vision',
     url='https://github.com/ethiy/qualcity',
     author='Oussama Ennafii [IGN :: LaSTIG]',

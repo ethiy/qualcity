@@ -13,11 +13,7 @@ Options:
 
 """
 
-__version__ = '0.1.0a0'
-
 import docopt
-
-import time
 
 import operator
 
@@ -32,46 +28,14 @@ import city.features
 import city.labels
 import city.learning
 import city.utils
+import city.config
 
 
 logger = logging.getLogger('qualcity')
-default_config = {
-    'version': 1,
-    'formatters': {
-        'verbose': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'WARN',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'formatter': 'verbose',
-            'filename': 'qualcity-' + time.ctime() + '.log'
-        }
-    },
-    'loggers': {
-        'qualcity': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-        }
-    }
-}
-
 
 def config_logger(arguments):
     if not arguments['logger']:
-        logging.config.dictConfig(
-            default_config
-        )
+        logging.config.dictConfig(city.config.logger_default)
         logger.info('Default logger chosen.')
     else:
         with open(arguments['<log_conf>'], mode='r') as conf:
@@ -219,7 +183,7 @@ def main():
     arguments = docopt.docopt(
         __doc__,
         help=True,
-        version=__version__,
+        version=city.config.__version__,
         options_first=False
     )
 

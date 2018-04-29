@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: <utf-8> -*-
 
-from qualcity import GeoBuilding
+from city import GeoBuilding
 
 import unittest
 
@@ -13,7 +13,7 @@ import numpy as np
 
 class GeoBuildingTest(unittest.TestCase):
     """
-    Test case for the 'GeoBuilding' 'qualcity' submodule.
+    Test case for the 'GeoBuilding' 'city' submodule.
     """
 
     def setUp(self):
