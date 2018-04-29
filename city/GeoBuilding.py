@@ -13,7 +13,7 @@ import shapely.geometry
 import numpy as np
 import matplotlib.pyplot as plt
 
-from qualcity import utils, GeoRaster
+from . import utils, GeoRaster
 
 geo_vector_logger = logging.getLogger(__name__)
 

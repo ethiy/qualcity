@@ -14,7 +14,7 @@ import numpy as np
 
 import networkx as nx
 
-import qualcity.utils
+import city.utils
 
 geom_logger = logging.getLogger(__name__)
 

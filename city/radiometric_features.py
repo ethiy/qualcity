@@ -18,7 +18,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import shapely.ops
 
-from qualcity import GeoBuilding, GeoRaster
+from . import GeoBuilding, GeoRaster
 
 radio_logger = logging.getLogger(__name__)
 

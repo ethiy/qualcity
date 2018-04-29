@@ -15,7 +15,7 @@ import shapefile
 
 import numpy as np
 
-import qualcity.utils
+import city.utils
 
 label_logger = logging.getLogger(__name__)
 
