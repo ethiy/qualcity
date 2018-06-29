@@ -11,7 +11,7 @@ __pycache__
 *.egg
 
 # venv files
-virtenv
+venv
 
 # Log files
 *.log
