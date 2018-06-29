@@ -23,7 +23,8 @@ label_logger = logging.getLogger(__name__)
 SHAPEFILE = "ESRI Shapefile"
 
 ERROR_DICTIONARY = {
-    'over segmentation': [
+    'Over Segmentation': [
+        'Over Segmentation',
         'over_segmentation',
         'over',
         'over_segmantation',
@@ -31,41 +32,33 @@ ERROR_DICTIONARY = {
         'oversegmentation',
         'over_segmentationover_segmentation'
     ],
-    'under segmentation': ['under_segmentation', 'under', 'unde_segmentation'],
-    'Imprecise segmentation': ['mis_segmentation', 'missegmentation', 'mis'],
-    'Slope': ['slope'],
-    'Footprint': ['footprint', 'footprint_error'],
-    'Height': ['too_low'],
+    'Under Segmentation': ['Under Segmentation', 'under_segmentation', 'under', 'unde_segmentation'],
+    'Imprecise Segmentation': ['Imprecise Segmentation', 'mis_segmentation', 'missegmentation', 'mis'],
+    'Slope': ['Slope', 'slope'],
+    'Footprint': ['Footprint', 'footprint', 'footprint_error'],
+    'Height': ['too_low, Height'],
     'Valid': ['Valid', 'None', ''],
-    'Half building': ['Half building', 'half_building', 'half_bulding'],
-    'Changed': ['Changed', 'changed'],
-    'Unknown': ['Unknown'],
-    'Occlusion': ['Occlusion', 'occlusion', 'vegetation']
+    'Unqualifiable': ['Unqualifiable', 'Unqualified']
 }
 
-UNQUALIFIED_ERROR_LIST = [
-    'Half building',
-    'Changed',
-    'Occlusion',
-    'Unknown'
-]
+UNQUALIFIABLE_ERROR_LIST = ['Unqualifiable']
 
 BUILDING_ERROR_LIST = [
-    'over segmentation',
-    'under segmentation',
+    'Over Segmentation',
+    'Under Segmentation',
     'Footprint',
     'Height'
 ]
 
 FACET_ERROR_LIST = [
-    'over segmentation',
-    'under segmentation',
-    'Imprecise segmentation',
+    'Over Segmentation',
+    'Under Segmentation',
+    'Imprecise Segmentation',
     'Slope'
 ]
 
 ERROR_CATEGORY_DICTIONARY = {
-    'Unqualifiable': UNQUALIFIED_ERROR_LIST,
+    'Unqualifiable': UNQUALIFIABLE_ERROR_LIST,
     'Building': BUILDING_ERROR_LIST,
     'Facet': FACET_ERROR_LIST
 }
@@ -89,12 +82,12 @@ INV_CLASSES = {v: k for k, v in CLASSES.items()}
 def LABELS(LoD, family):
     return (
         (LoD > 0) * ('Building' in family) * [
-            ('Building ' + err) if 'segmentation' in err else err
+            ('Building ' + err) if 'Segmentation' in err else err
             for err in BUILDING_ERROR_LIST
         ]
         +
         (LoD > 1) * ('Facet' in family) * [
-            ('Facet ' + err) if 'r segmentation' in err else err
+            ('Facet ' + err) if 'Segmentation' in err else err
             for err in FACET_ERROR_LIST
         ]
     )
@@ -108,7 +101,7 @@ def labels_map(
     threshold,
     filetype='csv'
 ):
-    if qualcity.utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if city.utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return {
             os.path.splitext(shape)[0]: errors(
                 read(os.path.join(labels_path, shape), filetype),
@@ -122,7 +115,7 @@ def labels_map(
                 '*.shp'
             )
         }
-    elif qualcity.utils.caseless_equal(filetype, 'csv'):
+    elif city.utils.caseless_equal(filetype, 'csv'):
         return {
             building: errors(
                 error_dicts,
@@ -202,9 +195,9 @@ def read_shp(filename):
 
 
 def read_csv(filename):
-    possible_errors = UNQUALIFIED_ERROR_LIST + LABELS(2, ['Building', 'Facet'])
+    possible_errors = UNQUALIFIABLE_ERROR_LIST + LABELS(2, ['Building', 'Facet'])
     milestones = np.cumsum(
-        [0] + [len(l) for l in ERROR_CATEGORY_DICTIONARY.values()][:-1]
+        [0] + [len(l) for l in [UNQUALIFIABLE_ERROR_LIST, LABELS(1, ['Building'])]]
     )
     with open(filename, 'r') as label_file:
         raw_error_dict = {
@@ -212,54 +205,55 @@ def read_csv(filename):
                 [
                     possible_errors.index(label) - milestones
                     if label != 'Valid' else None
-                    for label in labels[::2]
+                    for label in labels[::3]
                 ],
-                [int(float(proba) * 10) for proba in labels[1::2]]
+                [int(float(score)) for score in labels[2::3]]
             )
             for building, *labels in [
-                line.split(', ') for line in label_file.readlines()
+                line.split('\n')[0].split(',') for line in label_file.readlines()
+                if len(line.split('\n')[0])
             ]
         }
-        error_category_dict = {
-            building:
-            [
-                (sum(indexes >= 0) - 1) * [{}]
-                + [
-                    {
-                        ERROR_CATEGORY_DICTIONARY[CLASSES[sum(indexes >= 0)]][
-                            indexes[sum(indexes >= 0) - 1]
-                        ]:
-                        score
-                    }
-                ]
-                + (len(milestones) - sum(indexes >= 0)) * [{}]
-                if indexes is not None else [{}] * len(milestones)
-                for indexes, score in error_list
+    error_category_dict = {
+        building:
+        [
+            (sum(indexes >= 0) - 1) * [{}]
+            + [
+                {
+                    ERROR_CATEGORY_DICTIONARY[CLASSES[sum(indexes >= 0)]][
+                        indexes[sum(indexes >= 0) - 1]
+                    ]:
+                    score
+                }
             ]
-            for building, error_list in raw_error_dict.items()
-        }
-        return {
-            building:
-            [
-                'Valid' if not len(level) else level
-                for level in functools.reduce(
-                    lambda l_dicts, r_dicts:
-                    [
-                        {**l_dict, **r_dicts[idx]}
-                        for idx, l_dict in enumerate(l_dicts)
-                    ],
-                    error_dicts,
-                    [{}, {}, {}]
-                )
-            ]
-            for building, error_dicts in error_category_dict.items()
-        }
+            + (len(milestones) - sum(indexes >= 0)) * [{}]
+            if indexes is not None else [{}] * len(milestones)
+            for indexes, score in error_list
+        ]
+        for building, error_list in raw_error_dict.items()
+    }
+    return {
+        building:
+        [
+            'Valid' if not len(level) else level
+            for level in functools.reduce(
+                lambda l_dicts, r_dicts:
+                [
+                    {**l_dict, **r_dicts[idx]}
+                    for idx, l_dict in enumerate(l_dicts)
+                ],
+                error_dicts,
+                [{}, {}, {}]
+            )
+        ]
+        for building, error_dicts in error_category_dict.items()
+    }
 
 
 def read(filename, filetype='ESRI Shapefile'):
-    if qualcity.utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if city.utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return read_shp(filename)
-    elif qualcity.utils.caseless_equal(filetype, 'csv'):
+    elif city.utils.caseless_equal(filetype, 'csv'):
         return read_csv(filename)
     else:
         raise LookupError('Unsupported filetype %s', filetype)
@@ -314,7 +308,7 @@ def write_csv(filename, errors_per_building):
 
 
 def write(filename, errors, filetype='csv'):
-    if qualcity.utils.caseless_equal(filetype, 'csv'):
+    if city.utils.caseless_equal(filetype, 'csv'):
         write_csv(filename, errors)
     else:
         raise LookupError('Unsupported filetype %s', filetype)
