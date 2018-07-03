@@ -15,7 +15,7 @@ import shapefile
 
 import numpy as np
 
-import city.utils
+from . import utils
 
 label_logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def labels_map(
     threshold,
     filetype='csv'
 ):
-    if city.utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return {
             os.path.splitext(shape)[0]: errors(
                 read(os.path.join(labels_path, shape), filetype),
@@ -115,7 +115,7 @@ def labels_map(
                 '*.shp'
             )
         }
-    elif city.utils.caseless_equal(filetype, 'csv'):
+    elif utils.caseless_equal(filetype, 'csv'):
         return {
             building: errors(
                 error_dicts,
@@ -251,9 +251,9 @@ def read_csv(filename):
 
 
 def read(filename, filetype='ESRI Shapefile'):
-    if city.utils.caseless_equal(filetype, 'ESRI Shapefile'):
+    if utils.caseless_equal(filetype, 'ESRI Shapefile'):
         return read_shp(filename)
-    elif city.utils.caseless_equal(filetype, 'csv'):
+    elif utils.caseless_equal(filetype, 'csv'):
         return read_csv(filename)
     else:
         raise LookupError('Unsupported filetype %s', filetype)
@@ -308,7 +308,7 @@ def write_csv(filename, errors_per_building):
 
 
 def write(filename, errors, filetype='csv'):
-    if city.utils.caseless_equal(filetype, 'csv'):
+    if utils.caseless_equal(filetype, 'csv'):
         write_csv(filename, errors)
     else:
         raise LookupError('Unsupported filetype %s', filetype)

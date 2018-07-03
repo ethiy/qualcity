@@ -14,11 +14,11 @@ import numpy as np
 
 import networkx as nx
 
-import city.utils
+from . import utils
 
 geom_logger = logging.getLogger(__name__)
 
-NODE_ATTRIBUTES = ['degree', 'area']
+NODE_ATTRIBUTES = ['degree', 'area', 'circumference']
 EDGE_ATTRIBUTES = ['centroid', 'angle']
 
 
@@ -28,6 +28,7 @@ def read_features(line):
         face_id,
         degree,
         area,
+        circumference,
         centroid0,
         centroid1,
         centroid2,
@@ -40,6 +41,7 @@ def read_features(line):
         (
             int(degree),
             float(area),
+            float(circumference),
             np.array(
                 [
                     float(centroid0),
@@ -64,12 +66,12 @@ def get_lines(filename):
     with open(filename, 'r') as _file:
         lines = list(_file)
         geom_logger.debug('Lines are \n: %s', lines)
-    return lines
+    return [line.split('\n')[0] for line in lines if line != '\n']
 
 
 def get_faces(lines):
     geom_logger.debug('Faces and their attributes in %s...', lines)
-    return dict([read_features(face) for face in lines[:len(lines) // 2]])
+    return [read_features(face) for face in lines[:len(lines) // 2]]
 
 
 def get_adjacency_matrix(lines):
@@ -91,12 +93,12 @@ def get_graph(lines):
     )
 
 
-def get_relations(lines):
-    geom_logger.debug('Pairs of related faces in %s', lines)
+def get_relations(faces, adjacency_matrix):
+    geom_logger.debug('Pairs of related faces in %s from %s', faces, adjacency_matrix)
     return [
-        (i, j)
+        (faces[i][0], faces[j][0])
         for i, j in zip(
-            *np.where(get_adjacency_matrix(lines) == 1)
+            *np.where(adjacency_matrix == 1)
         )
         if i != j
     ]
@@ -104,7 +106,7 @@ def get_relations(lines):
 
 def node_statistics(faces, attribute, statistics, **kwargs):
     geom_logger.info('Facet %s statistics: %s', attribute, statistics)
-    return qualcity.utils.stats(
+    return utils.stats(
         [
             face[NODE_ATTRIBUTES.index(attribute)]
             for face in faces.values()
@@ -127,7 +129,7 @@ def edge_statistics(faces, attribute, statistics, relations=[], **kwargs):
             for j in faces.keys()
             if i != j
         ]
-    return qualcity.utils.stats(
+    return utils.stats(
         [
             np.linalg.norm(
                 faces[idx][
@@ -152,50 +154,58 @@ def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
     )
     geom_logger.info('Getting facets...')
     faces = get_faces(lines)
-    geom_logger.debug('Facets in %s : %s...')
+    adjacency_matrix = get_adjacency_matrix(lines)
+    geom_logger.debug('Facets in %s : %s...', lines, faces)
     return {
         'degree':
         lambda faces, statistics, **kwargs: node_statistics(
-            faces,
+            dict(faces),
             'degree',
             statistics,
             **kwargs
         ),
         'area':
         lambda faces, statistics, **kwargs: node_statistics(
-            faces,
+            dict(faces),
             'area',
+            statistics,
+            **kwargs
+        ),
+        'circumference':
+        lambda faces, statistics, **kwargs: node_statistics(
+            dict(faces),
+            'circumference',
             statistics,
             **kwargs
         ),
         'centroid':
         lambda faces, statistics, **kwargs: edge_statistics(
-            faces,
+            dict(faces),
             'centroid',
             statistics,
             **kwargs
         ),
         'centroid_with_relations':
         lambda faces, statistics, **kwargs: edge_statistics(
-            faces,
+            dict(faces),
             'centroid',
             statistics,
-            get_relations(lines),
+            get_relations(faces, adjacency_matrix),
             **kwargs
         ),
         'angle':
         lambda faces, statistics, **kwargs: edge_statistics(
-            faces,
+            dict(faces),
             'angle',
             statistics,
             **kwargs
         ),
         'angle_with_relations':
         lambda faces, statistics, **kwargs: edge_statistics(
-            faces,
+            dict(faces),
             'angle',
             statistics,
-            get_relations(lines),
+            get_relations(faces, adjacency_matrix),
             **kwargs
         )
     }[geom_attrib](faces, statistics, **kwargs)
@@ -226,27 +236,25 @@ def features(filename, attributes, statistics, **kwargs):
         geom_logger.exception('Could not extract features for %s:', filename)
 
 
-def geometric_features(graph_dir, attributes, statistics, **parameters):
+def geometric_features(buildings, graph_dir, attributes, statistics, **parameters):
     geom_logger.info(
-        'Getting geometric features for all files in %s based %s and %s',
+        'Getting geometric features for buildings %s in %s based %s and %s',
+        buildings,
         graph_dir,
         attributes,
         statistics
     )
     return {
-        os.path.splitext(graph)[0]: np.array(
+        graph: np.array(
             features(
-                os.path.join(graph_dir, graph),
+                os.path.join(graph_dir, graph + '.txt'),
                 attributes,
                 statistics,
                 **parameters
             )
         )
         for graph in tqdm(
-            fnmatch.filter(
-                os.listdir(graph_dir),
-                '*.txt'
-            ),
+            buildings,
             desc='Geometric features'
         )
     }
@@ -259,7 +267,7 @@ def read(filename):
     geom_logger.info('Finished getting lines in %s...', filename)
 
     geom_logger.info('Getting facets...')
-    faces = get_faces(lines)
+    faces = dict(get_faces(lines))
     geom_logger.debug('Facets in %s : %s...', lines, faces)
     geom_logger.info('Getting the graph structure...')
     G = get_graph(lines)

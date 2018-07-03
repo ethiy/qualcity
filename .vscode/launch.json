@@ -8,7 +8,7 @@
             "name": "Python: app",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceRoot}/qualcity",
+            "program": "${workspaceRoot}/qual-city",
             "args": [
                 "pipeline",
                 "/home/ethiy/Workspace/GitHub/qualcity/conf/pipeline_config.yaml",

@@ -9,6 +9,8 @@ import math
 import operator
 import functools
 
+import pathos.multiprocessing as mp
+
 from tqdm import tqdm
 
 import numpy as np
@@ -57,79 +59,71 @@ def dsm_residual(model_name, margins, dsm_bboxes):
     ).image
 
 
-def partition(residuals, low_res, high_res):
+def partition(residuals, resolution):
     alti_logger.info(
-        'Getting histogram bins for %s with %s low values resolution'
-        + 'and %s high values resolution',
+        'Getting histogram bins for %s with %s resolution',
         residuals,
-        low_res,
-        high_res
+        resolution
     )
-    sorted_residuals = sorted(
-        np.hstack([diff.flatten() for diff in residuals])
+    min_resid = min(
+        [diff.min() for diff in residuals]
     )
-    alti_logger.debug(
-        'Sorted residuals: %s',
-        sorted_residuals
-    )
-    min_max, max_min = max(
-        zip(
-            sorted_residuals[1:],
-            sorted_residuals[:-1]
-        ),
-        key=lambda x: operator.sub(*x)
+    max_resid = max(
+        [diff.max() for diff in residuals]
     )
     alti_logger.debug(
-        'Low values boundary: %s, and High values boundary: %s',
-        min_max,
-        max_min
+        'Low boundary: %s, and High boundary: %s',
+        min_resid,
+        max_resid
     )
-    return np.hstack(
-        (
-            np.linspace(
-                math.floor(sorted_residuals[0]),
-                math.ceil(max_min),
-                low_res
-            ),
-            np.linspace(
-                math.floor(min_max),
-                math.ceil(sorted_residuals[-1]),
-                high_res
-            )
-        )
+    return np.linspace(
+        math.floor(min_resid),
+        math.ceil(max_resid),
+        resolution
     )
 
 
 def histograms(
+    buildings,
     model_dir,
     dsm_bboxes,
     margins=(0, 0),
     model_ext='*.tiff',
-    low_res=5,
-    high_res=5
+    resolution=10
 ):
     alti_logger.info(
-        'Computing histograms for residuals of all buildings in %s wrt DSMs '
-        + 'in %s (with extension %s and margins %s) with %s low values '
-        + 'resolution and %s high values resolution',
+        'Computing histograms for residuals of buildings %s in %s wrt DSMs '
+        + 'in %s (with extension %s and margins %s) with %s resolution',
+        buildings,
         model_dir,
         dsm_bboxes,
         model_ext,
         margins,
-        low_res,
-        high_res
+        resolution
     )
     residuals = {
         model_name: dsm_residual(
-            os.path.join(model_dir, model_name),
+            os.path.join(model_dir, model_name + model_ext),
             margins,
             dsm_bboxes
         )
-        for model_name in fnmatch.filter(
-            os.listdir(model_dir),
-            model_ext
-        )
+        for model_name in buildings
     }
+    # pool = mp.Pool(processes=20)
+    
+    # residuals = dict(
+    #     pool.map(
+    #         lambda model_name:(
+    #             model_name,
+    #             dsm_residual(
+    #                 os.path.join(model_dir, model_name + model_ext),
+    #                 margins,
+    #                 dsm_bboxes
+    #             )
+    #         ),
+    #         buildings
+    #     )
+    # )
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
         + '(with extension %s and margins %s)',
@@ -138,13 +132,11 @@ def histograms(
         model_ext,
         margins
     )
-    bins = partition(residuals.values(), low_res, high_res)
+    bins = partition(residuals.values(), resolution)
     alti_logger.debug(
-        'Histogram bins for %s with %s low values resolution'
-        + 'and %s high values resolution',
+        'Histogram bins for %s with %s resolution',
         residuals.values(),
-        low_res,
-        high_res
+        resolution
     )
     return {
         model_name: np.histogram(
@@ -157,25 +149,24 @@ def histograms(
 
 
 def histogram_features(
+    buildings,
     model_dir,
     dsm_dir,
     margins=(0, 0),
     model_ext='tiff',
     dsm_ext='geotiff',
-    low_res=5,
-    high_res=5
+    resolution=10
 ):
     alti_logger.info(
-        'Computing histogram features for all buildings in %s with extension '
-        + '%s and margins %s wrt DSMs in %s (with extension %s) with %s low '
-        + 'values resolution and %s high values resolution',
+        'Computing histogram features for buildings %s in %s with extension '
+        + '%s and margins %s wrt DSMs in %s (with extension %s) with %s resolution',
+        buildings,
         model_dir,
         dsm_ext,
         margins,
         dsm_dir,
         model_ext,
-        low_res,
-        high_res
+        resolution
     )
     dsm_bboxes = {
         os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
@@ -196,11 +187,11 @@ def histogram_features(
         os.path.splitext(model_name)[0]: histogram
         for model_name, (histogram, _)
         in histograms(
+            buildings,
             model_dir,
             dsm_bboxes,
             margins,
-            '*.' + model_ext,
-            low_res,
-            high_res
+            '.' + model_ext,
+            resolution
         ).items()
     }

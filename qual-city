@@ -26,14 +26,14 @@ import logging.config
 
 import matplotlib.pyplot as plt
 
-import city.features
-import city.labels
-import city.learning
-import city.utils
-import city.config
+import qualcity.features
+import qualcity.labels
+import qualcity.learning
+import qualcity.utils
+import qualcity.config
 
 
-logger = logging.getLogger('qualcity')
+logger = logging.getLogger('city')
 
 def config_logger(arguments):
     if not arguments['logger']:
@@ -61,7 +61,7 @@ def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
     return [
         (building, label)
         for building, label in sorted(
-            city.labels.labels_map(
+            qualcity.labels.labels_map(
                 labels_path,
                 hierarchical,
                 depth,
@@ -103,14 +103,14 @@ def build_reductor(algorithm, **parameters):
         logger.error('Cannot visualize less than two dimensions!')
         raise ValueError
 
-    return city.utils.resolve(algorithm)(
+    return qualcity.utils.resolve(algorithm)(
         **parameters
     )
 
 
 def visualize(features, labels, label_names, **visualization_args):
     logger.info('Feature space visualization.')
-    city.features.visualize_features(
+    qualcity.features.visualize_features(
         features,
         labels,
         label_names,
@@ -134,7 +134,7 @@ def process(features, labels, buildings, label_names, **process_args):
             **process_args['visualization']
         )
 
-    city.learning.classify(
+    qualcity.learning.classify(
         features,
         labels,
         buildings,
@@ -163,16 +163,16 @@ def label_names(config, labels):
         return (
             {
                 'Valid': None,
-                'Building': city.labels.LABELS(
+                'Building': qualcity.labels.LABELS(
                     config['LoD'],
                     ['Building']
                 ),
-                'Facet': city.labels.LABELS(
+                'Facet': qualcity.labels.LABELS(
                     config['LoD'],
                     ['Facet']
                 )
             } if config['hierarchical']
-            else city.labels.LABELS(
+            else qualcity.labels.LABELS(
                 config['LoD'],
                 ['Building', 'Facet']
             )
@@ -185,7 +185,7 @@ def main():
     arguments = docopt.docopt(
         __doc__,
         help=True,
-        version=city.config.__version__,
+        version=qualcity.config.__version__,
         options_first=False
     )
 
@@ -205,7 +205,7 @@ def main():
     logger.debug('Labels are: %s', labels)
     logger.info('Labels safely loaded.')
 
-    features = city.features.get_features(
+    features = qualcity.features.get_features(
         buildings,
         **configuration['features']['types']
     )
@@ -213,7 +213,7 @@ def main():
     logger.info('Features safely loaded.')
 
     if 'manifold' in configuration['features']:
-        features = city.features.transform(
+        features = qualcity.features.transform(
             features,
             **configuration['features']['manifold']
         )

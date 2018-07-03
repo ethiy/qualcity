@@ -2,7 +2,7 @@
 # -*- coding: <utf-8> -*-
 
 from setuptools import setup, find_packages
-from city import config
+from qualcity import config
 
 def readme():
     """
@@ -40,7 +40,7 @@ setup(
         'Operating System :: Unix',
         'Operating System :: Windows'
     ],
-    scripts=['qualcity'],
+    scripts=['qual-city'],
     keywords='qualification building 3d reconstruction graphs computer vision',
     url='https://github.com/ethiy/qualcity',
     author='Oussama Ennafii [IGN :: LaSTIG]',

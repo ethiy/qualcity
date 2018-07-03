@@ -3,52 +3,51 @@ scene:
 
 labels:
     labels_path:
-        /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/ground_truth.csv
-    depth: 2
+        /home/ethiy/Data/Elancourt/ground_truth.csv
+    depth: 3
     LoD: 2
     hierarchical: False
     filetype: csv
-    threshold: 5
+    threshold: 10
 
 features:
     types:
-        geometric:
-            graph_dir:
-                /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/dual_graphs
-            statistics:
-                - mean
-                - median
-                - max
-                - min
-            attributes:
-                - degree
-                - angle_with_relations
-                - centroid_with_relations
-                - area
+        # geometric:
+        #     graph_dir:
+        #         /home/ethiy/Data/Elancourt/projections/dual_graphs
+        #     statistics:
+        #         - mean
+        #         - median
+        #         - max
+        #         - min
+        #     attributes:
+        #         - degree
+        #         - angle_with_relations
+        #         - centroid_with_relations
+        #         - area
         altimetric:
             model_dir:
-                /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/rasters
+                /home/ethiy/Data/Elancourt/projections/rasters
             dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
             margins: (0, 0)
             model_ext: tiff
             dsm_ext: geotiff
-            high_res: 5
-            low_res: 5
-        radiometric:
-            vector_dir: /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/_labels
-            ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
-            ortho_ext: 'geotiff'
-            vector_ext: 'shp'
-            method: gradient
-            parameters:
-                resolution: 10
-                weight: (True, True, True)
-    manifold:
-        algorithm: sklearn.decomposition.KernelPCA
-        parameters:
-            kernel: 'rbf'
-            gamma: .0000001
-            n_components: 10
+            resolution: 10
+        # radiometric:
+        #     vector_dir: /home/ethiy/Data/Elancourt/projections/vectors
+        #     ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
+        #     ortho_ext: 'geotiff'
+        #     vector_ext: 'shp'
+        #     method: gradient
+        #     parameters:
+        #         resolution: 10
+        #         weight: (True, True, True)
+    # manifold:
+    #     algorithm: sklearn.decomposition.KernelPCA
+    #     parameters:
+    #         kernel: 'rbf'
+    #         gamma: .0000001
+    #         n_components: 10
 processing:
     visualization:
         dimension_reduction:

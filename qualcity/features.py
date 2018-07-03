@@ -17,10 +17,11 @@ from . import utils
 feature_logger = logging.getLogger(__name__)
 
 
-def feature(feat_type, **kwargs):
+def atributes(buildings, feat_type, **kwargs):
     if feat_type == 'geometric':
         if 'paramaters' in kwargs.keys():
             return geometric_features.geometric_features(
+                buildings,
                 kwargs['graph_dir'],
                 kwargs['attributes'],
                 kwargs['statistics'],
@@ -28,6 +29,7 @@ def feature(feat_type, **kwargs):
             )
         else:
             return geometric_features.geometric_features(
+                buildings,
                 kwargs['graph_dir'],
                 kwargs['attributes'],
                 kwargs['statistics']
@@ -35,9 +37,9 @@ def feature(feat_type, **kwargs):
     elif feat_type == 'altimetric':
         if 'margins' in kwargs.keys():
             kwargs['margins'] = ast.literal_eval(kwargs['margins'])
-        return altimetric_features.histogram_features(**kwargs)
+        return altimetric_features.histogram_features(buildings, **kwargs)
     elif feat_type == 'radiometric':
-        return radiometric_features.radiometric_features(**kwargs)
+        return radiometric_features.radiometric_features(buildings, **kwargs)
     else:
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)
@@ -47,7 +49,7 @@ def feature(feat_type, **kwargs):
 def get_features(buildings, **feature_types):
     feature_logger.info('Getting features ...')
     feature_dicts = [
-        feature(feat_type, **feature_types[feat_type])
+        atributes(buildings, feat_type, **feature_types[feat_type])
         for feat_type in feature_types.keys()
     ]
     return [
@@ -175,7 +177,7 @@ def visualize_category(ax, color, marker, label, features):
         marker
     )
     feature_logger.info('Unpacking coordinates...')
-    coordinates = zip(
+    xs, ys, zs = zip(
         *[
             list(couple)
             for couple
@@ -184,5 +186,5 @@ def visualize_category(ax, color, marker, label, features):
             )
         ]
     )
-    feature_logger.debug('Unpacked %s coordinates: %s', label, coordinates)
-    ax.scatter(*coordinates, label=label, c=color, marker=marker)
+    feature_logger.debug('Unpacked %s coordinates: %s', label, (xs, ys, zs))
+    ax.scatter(xs, ys, zs, label=label, c=color, marker=marker)
