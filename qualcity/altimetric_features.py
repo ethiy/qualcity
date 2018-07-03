@@ -9,8 +9,6 @@ import math
 import operator
 import functools
 
-import pathos.multiprocessing as mp
-
 from tqdm import tqdm
 
 import numpy as np
@@ -107,23 +105,12 @@ def histograms(
             margins,
             dsm_bboxes
         )
-        for model_name in buildings
+        for model_name
+        in tqdm(
+            buildings,
+            desc='  > Computing Residuals'
+        )
     }
-    # pool = mp.Pool(processes=20)
-    
-    # residuals = dict(
-    #     pool.map(
-    #         lambda model_name:(
-    #             model_name,
-    #             dsm_residual(
-    #                 os.path.join(model_dir, model_name + model_ext),
-    #                 margins,
-    #                 dsm_bboxes
-    #             )
-    #         ),
-    #         buildings
-    #     )
-    # )
     alti_logger.debug(
         'Residuals of Qualifiable buildings in %s wrt DSMs in %s '
         + '(with extension %s and margins %s)',
@@ -186,12 +173,15 @@ def histogram_features(
     return {
         os.path.splitext(model_name)[0]: histogram
         for model_name, (histogram, _)
-        in histograms(
-            buildings,
-            model_dir,
-            dsm_bboxes,
-            margins,
-            '.' + model_ext,
-            resolution
-        ).items()
+        in tqdm(
+            histograms(
+                buildings,
+                model_dir,
+                dsm_bboxes,
+                margins,
+                '.' + model_ext,
+                resolution
+            ).items(),
+            desc='Altimetric features'
+        )
     }
