@@ -367,6 +367,7 @@ def get_method(vector_dir, ortho_infos, method, **method_args):
 
 
 def radiometric_features(
+    buildings,
     vector_dir,
     ortho_dir,
     ortho_ext='geotiff',
@@ -374,8 +375,9 @@ def radiometric_features(
     **parameters
 ):
     radio_logger.info(
-        'Computing radiometric features for all buildings in %s with extension'
+        'Computing radiometric features for buildings %s in %s with extension'
         + ' %s wrt Orthoimages in %s with extension %s applying parameters %s',
+        buildings,
         vector_dir,
         vector_ext,
         ortho_dir,
@@ -404,16 +406,13 @@ def radiometric_features(
         **parameters['parameters']
     )
     return {
-        os.path.splitext(building)[0]:
+        building:
         np.concatenate(
             method(building).reshape(1, -1),
             axis=-1
         )
         for building in tqdm(
-            fnmatch.filter(
-                os.listdir(vector_dir),
-                '*.' + vector_ext
-            ),
+            buildings,
             desc='Radiometric features'
         )
     }
