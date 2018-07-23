@@ -14,6 +14,7 @@ Options:
 """
 
 import time
+import os
 
 import docopt
 
@@ -54,6 +55,17 @@ def config_logger(arguments):
         )
         logger.info('Loaded logger from: ' + arguments['<log_conf>'])
         logger.debug(yaml.dump(configuration))
+
+
+def prepare_cache(cache_file):
+    if not os.path.isdir(cache_file):
+        os.mkdir(cache_file)
+    if not os.path.isdir(os.path.join(cache_file, 'predictions')):
+        os.mkdir(os.path.join(cache_file, 'predictions'))
+    if not os.path.isdir(os.path.join(cache_file, 'classifiers')):
+        os.mkdir(os.path.join(cache_file, 'classifiers'))
+    if not os.path.isdir(os.path.join(cache_file, 'features')):
+        os.mkdir(os.path.join(cache_file, 'features'))
 
 
 def get_labels(hierarchical, depth, LoD, threshold, labels_path, filetype):
@@ -124,7 +136,7 @@ def visualize(features, labels, label_names, **visualization_args):
     logger.info('Visualization process ended.')
 
 
-def process(features, labels, buildings, label_names, **process_args):
+def process(features, labels, buildings, label_names, cache_file, cache_config, **process_args):
     logger.info('Processing features...')
     if 'visualization' in process_args.keys():
         visualize(
@@ -139,6 +151,8 @@ def process(features, labels, buildings, label_names, **process_args):
         labels,
         buildings,
         label_names,
+        cache_file,
+        cache_config,
         **process_args['classification']
     )
     logger.info('Succesfully classified features.')
@@ -194,6 +208,9 @@ def main():
     configuration = load_pipeline_config(arguments['<pipline_conf>'])
     logger.info('Pipeline loaded.')
 
+    prepare_cache(configuration['cache'])
+    logger.info('Cache prepared.')
+
     buildings, labels = format_labels(
         **configuration['labels']
     )
@@ -207,6 +224,7 @@ def main():
 
     features = qualcity.features.get_features(
         buildings,
+        configuration['cache'],
         **configuration['features']['types']
     )
     logger.debug(features)
@@ -228,6 +246,12 @@ def main():
             configuration['labels'],
             labels
         ),
+        configuration['cache'],
+        {
+            key: conf
+            for (key, conf) in configuration.items()
+            if key in ['labels', 'features']
+        },
         **configuration['processing']
     )
 

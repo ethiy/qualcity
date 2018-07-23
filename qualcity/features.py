@@ -2,7 +2,11 @@
 
 import logging
 
+import os
+import uuid
 import ast
+
+import tqdm
 
 import numpy as np
 
@@ -17,10 +21,51 @@ from . import utils
 feature_logger = logging.getLogger(__name__)
 
 
-def atributes(buildings, feat_type, **kwargs):
+def atributes(buildings, feat_type, cache_dir, **kwargs):
+    ledger = utils.cache_ledger(cache_dir, 'features')
+    cached_features = {
+        building: utils.read_cached_feature(
+            cache_dir,
+            dict(
+                [
+                    (
+                        'type',
+                        feat_type
+                    ),
+                    (
+                        'building',
+                        building
+                    )
+                ]
+                +
+                list(kwargs.items())
+            ),
+            ledger
+        )
+        for building in tqdm.tqdm(
+            buildings,
+            desc='Cached features'
+        )
+    }
+    cached_features.update(
+        compute_attributes(
+            [
+                building
+                for building in buildings
+                if cached_features[building] is None
+            ],
+            feat_type,
+            cache_dir,
+            **kwargs
+        )
+    )
+    return cached_features
+
+
+def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
     if feat_type == 'geometric':
         if 'paramaters' in kwargs.keys():
-            return geometric_features.geometric_features(
+            features = geometric_features.geometric_features(
                 buildings,
                 kwargs['graph_dir'],
                 kwargs['attributes'],
@@ -28,7 +73,7 @@ def atributes(buildings, feat_type, **kwargs):
                 **kwargs['paramaters']
             )
         else:
-            return geometric_features.geometric_features(
+            features = geometric_features.geometric_features(
                 buildings,
                 kwargs['graph_dir'],
                 kwargs['attributes'],
@@ -37,19 +82,21 @@ def atributes(buildings, feat_type, **kwargs):
     elif feat_type == 'altimetric':
         if 'margins' in kwargs.keys():
             kwargs['margins'] = ast.literal_eval(kwargs['margins'])
-        return altimetric_features.histogram_features(buildings, **kwargs)
+        features = altimetric_features.histogram_features(buildings, **kwargs)        
     elif feat_type == 'radiometric':
-        return radiometric_features.radiometric_features(buildings, **kwargs)
+        features = radiometric_features.radiometric_features(buildings, **kwargs)
     else:
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)
         )
+    utils.cache_features(cache_dir, feat_type, kwargs, features)
+    return features
 
 
-def get_features(buildings, **feature_types):
+def get_features(buildings, cache_dir, **feature_types):
     feature_logger.info('Getting features ...')
     feature_dicts = [
-        atributes(buildings, feat_type, **feature_types[feat_type])
+        atributes(buildings, feat_type, cache_dir, **feature_types[feat_type])
         for feat_type in feature_types.keys()
     ]
     return [

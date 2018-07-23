@@ -6,6 +6,9 @@ import operator
 
 import logging
 
+import os
+import uuid
+
 import pathos.multiprocessing as mp
 
 import numpy as np
@@ -341,9 +344,13 @@ def save_prediction(
     predictions,
     proba_predictions,
     label_names,
-    filename='predictions'
+    cache_dir,
+    config
 ):
-    with open(filename + '.csv', 'w') as prediction_file:
+    cache_id = str(uuid.uuid4())
+    utils.store_cache_ledger(cache_dir, 'predictions', cache_id, config)
+
+    with open(os.path.join(cache_dir, 'predictions', cache_id + '.csv'), 'w') as prediction_file:
         if isinstance(label_names, tuple):
             for building, labels in predictions.items():
                 prediction_file.write(
@@ -647,6 +654,8 @@ def train_test(
     label_names,
     train_indices,
     test_indices,
+    cache_dir,
+    cache_config,
     **class_args
 ):
     model, train_cm = train(
@@ -655,8 +664,25 @@ def train_test(
         label_names,
         **class_args['training']
     )
-    if 'save' in class_args['training']['model']:
-        skPickler.dump(model, class_args['training']['model']['save'] + '.pkl')
+    cache_id = str(uuid.uuid4())
+    skPickler.dump(model, os.path.join(cache_dir, 'classifiers', cache_id + '.pkl'))
+    utils.store_cache_ledger(
+        cache_dir,
+        'classifiers',
+        cache_id,
+        dict(
+            [
+                (
+                    'training samples',
+                    [buildings[idx] for idx in train_indices]
+                )
+            ]
+            +
+            list(cache_config.items())
+            +
+            list(class_args.items())
+        )
+    )
     learning_logger.info(
         'Succesfully trained on all the features.'
     )
@@ -685,7 +711,7 @@ def train_test(
     )
 
 
-def classify(features, labels, buildings, label_names, **class_args):
+def classify(features, labels, buildings, label_names, cache_dir, cache_config, **class_args):
     learning_logger.info('Classification process starting...')
 
     indices = data_split(
@@ -712,6 +738,8 @@ def classify(features, labels, buildings, label_names, **class_args):
             label_names,
             indices[0],
             indices[1],
+            cache_dir,
+            cache_config,
             **class_args
         )
     elif isinstance(indices, list):
@@ -726,6 +754,8 @@ def classify(features, labels, buildings, label_names, **class_args):
                         label_names,
                         train_idx,
                         test_idx,
+                        cache_dir,
+                        cache_config,
                         **class_args
                     )
                 )(*p),
@@ -769,7 +799,12 @@ def classify(features, labels, buildings, label_names, **class_args):
         predictions,
         proba_predictions,
         label_names,
-        **class_args['testing']['predictions']
+        cache_dir,
+        dict(
+            list(cache_config.items())
+            +
+            list(class_args.items())
+        )
     )
     if train_cm is not None and test_cm is not None:
         for cm in [train_cm, test_cm]:

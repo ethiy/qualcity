@@ -6,6 +6,9 @@ import functools
 import logging
 
 import sys
+import os
+import ast
+import uuid
 
 import unicodedata
 
@@ -151,3 +154,108 @@ def resolve(string):
         v_exc = ValueError('Could not resolve %r: %s' % (string, exc))
         v_exc.__cause__, v_exc.traceback__ = exc, tb
         raise v_exc
+
+
+def cache_ledger(cache_dir, kind):
+    try:
+        with open(
+                os.path.join(
+                    cache_dir,
+                    kind,
+                    'codebook.csv'
+                ),
+                'r'
+            ) as codebook:
+            lines = codebook.readlines()
+        
+        return dict(
+            [line.split('; ') for line in lines]
+        )
+    except FileNotFoundError:
+        return {} 
+
+
+def cached(config, cachebook):
+    return [
+        cache_name
+        for (cache_name, cache_conf) in cachebook.items()
+        if ast.literal_eval(cache_conf) == config
+    ]
+
+
+def store_cache_ledger(cache_dir, kind, cache_id, configuration):
+    with open(
+            os.path.join(
+                cache_dir,
+                kind,
+                'codebook.csv'
+            ),
+            'a+'
+        ) as codebook:
+        codebook.write(
+            cache_id
+            +
+            '; '
+            +
+            str(configuration)
+            +
+            '\n'
+        )
+
+    if kind not in ['classifiers', 'predictions', 'features']:
+        utils_logger.warning('Unknown %s cached variable type!', kind)
+
+
+def cache_features(cache_dir, feat_type, config, feat_dict):
+    for (building, feature) in feat_dict.items():
+        cache_feature(cache_dir, feat_type, building, config, feature)
+
+
+def cache_feature(cache_dir, feat_type, building, config, feature):
+    feature_id = str(uuid.uuid4())
+    store_cache_ledger(
+        cache_dir,
+        'features',
+        feature_id, 
+        dict(
+            [
+                (
+                    'type',
+                    feat_type
+                ),
+                (
+                    'building',
+                    building
+                )
+            ]
+            +
+            list(config.items())
+        )
+    )
+    np.savetxt(
+        os.path.join(
+            cache_dir,
+            'features',
+            feature_id + '.csv'
+        ),
+        np.expand_dims(feature, axis=0),
+        delimiter=","
+    )
+
+
+def read_cached_feature(cache_dir, config, cachebook):
+    cachedname_ = cached(config, cachebook)
+    return read_feature(cache_dir, cachedname_[0]) if len(cachedname_) else None
+
+
+def read_feature(cache_dir, cachename):
+    with open(
+        os.path.join(
+            cache_dir,
+            'features',
+            cachename + '.csv'
+        ),
+        'r'
+        ) as cache_file:
+        line = cache_file.readline()
+    return np.fromstring(line, sep=',')
