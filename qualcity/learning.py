@@ -686,13 +686,13 @@ def train_test(
             )
         )
         preds = predict(
-                model,
-                buildings,
-                np.array(features)[train_indices],
-                label_names
-            )
+            model,
+            [buildings[idx] for idx in train_indices],
+            np.array(features)[train_indices],
+            label_names
+        )
         train_cm = report(
-            preds.values(),
+            [preds[buildings[idx]] for idx in train_indices],
             None if labels is None else [labels[idx] for idx in train_indices],
             label_names
         )
