@@ -517,6 +517,7 @@ def report(predicted, true, label_names):
             else:
                 raise NotImplementedError
         else:
+            # print(true, predicted)
             return sklearn.metrics.confusion_matrix(
                 true,
                 predicted
@@ -658,18 +659,7 @@ def train_test(
     cache_config,
     **class_args
 ):
-    model, train_cm = train(
-        np.array(features)[train_indices],
-        None if labels is None else [labels[idx] for idx in train_indices],
-        label_names,
-        **class_args['training']
-    )
-    cache_id = str(uuid.uuid4())
-    skPickler.dump(model, os.path.join(cache_dir, 'classifiers', cache_id + '.pkl'))
-    utils.store_cache_ledger(
-        cache_dir,
-        'classifiers',
-        cache_id,
+    cachedname_ = utils.cached(
         dict(
             [
                 (
@@ -681,11 +671,64 @@ def train_test(
             list(cache_config.items())
             +
             list(class_args.items())
+        ),
+        utils.cache_ledger(
+            cache_dir,
+            'classifiers'
         )
     )
-    learning_logger.info(
-        'Succesfully trained on all the features.'
-    )
+    if len(cachedname_):
+        model = build_classifier(
+            filename = os.path.join(
+                cache_dir,
+                'classifiers',
+                cachedname_[0] + '.pkl'
+            )
+        )
+        preds = predict(
+                model,
+                buildings,
+                np.array(features)[train_indices],
+                label_names
+            )
+        train_cm = report(
+            preds.values(),
+            None if labels is None else [labels[idx] for idx in train_indices],
+            label_names
+        )
+        
+        learning_logger.info(
+            'Succesfully retreived from cache.'
+        )
+    else:
+        model, train_cm = train(
+            np.array(features)[train_indices],
+            None if labels is None else [labels[idx] for idx in train_indices],
+            label_names,
+            **class_args['training']
+        )
+        cache_id = str(uuid.uuid4())
+        skPickler.dump(model, os.path.join(cache_dir, 'classifiers', cache_id + '.pkl'))
+        utils.store_cache_ledger(
+            cache_dir,
+            'classifiers',
+            cache_id,
+            dict(
+                [
+                    (
+                        'training samples',
+                        [buildings[idx] for idx in train_indices]
+                    )
+                ]
+                +
+                list(cache_config.items())
+                +
+                list(class_args.items())
+            )
+        )
+        learning_logger.info(
+            'Succesfully trained on all the features.'
+        )
     predictions, test_cm = test(
         model,
         [buildings[idx] for idx in test_indices],

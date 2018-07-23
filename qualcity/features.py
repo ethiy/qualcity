@@ -44,7 +44,7 @@ def atributes(buildings, feat_type, cache_dir, **kwargs):
         )
         for building in tqdm.tqdm(
             buildings,
-            desc='Cached features'
+            desc='Cached ' + feat_type + ' features'
         )
     }
     cached_features.update(
