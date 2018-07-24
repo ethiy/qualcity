@@ -6,8 +6,11 @@ import operator
 
 import logging
 
+import yaml
+
 import os
 import uuid
+import time
 
 import pathos.multiprocessing as mp
 
@@ -235,7 +238,7 @@ def predict(model, buildings, features, label_names):
         raise LookupError('Labels %s not supported', label_names)
 
 
-def test(model, buildings, features, ground_truth, label_names, **test_args):
+def test(model, buildings, features, ground_truth, label_names, reportname, **test_args):
     predictions = predict(
         model,
         buildings,
@@ -251,12 +254,13 @@ def test(model, buildings, features, ground_truth, label_names, **test_args):
                 for building in buildings
             ],
             ground_truth,
-            label_names
+            label_names,
+            reportname
         ) if ground_truth is not None else None
     )
 
 
-def train(features, true, label_names, **train_args):
+def train(features, true, label_names, reportname, **train_args):
     learning_logger.info('Training...')
     model = build_classifier(**train_args['model'])
 
@@ -267,13 +271,13 @@ def train(features, true, label_names, **train_args):
         predicted = model.fit(features, np.array(true)).predict(
             features
         )
-        return (model, report(predicted, true, label_names))
+        return (model, report(predicted, true, label_names, reportname))
     elif isinstance(label_names, list):
         learning_logger.info('Fitting and predicting multilabels...')
         predicted = model.fit(features, np.array(true)).predict(
             np.array(features)
         )
-        return (model, report(predicted, true, label_names))
+        return (model, report(predicted, true, label_names, reportname))
     elif isinstance(label_names, dict):
         learning_logger.info('Separate families from classes...')
         families, errors = zip(*true)
@@ -326,7 +330,8 @@ def train(features, true, label_names, **train_args):
                         report(
                             predicted_families,
                             families,
-                            tuple(label_names.keys())
+                            tuple(label_names.keys()),
+                            reportname
                         )
                     )
                 ]
@@ -431,7 +436,7 @@ def save_prediction(
             raise LookupError('Labels %s not supported', label_names)
 
 
-def report(predicted, true, label_names):
+def report(predicted, true, label_names, cachename):
     if isinstance(label_names, dict):
         (
             (true_families, _),
@@ -447,7 +452,8 @@ def report(predicted, true, label_names):
                     report(
                         predicted_families,
                         true_families,
-                        tuple(label_names.keys())
+                        tuple(label_names.keys()),
+                        cachename
                     )
                 )
             ]
@@ -458,7 +464,8 @@ def report(predicted, true, label_names):
                     report(
                         z_predicted_errors,
                         z_true_errors,
-                        label_names[family]
+                        label_names[family],
+                        cachename
                     )
                 )
                 for family, (z_predicted_errors, z_true_errors)
@@ -489,39 +496,41 @@ def report(predicted, true, label_names):
             report(
                 z_predicted,
                 z_true,
-                ('None', label_names[number])
+                ('None', label_names[number]),
+                cachename
             )
             for number, (z_predicted, z_true) in enumerate(
                 zip(zip(*predicted), zip(*true))
             )
         ]
     elif isinstance(label_names, tuple):
-        present = set(true)
-        if len(present) != len(label_names):
-            if len(present) == 1:
-                cm = np.zeros((len(label_names), len(label_names)), dtype=int)
-                if 1 in present:
+        current_labels = set(true)
+        cm = np.zeros((len(label_names), len(label_names)), dtype=int)
+        if len(current_labels) != len(label_names):
+            if len(current_labels) == 1:
+                if 1 in current_labels:
                     cm[1, 1] = sklearn.metrics.confusion_matrix(
                         true,
                         predicted
                     )[0, 0]
-                    return cm
-                elif 0 in present:
+                elif 0 in current_labels:
                     cm[0, 0] = sklearn.metrics.confusion_matrix(
                         true,
                         predicted
                     )[0, 0]
-                    return cm
                 else:
                     raise NotImplementedError
             else:
                 raise NotImplementedError
         else:
-            # print(true, predicted)
-            return sklearn.metrics.confusion_matrix(
+            cm = sklearn.metrics.confusion_matrix(
                 true,
                 predicted
             )
+        with open(cachename, 'a+') as cachefile:
+            cachefile.write('Confusion matrix for: ' + ', '.join(label_names) + '\n')
+            cachefile.write(np.array2string(cm) + '\n')
+        return cm
     else:
         raise LookupError('Labels %s not supported', label_names)
 
@@ -657,8 +666,31 @@ def train_test(
     test_indices,
     cache_dir,
     cache_config,
+    reportname,
     **class_args
 ):
+    with open(
+            os.path.join(
+                cache_dir,
+                'reports',
+                reportname
+            ),
+            'a+'
+        ) as reportfile:
+        reportfile.write('Experiment parameters:\n')
+        reportfile.write(
+            yaml.dump(
+                list(cache_config.items())
+                +
+                list(class_args.items())
+            )
+        )
+        reportfile.write('\nModel trained over: ')
+        reportfile.write(
+            ', '.join(
+                [buildings[idx] for idx in train_indices]
+            )
+        )
     cachedname_ = utils.cached(
         dict(
             [
@@ -691,10 +723,24 @@ def train_test(
             np.array(features)[train_indices],
             label_names
         )
+        with open(
+                os.path.join(
+                    cache_dir,
+                    'reports',
+                    reportname
+                ),
+                'a+'
+            ) as reportfile:
+                reportfile.write('Training report: \n')
         train_cm = report(
             [preds[buildings[idx]] for idx in train_indices],
             None if labels is None else [labels[idx] for idx in train_indices],
-            label_names
+            label_names,
+            os.path.join(
+                cache_dir,
+                'reports',
+                reportname
+            )
         )
         
         learning_logger.info(
@@ -705,6 +751,11 @@ def train_test(
             np.array(features)[train_indices],
             None if labels is None else [labels[idx] for idx in train_indices],
             label_names,
+            os.path.join(
+                cache_dir,
+                'reports',
+                reportname
+            ),
             **class_args['training']
         )
         cache_id = str(uuid.uuid4())
@@ -729,12 +780,26 @@ def train_test(
         learning_logger.info(
             'Succesfully trained on all the features.'
         )
+    with open(
+            os.path.join(
+                cache_dir,
+                'reports',
+                reportname
+            ),
+            'a+'
+        ) as reportfile:
+        reportfile.write('\n\nTest report:\n')
     predictions, test_cm = test(
         model,
         [buildings[idx] for idx in test_indices],
         np.array(features)[test_indices],
         None if labels is None else [labels[idx] for idx in test_indices],
         label_names,
+        os.path.join(
+            cache_dir,
+            'reports',
+            reportname
+        ),
         **class_args['testing']
     )
     learning_logger.info(
@@ -756,7 +821,7 @@ def train_test(
 
 def classify(features, labels, buildings, label_names, cache_dir, cache_config, **class_args):
     learning_logger.info('Classification process starting...')
-
+    reportname = 'report-' + time.ctime()
     indices = data_split(
         features,
         labels,
@@ -783,6 +848,7 @@ def classify(features, labels, buildings, label_names, cache_dir, cache_config, 
             indices[1],
             cache_dir,
             cache_config,
+            reportname,
             **class_args
         )
     elif isinstance(indices, list):
@@ -790,19 +856,20 @@ def classify(features, labels, buildings, label_names, cache_dir, cache_config, 
         z_predictions, z_proba_predictions, train_cms, test_cms = zip(
             *pool.map(
                 lambda p: (
-                    lambda train_idx, test_idx: train_test(
+                    lambda cv_idx, idxes: train_test(
                         features,
                         labels,
                         buildings,
                         label_names,
-                        train_idx,
-                        test_idx,
+                        idxes[0],
+                        idxes[1],
                         cache_dir,
                         cache_config,
+                        reportname + '-' + str(cv_idx) + '.txt',
                         **class_args
                     )
                 )(*p),
-                indices
+                enumerate(indices)
             )
         )
         predictions = dict(

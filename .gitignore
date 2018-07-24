@@ -16,6 +16,9 @@ venv
 # Log files
 *.log
 
+# Cache files
+cache
+
 # Predition files
 *.csv
 
