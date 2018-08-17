@@ -44,17 +44,19 @@ ERROR_DICTIONARY = {
 UNQUALIFIABLE_ERROR_LIST = ['Unqualifiable']
 
 BUILDING_ERROR_LIST = [
-    'Over Segmentation',
-    'Under Segmentation',
-    'Footprint',
-    'Height'
+    'Building over segmentation',
+    'Building under segmentation',
+    'Building footprint imprecise borders',
+    'Building footprint inaccurate topology',
+    'Building imprecise geometry'
 ]
 
 FACET_ERROR_LIST = [
-    'Over Segmentation',
-    'Under Segmentation',
-    'Imprecise Segmentation',
-    'Slope'
+    'Facet over segmentation',
+    'Facet under segmentation',
+    'Facet inaccurate topology',
+    'Facet imprecise borders',
+    'Facet imprecise geometry'
 ]
 
 ERROR_CATEGORY_DICTIONARY = {
@@ -81,15 +83,9 @@ INV_CLASSES = {v: k for k, v in CLASSES.items()}
 
 def LABELS(LoD, family):
     return (
-        (LoD > 0) * ('Building' in family) * [
-            ('Building ' + err) if 'Segmentation' in err else err
-            for err in BUILDING_ERROR_LIST
-        ]
+        (LoD > 0) * ('Building' in family) * BUILDING_ERROR_LIST
         +
-        (LoD > 1) * ('Facet' in family) * [
-            ('Facet ' + err) if 'Segmentation' in err else err
-            for err in FACET_ERROR_LIST
-        ]
+        (LoD > 1) * ('Facet' in family) * FACET_ERROR_LIST
     )
 
 
