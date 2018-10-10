@@ -38,7 +38,7 @@ logger = logging.getLogger('city')
 
 def config_logger(arguments):
     if not arguments['logger']:
-        logging.config.dictConfig(city.config.logger_default)
+        logging.config.dictConfig(qualcity.config.logger_default)
         logger.info('Default logger chosen.')
     else:
         with open(arguments['<log_conf>'], mode='r') as conf:
