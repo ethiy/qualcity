@@ -1,9 +1,9 @@
-scene:
-    /home/ethiy/Data/Elancourt/Bati3D/EXPORT_1246-13704/export-3DS/Export_Matis_EXPORT_1246-13704.3DS
+cache:
+    /home/ethiy/Data/Assembled/cache
 
 labels:
     labels_path:
-        /home/ethiy/Data/Elancourt/ground_truth.csv
+        /home/ethiy/Data/Assembled/ground_truth_nantes+elancourt.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -12,62 +12,62 @@ labels:
 
 features:
     types:
-        # geometric:
-        #     graph_dir:
-        #         /home/ethiy/Data/Elancourt/projections/dual_graphs
-        #     statistics:
-        #         - mean
-        #         - median
-        #         - max
-        #         - min
-        #     attributes:
-        #         - degree
-        #         - angle_with_relations
-        #         - centroid_with_relations
-        #         - area
+        geometric:
+            graph_dir:
+               /home/ethiy/Data/Assembled/facet_graphs
+            statistics:
+                - mean
+                - median
+                - max
+                - min
+            attributes:
+                - degree
+                - angle_with_relations
+                - centroid_with_relations
+                - area
+                - circumference
         altimetric:
             model_dir:
-                /home/ethiy/Data/Elancourt/projections/rasters
-            dsm_dir: '/home/ethiy/Data/Elancourt/DSM'
+                /home/ethiy/Data/Assembled/raster_projections
+            dsm_dir: '/home/ethiy/Data/Assembled/DSM'
             margins: (0, 0)
             model_ext: tiff
             dsm_ext: geotiff
-            resolution: 10
-        # radiometric:
-        #     vector_dir: /home/ethiy/Data/Elancourt/projections/vectors
-        #     ortho_dir: /home/ethiy/Data/Elancourt/OrthoImages
-        #     ortho_ext: 'geotiff'
-        #     vector_ext: 'shp'
-        #     method: gradient
-        #     parameters:
-        #         resolution: 10
-        #         weight: (True, True, True)
+            resolution: 20
+        radiometric:
+            vector_dir: /home/ethiy/Data/Assembled/vector_projections
+            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            method: gradient
+            parameters:
+                resolution: 10
+                weight: (True, True, True)
     # manifold:
     #     algorithm: sklearn.decomposition.KernelPCA
     #     parameters:
     #         kernel: 'rbf'
     #         gamma: .0000001
-    #         n_components: 10
+    #         n_components: 3
 processing:
-    visualization:
-        dimension_reduction:
-            algorithm: sklearn.decomposition.PCA
-            parameters:
-                n_components: 3
-        style:
-            colors:
-                - g
-                - r
-                - b
-            markers:
-                - ','
-                - o
-                - ^
+    # visualization:
+    #     dimension_reduction:
+    #         algorithm: sklearn.decomposition.PCA
+    #         parameters:
+    #             n_components: 3
+    #     style:
+    #         colors:
+    #             - g
+    #             - r
+    #             - b
+    #         markers:
+    #             - ','
+    #             - o
+    #             - ^
     classification:
         data_separation:
-            cross_validation:
-                parameters:
-                    n_splits: 10
+            bipartite:
+                threshold: 692
         training:
             model:
                 algorithm:
@@ -77,8 +77,6 @@ processing:
                     n_estimators: 1000
                 strategy:
                     sklearn.multiclass.OneVsRestClassifier
-                save:
-                    onevrest_rf-d4-n1000_nonhier-depth3-lod2
         testing:
             predictions:
-                filename: predictions
+                filename: predictions-2

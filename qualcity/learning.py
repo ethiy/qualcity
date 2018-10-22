@@ -72,6 +72,8 @@ def data_split(features, labels, **separation_args):
                 list(zip(*labels))[0] if isinstance(labels, tuple) else labels
             )
         )
+    elif 'bipartite' in separation_args:
+        return (np.arange(separation_args['bipartite']['threshold']), np.arange(separation_args['bipartite']['threshold'], len(features)))
     else:
         learning_logger.error(
             'Separation %s not implemented.',
