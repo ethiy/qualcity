@@ -13,6 +13,7 @@ import uuid
 import unicodedata
 
 import numpy as np
+import statistics
 
 utils_logger = logging.getLogger(__name__)
 
@@ -78,8 +79,9 @@ def stat(statistic):
         return {
             'min': min,
             'max': max,
-            'mean': mean,
-            'median': median
+            'mean': statistics.mean,
+            'median': statistics.median,
+            'std': statistics.stdev
         }[statistic]
     except KeyError:
         utils_logger.exception(
