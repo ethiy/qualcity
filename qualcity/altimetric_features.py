@@ -57,6 +57,20 @@ def dsm_residual(model_name, margins, dsm_bboxes):
     ).image
 
 
+def rmse(model_dir, model_ext, building, dsm_bboxes, margins):
+    return np.sqrt(
+        np.mean(
+            np.square(
+                dsm_residual(
+                    os.path.join(model_dir, building + '.' + model_ext),
+                    margins,
+                    dsm_bboxes
+                )
+            )
+        )
+    )
+
+
 def partition(residuals, resolution):
     alti_logger.info(
         'Getting histogram bins for %s with %s resolution',
@@ -138,37 +152,20 @@ def histograms(
 def histogram_features(
     buildings,
     model_dir,
-    dsm_dir,
+    model_ext,
+    dsm_bboxes,
     margins=(0, 0),
-    model_ext='tiff',
-    dsm_ext='geotiff',
     resolution=10
 ):
     alti_logger.info(
         'Computing histogram features for buildings %s in %s with extension '
-        + '%s and margins %s wrt DSMs in %s (with extension %s) with %s resolution',
+        + '%s and margins %s wrt DSMs in %s with %s resolution',
         buildings,
         model_dir,
-        dsm_ext,
-        margins,
-        dsm_dir,
         model_ext,
+        margins,
+        dsm_bboxes,
         resolution
-    )
-    dsm_bboxes = {
-        os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
-            os.path.join(dsm_dir, dsm_name)
-        )[0]
-        for dsm_name in fnmatch.filter(
-            os.listdir(dsm_dir),
-            '*.' + dsm_ext
-        )
-    }
-    alti_logger.debug(
-        'All bounding boxes for DSMs in %s (with extension %s): %s',
-        dsm_dir,
-        dsm_ext,
-        dsm_bboxes
     )
     return {
         os.path.splitext(model_name)[0]: histogram
@@ -185,3 +182,90 @@ def histogram_features(
             desc='Altimetric features'
         )
     }
+
+def get_method(model_dir, model_ext, dsm_bboxes, margins, method, **method_args):
+    alti_logger.info(
+        'Getting the method %s for feature computation for buildings in %s wrt'
+        + ' %s applying parameters %s',
+        method,
+        model_dir,
+        dsm_bboxes,
+        method_args,
+    )
+    if method == 'rmse':
+        return lambda building: rmse(
+            model_dir,
+            model_ext,
+            building,
+            dsm_bboxes,
+            margins
+        )
+    else:
+        raise NotImplementedError(
+            '{} is not implemented'.format(method)
+        )
+
+
+def altimetric_features(
+    buildings,
+    model_dir,
+    dsm_dir,
+    dsm_ext='geotiff',
+    model_ext='tiff',
+    margins=(0, 0),
+    **parameters
+):
+    alti_logger.info(
+        'Computing altimetric features for buildings %s in %s with extension'
+        + ' %s wrt Orthoimages in %s with extension %s applying parameters %s',
+        buildings,
+        model_dir,
+        model_ext,
+        dsm_dir,
+        model_ext,
+        parameters,
+    )
+    dsm_bboxes = {
+        os.path.join(dsm_dir, dsm_name): GeoRaster.geo_info(
+            os.path.join(dsm_dir, dsm_name)
+        )[0]
+        for dsm_name in fnmatch.filter(
+            os.listdir(dsm_dir),
+            '*.' + dsm_ext
+        )
+    }
+    alti_logger.debug(
+        'All bounding boxes for DSMs in %s (with extension %s): %s',
+        dsm_dir,
+        dsm_ext,
+        dsm_bboxes
+    )
+    if parameters['method'] == 'histogram':
+        return histogram_features(
+            buildings,
+            model_dir,
+            model_ext,
+            dsm_bboxes,
+            margins,
+            **parameters['parameters']
+        )
+    else:
+        method = get_method(
+            model_dir,
+            model_ext,
+            dsm_bboxes,
+            margins,
+            parameters['method'],
+            **parameters['parameters'] if 'parameters' in parameters.keys() else {}
+        )
+        return {
+            building:
+            np.concatenate(
+                method(building).reshape(1, -1),
+                axis=-1
+            )
+            for building in tqdm(
+                buildings,
+                desc='Altimetric features'
+            )
+        }

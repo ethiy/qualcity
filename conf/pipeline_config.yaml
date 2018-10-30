@@ -1,9 +1,9 @@
 cache:
-    /home/ethiy/Data/Assembled/cache
+    /home/ethiy/Data/Assembled/test
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_nantes+elancourt.csv
+        /home/ethiy/Data/Assembled/ground_truth_paris_13.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -12,37 +12,38 @@ labels:
 
 features:
     types:
-        geometric:
-            graph_dir:
-               /home/ethiy/Data/Assembled/facet_graphs
-            statistics:
-                - mean
-                - median
-                - max
-                - min
-            attributes:
-                - degree
-                - angle_with_relations
-                - centroid_with_relations
-                - area
-                - circumference
+        # geometric:
+        #     graph_dir:
+        #        /home/ethiy/Data/Assembled/facet_graphs
+        #     statistics:
+        #         - mean
+        #         - median
+        #         - max
+        #         - min
+        #     attributes:
+        #         - degree
+        #         - angle_with_relations
+        #         - centroid_with_relations
+        #         - area
+        #         - circumference
+        
         altimetric:
             model_dir:
                 /home/ethiy/Data/Assembled/raster_projections
             dsm_dir: '/home/ethiy/Data/Assembled/DSM'
-            margins: (0, 0)
             model_ext: tiff
             dsm_ext: geotiff
-            resolution: 20
-        radiometric:
-            vector_dir: /home/ethiy/Data/Assembled/vector_projections
-            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
-            ortho_ext: 'geotiff'
-            vector_ext: 'shp'
-            method: gradient
-            parameters:
-                resolution: 10
-                weight: (True, True, True)
+            method: rmse
+            margins: (0, 0)
+        # radiometric:
+        #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
+        #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+        #     ortho_ext: 'geotiff'
+        #     vector_ext: 'shp'
+        #     method: gradient
+        #     parameters:
+        #         resolution: 10
+        #         weight: (True, True, True)
     # manifold:
     #     algorithm: sklearn.decomposition.KernelPCA
     #     parameters:
@@ -66,8 +67,9 @@ processing:
     #             - ^
     classification:
         data_separation:
-            bipartite:
-                threshold: 692
+            cross_validation:
+                parameters:
+                    n_splits: 10
         training:
             model:
                 algorithm:

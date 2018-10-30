@@ -82,7 +82,7 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
     elif feat_type == 'altimetric':
         if 'margins' in kwargs.keys():
             kwargs['margins'] = ast.literal_eval(kwargs['margins'])
-        features = altimetric_features.histogram_features(buildings, **kwargs)        
+        features = altimetric_features.altimetric_features(buildings, **kwargs)        
     elif feat_type == 'radiometric':
         features = radiometric_features.radiometric_features(buildings, **kwargs)
     else:
