@@ -4,7 +4,7 @@ cache:
 labels:
     labels_path:
         /home/ethiy/Data/Assembled/ground_truth_nantes_paris_13+elancourt.csv
-    depth: 3
+    depth: 2
     LoD: 2
     hierarchical: False
     filetype: csv
@@ -36,15 +36,15 @@ features:
         #     margins: (0, 0)
         #     parameters:
         #         resolution: 20
-        # radiometric:
-        #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
-        #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
-        #     ortho_ext: 'geotiff'
-        #     vector_ext: 'shp'
-        #     method: gradient
-        #     parameters:
-        #         resolution: 10
-        #         weight: (True, True, True)
+        radiometric:
+            vector_dir: /home/ethiy/Data/Assembled/vector_projections
+            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            method: gradient
+            parameters:
+                resolution: 10
+                weight: (True, True, True)
     # manifold:
     #     algorithm: sklearn.decomposition.KernelPCA
     #     parameters:
@@ -69,7 +69,7 @@ processing:
     classification:
         data_separation:
             bipartite:
-                threshold: 2639
+                threshold: 1147
         training:
             model:
                 algorithm:

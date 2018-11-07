@@ -3,8 +3,8 @@ cache:
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_nantes_paris_13+elancourt.csv
-    depth: 3
+        /home/ethiy/Data/Assembled/ground_truth_elancourt_nantes+paris_13.csv
+    depth: 2
     LoD: 2
     hierarchical: False
     filetype: csv

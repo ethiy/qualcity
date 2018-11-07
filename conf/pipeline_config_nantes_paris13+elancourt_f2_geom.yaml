@@ -4,7 +4,7 @@ cache:
 labels:
     labels_path:
         /home/ethiy/Data/Assembled/ground_truth_nantes_paris_13+elancourt.csv
-    depth: 3
+    depth: 2
     LoD: 2
     hierarchical: False
     filetype: csv
@@ -69,7 +69,7 @@ processing:
     classification:
         data_separation:
             bipartite:
-                threshold: 2639
+                threshold: 1147
         training:
             model:
                 algorithm:
