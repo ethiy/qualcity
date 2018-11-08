@@ -4,8 +4,8 @@
 """qualcity.
 
 Usage:
-    qualcity (-h | --help)
-    qualcity pipeline <pipline_conf> [logger <log_conf>] [(-v | --verbose)]
+    qual-city (-h | --help)
+    qual-city pipeline <pipline_conf> [logger <log_conf>] [(-v | --verbose)]
 
 Options:
     -h --help           Show this screen.
