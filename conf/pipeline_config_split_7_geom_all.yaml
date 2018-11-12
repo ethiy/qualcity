@@ -1,9 +1,9 @@
 cache:
-    /home/ethiy/Data/Assembled/cache
+    /home/ubuntu/Assembled/cache
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_elancourt_paris_13+nantes.csv
+        /home/ubuntu/Assembled/ground_truth_elancourt_paris_13+nantes.csv
     depth: 2
     LoD: 2
     hierarchical: False
@@ -14,7 +14,7 @@ features:
     types:
         geometric:
             graph_dir:
-               /home/ethiy/Data/Assembled/facet_graphs
+               /home/ubuntu/Assembled/facet_graphs
             statistics:
                 - mean
                 - median
@@ -28,8 +28,8 @@ features:
                 - circumference
         altimetric:
             model_dir:
-                /home/ethiy/Data/Assembled/raster_projections
-            dsm_dir: '/home/ethiy/Data/Assembled/DSM'
+                /home/ubuntu/Assembled/raster_projections
+            dsm_dir: '/home/ubuntu/Assembled/DSM'
             model_ext: tiff
             dsm_ext: geotiff
             method: histogram
@@ -37,8 +37,8 @@ features:
             parameters:
                 resolution: 20
         radiometric:
-            vector_dir: /home/ethiy/Data/Assembled/vector_projections
-            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+            vector_dir: /home/ubuntu/Assembled/vector_projections
+            ortho_dir: '/home/ubuntu/Assembled/Orthoimages'
             ortho_ext: 'geotiff'
             vector_ext: 'shp'
             method: gradient
