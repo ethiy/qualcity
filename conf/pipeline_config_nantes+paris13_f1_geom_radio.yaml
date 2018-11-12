@@ -4,9 +4,9 @@ cache:
 labels:
     labels_path:
         /home/ubuntu/Assembled/ground_truth_nantes+paris_13.csv
-    depth: 2
+    depth: 1
     LoD: 2
-    hierarchical: False
+    hierarchical: True
     filetype: csv
     threshold: 10
 
