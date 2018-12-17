@@ -21,7 +21,7 @@ from . import utils
 feature_logger = logging.getLogger(__name__)
 
 
-def atributes(buildings, feat_type, cache_dir, **kwargs):
+def attributes(buildings, feat_type, cache_dir, **kwargs):
     ledger = utils.cache_ledger(cache_dir, 'features')
     cached_features = {
         building: utils.read_cached_feature(
@@ -96,7 +96,7 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
 def get_features(buildings, cache_dir, **feature_types):
     feature_logger.info('Getting features ...')
     feature_dicts = [
-        atributes(buildings, feat_type, cache_dir, **feature_types[feat_type])
+        attributes(buildings, feat_type, cache_dir, **feature_types[feat_type])
         for feat_type in feature_types.keys()
     ]
     return [
