@@ -273,12 +273,19 @@ def train(features, true, label_names, reportname, **train_args):
         predicted = model.fit(features, np.array(true)).predict(
             features
         )
+        print('Feature importance:', model.feature_importances_)
         return (model, report(predicted, true, label_names, reportname))
     elif isinstance(label_names, list):
         learning_logger.info('Fitting and predicting multilabels...')
         predicted = model.fit(features, np.array(true)).predict(
             np.array(features)
         )
+        for forest in model.estimators_:
+            import sklearn.multiclass
+            if isinstance(forest, sklearn.multiclass._ConstantPredictor):
+                print('Feature importance:', None)
+            else:
+                print('Feature importance:', forest.feature_importances_)
         return (model, report(predicted, true, label_names, reportname))
     elif isinstance(label_names, dict):
         learning_logger.info('Separate families from classes...')

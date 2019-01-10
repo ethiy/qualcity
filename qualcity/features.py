@@ -96,14 +96,16 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
 def get_features(buildings, cache_dir, **feature_types):
     feature_logger.info('Getting features ...')
     feature_dicts = [
-        attributes(buildings, feat_type, cache_dir, **feature_types[feat_type])
+        (feat_type, attributes(buildings, feat_type, cache_dir, **feature_types[feat_type]))
         for feat_type in feature_types.keys()
     ]
+    for (ft, _) in feature_dicts:
+        print(ft)
     return [
         np.concatenate(
             [
                 feature_dict[building]
-                for feature_dict in feature_dicts
+                for (_, feature_dict) in feature_dicts
             ]
         )
         for building in buildings
