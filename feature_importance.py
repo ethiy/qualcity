@@ -40,7 +40,6 @@ def main():
         prune(extract(line), sizes=[0, 20, 20, 20])
         for line in fis_lines
     ]
-    figure, axes = plt.subplots(1, 4)
 
     titles = [
         'BOS',
@@ -54,6 +53,8 @@ def main():
         'FIG'
     ]
 
+    bul, axes = plt.subplots(1, 4)
+    # bul.set_size_inches(4*10, 4)
     for (ax, fi, title) in zip(axes, fis[:4], titles[:4]):
         ax.pie(
             fi,
@@ -64,6 +65,21 @@ def main():
         )
         ax.axis('square')
         ax.set_title(title)
+    bul.show()
+
+    fac, axes = plt.subplots(1, 5)
+    # fac.set_size_inches(5*12, 4)
+    for (ax, fi, title) in zip(axes, fis[4:], titles[4:]):
+        ax.pie(
+            fi,
+            labels=features,
+            autopct='%1.1f%%',
+            shadow=True,
+            startangle=90
+        )
+        ax.axis('square')
+        ax.set_title(title)
+    fac.show()
 
     plt.show()
 
