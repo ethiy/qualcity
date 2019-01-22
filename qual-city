@@ -224,7 +224,7 @@ def main():
     logger.debug('Labels are: %s', labels)
     logger.info('Labels safely loaded.')
 
-    features = qualcity.features.get_features(
+    (form, features) = qualcity.features.get_features(
         buildings,
         configuration['cache'],
         **configuration['features']

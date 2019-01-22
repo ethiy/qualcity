@@ -106,28 +106,34 @@ def get_features(buildings, cache_dir, **feature_configs):
     feature_logger.info('Getting features...')
     feature_dicts = fetch_features(buildings, cache_dir, **feature_configs['types'])
     if list(feature_configs['format'].keys()) == ['vector']:
-        return [
-            np.concatenate(
+        return (
+            'vector',
+            [
+                np.concatenate(
+                    [
+                        feature_dict[building]
+                        for feature_dict in feature_dicts.values()
+                    ]
+                )
+                for building in buildings
+            ]
+        )
+    elif list(feature_configs['format'].keys()) == ['kernel']:
+        return (
+            'kernel',
+            functools.reduce(
+                operator.add, 
                 [
-                    feature_dict[building]
-                    for feature_dict in feature_dicts.values()
+                    compute_kernel(
+                    [
+                        feature_dicts[feat_type][building]
+                        for building in buildings
+                    ],
+                    **parameters
+                )
+                    for (feat_type, parameters) in feature_configs['format']['kernel'].items()
                 ]
             )
-            for building in buildings
-        ]
-    elif list(feature_configs['format'].keys()) == ['kernel']:
-        return functools.reduce(
-            operator.add, 
-            [
-                compute_kernel(
-                [
-                    feature_dicts[feat_type][building]
-                    for building in buildings
-                ],
-                **parameters
-            )
-                for (feat_type, parameters) in feature_configs['format']['kernel'].items()
-            ]
         )
     else:
         raise NotImplementedError('Unknown feature format')
