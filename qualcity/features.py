@@ -6,6 +6,9 @@ import os
 import uuid
 import ast
 
+import functools
+import operator
+
 import tqdm
 
 import numpy as np
@@ -64,21 +67,7 @@ def attributes(buildings, feat_type, cache_dir, **kwargs):
 
 def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
     if feat_type == 'geometric':
-        if 'paramaters' in kwargs.keys():
-            features = geometric_features.geometric_features(
-                buildings,
-                kwargs['graph_dir'],
-                kwargs['attributes'],
-                kwargs['statistics'],
-                **kwargs['paramaters']
-            )
-        else:
-            features = geometric_features.geometric_features(
-                buildings,
-                kwargs['graph_dir'],
-                kwargs['attributes'],
-                kwargs['statistics']
-            )
+        features = geometric_features.geometric_features(buildings, **kwargs)
     elif feat_type == 'altimetric':
         if 'margins' in kwargs.keys():
             kwargs['margins'] = ast.literal_eval(kwargs['margins'])
@@ -93,39 +82,55 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
     return features
 
 
-def get_features(buildings, cache_dir, **feature_types):
-    feature_logger.info('Getting features ...')
-    feature_dicts = [
-        attributes(buildings, feat_type, cache_dir, **feature_types[feat_type])
+def fetch_features(buildings, cache_dir, **feature_types):
+    feature_logger.info(
+        'Fetching features of modalities %s in dictionnary...',
+        feature_types.keys()
+    )
+    return {
+        feat_type: attributes(
+            buildings,
+            feat_type,
+            cache_dir,
+            **feature_types[feat_type]
+        )
         for feat_type in feature_types.keys()
-    ]
-    return [
-        np.concatenate(
+    }
+
+
+def compute_kernel(features, **kernel_args):
+    return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+
+
+def get_features(buildings, cache_dir, **feature_configs):
+    feature_logger.info('Getting features...')
+    feature_dicts = fetch_features(buildings, cache_dir, **feature_configs['types'])
+    if list(feature_configs['format'].keys()) == ['vector']:
+        return [
+            np.concatenate(
+                [
+                    feature_dict[building]
+                    for feature_dict in feature_dicts.values()
+                ]
+            )
+            for building in buildings
+        ]
+    elif list(feature_configs['format'].keys()) == ['kernel']:
+        return functools.reduce(
+            operator.add, 
             [
-                feature_dict[building]
-                for feature_dict in feature_dicts
+                compute_kernel(
+                [
+                    feature_dicts[feat_type][building]
+                    for building in buildings
+                ],
+                **parameters
+            )
+                for (feat_type, parameters) in feature_configs['format']['kernel'].items()
             ]
         )
-        for building in buildings
-    ]
-
-
-def build_maniflod(algorithm, **parameters):
-    feature_logger.info('Building a manifold transformer...')
-    return utils.resolve(algorithm)(
-        **parameters
-    )
-
-
-def transform(features, **manifold_args):
-    feature_logger.info(
-        'Transforming features using %s...',
-        manifold_args['algorithm']
-    )
-    return build_maniflod(
-        manifold_args['algorithm'],
-        **manifold_args['parameters']
-    ).fit_transform(features)
+    else:
+        raise NotImplementedError('Unknown feature format')
 
 
 def visualize_features(
