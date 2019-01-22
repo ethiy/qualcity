@@ -227,18 +227,10 @@ def main():
     features = qualcity.features.get_features(
         buildings,
         configuration['cache'],
-        **configuration['features']['types']
+        **configuration['features']
     )
     logger.debug(features)
     logger.info('Features safely loaded.')
-
-    if 'manifold' in configuration['features']:
-        features = qualcity.features.transform(
-            features,
-            **configuration['features']['manifold']
-        )
-    logger.debug(features)
-    logger.info('Features safely transformed.')
 
     process(
         features,
