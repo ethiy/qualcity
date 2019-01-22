@@ -1,9 +1,9 @@
 cache:
-    /home/ethiy/Data/Assembled/cache
+    /home/ethiy/Data/Assembled/____
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_nantes_paris_13+elancourt.csv
+        /home/ethiy/Data/Assembled/ground_truth_paris_13.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -15,36 +15,43 @@ features:
         geometric:
             graph_dir:
                /home/ethiy/Data/Assembled/facet_graphs
-            statistics:
-                - mean
-                - median
-                - max
-                - min
-            attributes:
-                - degree
-                - angle_with_relations
-                - centroid_with_relations
-                - area
-                - circumference
-        # altimetric:
-        #     model_dir:
-        #         /home/ethiy/Data/Assembled/raster_projections
-        #     dsm_dir: '/home/ethiy/Data/Assembled/DSM'
-        #     model_ext: tiff
-        #     dsm_ext: geotiff
-        #     method: histogram
-        #     margins: (0, 0)
-        #     parameters:
-        #         resolution: 20
-        # radiometric:
-        #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
-        #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
-        #     ortho_ext: 'geotiff'
-        #     vector_ext: 'shp'
-        #     method: gradient
-        #     parameters:
-        #         resolution: 10
-        #         weight: (True, True, True)
+            method: 
+                histogram
+            parameters:
+                parameters:
+                    bins: 10
+                attributes:
+                    - degree
+                    - angle_with_relations
+                    - centroid_with_relations
+                    - area
+                    - circumference
+        altimetric:
+            model_dir:
+                /home/ethiy/Data/Assembled/raster_projections
+            dsm_dir: '/home/ethiy/Data/Assembled/DSM'
+            model_ext: tiff
+            dsm_ext: geotiff
+            method: histogram
+            margins: (0, 0)
+            parameters:
+                resolution: 10
+        radiometric:
+            vector_dir: /home/ethiy/Data/Assembled/vector_projections
+            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            method: gradient
+            parameters:
+                resolution: 20
+                weight: (True, True, True)
+    format:
+        kernel:
+            geometric:
+                algorithm:
+                    sklearn.metrics.pairwise.rbf_kernel
+                parameters:
+                    gamma: 0.001
     # manifold:
     #     algorithm: sklearn.decomposition.KernelPCA
     #     parameters:
@@ -68,15 +75,17 @@ processing:
     #             - ^
     classification:
         data_separation:
-            bipartite:
-                threshold: 2639
+            cross_validation:
+                parameters:
+                    n_splits: 10
         training:
             model:
                 algorithm:
-                    sklearn.ensemble.RandomForestClassifier
+                    sklearn.svm.SVC
                 parameters:
-                    max_depth: 4
-                    n_estimators: 1000
+                    kernel: 'precomputed'
+                    C: 10
+                    probability: True
                 strategy:
                     sklearn.multiclass.OneVsRestClassifier
         testing:

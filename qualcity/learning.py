@@ -68,7 +68,7 @@ def data_split(features, labels, **separation_args):
             sklearn.model_selection.StratifiedKFold(
                 **separation_args['cross_validation']['parameters']
             ).split(
-                features,
+                np.zeros(len(features)),
                 list(zip(*labels))[0] if isinstance(labels, tuple) else labels
             )
         )
@@ -195,14 +195,12 @@ def predict(model, buildings, features, label_names):
     learning_logger.info('Predicting...')
     if isinstance(label_names, tuple):
         learning_logger.info('Multiclass predicition...')
-        return {
-            building: cls
-            for building, cls
-            in zip(
+        return dict(
+            zip(
                 buildings,
                 model.predict(features)
             )
-        }
+        )
     elif isinstance(label_names, dict):
         learning_logger.info('Multiclass, Multilabel stage predicition...')
         return {
@@ -262,30 +260,31 @@ def test(model, buildings, features, ground_truth, label_names, reportname, **te
     )
 
 
-def train(features, true, label_names, reportname, **train_args):
+def train(features, ground_truth, label_names, reportname, **train_args):
     learning_logger.info('Training...')
     model = build_classifier(**train_args['model'])
 
-    if true is None:
+    if ground_truth is None:
         return (model, None)
     elif isinstance(label_names, tuple):
         learning_logger.info('Fitting and predicting classes...')
-        predicted = model.fit(features, np.array(true)).predict(
+        predicted = model.fit(features, np.array(ground_truth)).predict(
             features
         )
-        return (model, report(predicted, true, label_names, reportname))
+        return (model, report(predicted, ground_truth, label_names, reportname))
     elif isinstance(label_names, list):
         learning_logger.info('Fitting and predicting multilabels...')
-        predicted = model.fit(features, np.array(true)).predict(
+        predicted = model.fit(features, np.array(ground_truth)).predict(
             np.array(features)
         )
-        return (model, report(predicted, true, label_names, reportname))
+        return (model, report(predicted, ground_truth, label_names, reportname))
     elif isinstance(label_names, dict):
         learning_logger.info('Separate families from classes...')
-        families, errors = zip(*true)
+        families, errors = zip(*ground_truth)
         learning_logger.info('Fitting and predicting families...')
         predicted_families = model.fit(
-            features, np.array(families)
+            features,
+            np.array(families)
         ).predict(features)
         learning_logger.info('Separating errors per family...')
         idx_per_fam = {
@@ -309,7 +308,7 @@ def train(features, true, label_names, reportname, **train_args):
                 (
                     fam,
                     *train(
-                        [features[idx] for idx in fam_indexes],
+                        np.array(features)[fam_indexes] if train_args['form'] == 'vector' else features[fam_indexes][:, fam_indexes],
                         [errors[idx] for idx in fam_indexes],
                         label_names[fam],
                         **train_args
@@ -438,13 +437,13 @@ def save_prediction(
             raise LookupError('Labels %s not supported', label_names)
 
 
-def report(predicted, true, label_names, cachename):
+def report(predicted, ground_truth, label_names, cachename):
     if isinstance(label_names, dict):
         (
             (true_families, _),
             (predicted_families, _)
         ) = (
-            zip(*true),
+            zip(*ground_truth),
             zip(*predicted)
         )
         return dict(
@@ -480,7 +479,7 @@ def report(predicted, true, label_names, cachename):
                                 for (true_family, true_errors),
                                 (predicted_family, predicted_errors)
                                 in zip(
-                                    true,
+                                    ground_truth,
                                     predicted
                                 )
                                 if family == predicted_family
@@ -502,22 +501,22 @@ def report(predicted, true, label_names, cachename):
                 cachename
             )
             for number, (z_predicted, z_true) in enumerate(
-                zip(zip(*predicted), zip(*true))
+                zip(zip(*predicted), zip(*ground_truth))
             )
         ]
     elif isinstance(label_names, tuple):
-        current_labels = set(true)
+        current_labels = set(ground_truth)
         cm = np.zeros((len(label_names), len(label_names)), dtype=int)
         if len(current_labels) != len(label_names):
             if len(current_labels) == 1:
                 if 1 in current_labels:
                     cm[1, 1] = sklearn.metrics.confusion_matrix(
-                        true,
+                        ground_truth,
                         predicted
                     )[0, 0]
                 elif 0 in current_labels:
                     cm[0, 0] = sklearn.metrics.confusion_matrix(
-                        true,
+                        ground_truth,
                         predicted
                     )[0, 0]
                 else:
@@ -526,7 +525,7 @@ def report(predicted, true, label_names, cachename):
                 raise NotImplementedError
         else:
             cm = sklearn.metrics.confusion_matrix(
-                true,
+                ground_truth,
                 predicted
             )
         with open(cachename, 'a+') as cachefile:
@@ -660,6 +659,7 @@ def plot_confusion_matrix(
 
 
 def train_test(
+    form,
     features,
     labels,
     buildings,
@@ -711,7 +711,7 @@ def train_test(
             'classifiers'
         )
     )
-    if len(cachedname_):
+    if len(cachedname_) and form == 'vector':
         model = build_classifier(
             filename = os.path.join(
                 cache_dir,
@@ -722,7 +722,7 @@ def train_test(
         preds = predict(
             model,
             [buildings[idx] for idx in train_indices],
-            np.array(features)[train_indices],
+            np.array(features)[train_indices] if form == 'vector' else features[train_indices][:, train_indices],
             label_names
         )
         with open(
@@ -748,8 +748,10 @@ def train_test(
             'Succesfully retreived from cache.'
         )
     else:
+        if isinstance(label_names, dict):
+            class_args['form'] = form
         model, train_cm = train(
-            np.array(features)[train_indices],
+            np.array(features)[train_indices] if form == 'vector' else features[train_indices][:, train_indices],
             None if labels is None else [labels[idx] for idx in train_indices],
             label_names,
             os.path.join(
@@ -793,7 +795,7 @@ def train_test(
     predictions, test_cm = test(
         model,
         [buildings[idx] for idx in test_indices],
-        np.array(features)[test_indices],
+        np.array(features)[test_indices] if form == 'vector' else features[test_indices][:, train_indices],
         None if labels is None else [labels[idx] for idx in test_indices],
         label_names,
         os.path.join(
@@ -812,7 +814,7 @@ def train_test(
         predict_proba(
             model,
             [buildings[index] for index in test_indices],
-            np.array(features)[test_indices],
+            np.array(features)[test_indices] if form == 'vector' else features[test_indices][:, train_indices],
             label_names
         ),
         train_cm,
@@ -820,7 +822,7 @@ def train_test(
     )
 
 
-def classify(features, labels, buildings, label_names, cache_dir, cache_config, **class_args):
+def classify(form, features, labels, buildings, label_names, cache_dir, cache_config, **class_args):
     learning_logger.info('Classification process starting...')
     reportname = 'report-' + time.ctime()
     indices = data_split(
@@ -841,6 +843,7 @@ def classify(features, labels, buildings, label_names, cache_dir, cache_config, 
     )
     if isinstance(indices, tuple):
         predictions, proba_predictions, train_cm, test_cm = train_test(
+            form,
             features,
             labels,
             buildings,
@@ -858,6 +861,7 @@ def classify(features, labels, buildings, label_names, cache_dir, cache_config, 
             *pool.map(
                 lambda p: (
                     lambda cv_idx, idxes: train_test(
+                        form,
                         features,
                         labels,
                         buildings,
@@ -898,6 +902,7 @@ def classify(features, labels, buildings, label_names, cache_dir, cache_config, 
         ]
     else:
         predictions, proba_predictions, train_cm, test_cm = train_test(
+            form,
             features,
             None,
             buildings,
