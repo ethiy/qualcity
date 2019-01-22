@@ -744,7 +744,6 @@ def train_test(
                 reportname
             )
         )
-        
         learning_logger.info(
             'Succesfully retreived from cache.'
         )

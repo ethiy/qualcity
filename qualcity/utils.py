@@ -90,13 +90,13 @@ def stat(statistic):
         )
 
 
-def stats(attribute, statistics, **kwargs):
-    utils_logger.debug('Getting %s of %s...', statistics, attribute)
-    if statistics == 'histogram':
+def stats(attribute, functions, **kwargs):
+    utils_logger.debug('Getting %s of %s...', functions, attribute)
+    if functions == 'histogram':
         utils_logger.info('Getting histogram...')
         return list(histogram(attribute, **kwargs)[0])
-    elif type(statistics) is list:
-        utils_logger.info('Getting the statistics list %s...', statistics)
+    elif type(functions) is list:
+        utils_logger.info('Getting the functions list %s...', functions)
         return functools.reduce(
             lambda _list, stat: (
                 _list
@@ -105,11 +105,11 @@ def stats(attribute, statistics, **kwargs):
                     stat(attribute)
                 ] if callable(stat) else None
             ),
-            [stat(statistic) for statistic in statistics if callable(stat)],
+            [stat(statistic) for statistic in functions if callable(stat)],
             []
         )
     else:
-        raise LookupError('%s unknown', statistics)
+        raise LookupError('%s unknown', functions)
 
 
 def fuse(dict_1, dict_2):
