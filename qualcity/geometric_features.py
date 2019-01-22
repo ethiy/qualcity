@@ -104,22 +104,22 @@ def get_relations(faces, adjacency_matrix):
     ]
 
 
-def node_statistics(faces, attribute, statistics, **kwargs):
-    geom_logger.info('Facet %s statistics: %s', attribute, statistics)
+def node_statistics(faces, attribute, functions, **kwargs):
+    geom_logger.info('Facet %s statistics: %s', attribute, functions)
     return utils.stats(
         [
             face[NODE_ATTRIBUTES.index(attribute)]
             for face in faces.values()
         ],
-        statistics
+        functions
     )
 
 
-def edge_statistics(faces, attribute, statistics, relations=[], **kwargs):
+def edge_statistics(faces, attribute, functions, relations=[], **kwargs):
     geom_logger.info(
         'Facets %s statistics (i.e. %s) with%s relations',
         attribute,
-        statistics,
+        functions,
         'out' if len(relations) == 0 else ''
     )
     if len(relations) == 0:
@@ -142,14 +142,14 @@ def edge_statistics(faces, attribute, statistics, relations=[], **kwargs):
             )
             for idx, _idx in relations
         ],
-        statistics
+        functions
     )
 
 
-def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
+def attribute_statistics(lines, geom_attrib, functions, **kwargs):
     geom_logger.info(
         'Getting %s statistics for attribute %s',
-        statistics,
+        functions,
         geom_attrib
     )
     geom_logger.info('Getting facets...')
@@ -158,65 +158,65 @@ def attribute_statistics(lines, geom_attrib, statistics, **kwargs):
     geom_logger.debug('Facets in %s : %s...', lines, faces)
     return {
         'degree':
-        lambda faces, statistics, **kwargs: node_statistics(
+        lambda faces, functions, **kwargs: node_statistics(
             dict(faces),
             'degree',
-            statistics,
+            functions,
             **kwargs
         ),
         'area':
-        lambda faces, statistics, **kwargs: node_statistics(
+        lambda faces, functions, **kwargs: node_statistics(
             dict(faces),
             'area',
-            statistics,
+            functions,
             **kwargs
         ),
         'circumference':
-        lambda faces, statistics, **kwargs: node_statistics(
+        lambda faces, functions, **kwargs: node_statistics(
             dict(faces),
             'circumference',
-            statistics,
+            functions,
             **kwargs
         ),
         'centroid':
-        lambda faces, statistics, **kwargs: edge_statistics(
+        lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
             'centroid',
-            statistics,
+            functions,
             **kwargs
         ),
         'centroid_with_relations':
-        lambda faces, statistics, **kwargs: edge_statistics(
+        lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
             'centroid',
-            statistics,
+            functions,
             get_relations(faces, adjacency_matrix),
             **kwargs
         ),
         'angle':
-        lambda faces, statistics, **kwargs: edge_statistics(
+        lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
             'angle',
-            statistics,
+            functions,
             **kwargs
         ),
         'angle_with_relations':
-        lambda faces, statistics, **kwargs: edge_statistics(
+        lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
             'angle',
-            statistics,
+            functions,
             get_relations(faces, adjacency_matrix),
             **kwargs
         )
-    }[geom_attrib](faces, statistics, **kwargs)
+    }[geom_attrib](faces, functions, **kwargs)
 
 
-def features(filename, attributes, statistics, **kwargs):
+def statistics_features(filename, attributes, functions, **kwargs):
     geom_logger.info(
         'Getting %s attributes for %s using %s',
         attributes,
         filename,
-        statistics
+        functions
     )
     try:
         geom_logger.info('Getting lines in %s...', filename)
@@ -226,7 +226,7 @@ def features(filename, attributes, statistics, **kwargs):
             lambda _list, attr: _list + attribute_statistics(
                 lines,
                 attr,
-                statistics,
+                functions,
                 **kwargs
             ),
             attributes,
@@ -236,24 +236,42 @@ def features(filename, attributes, statistics, **kwargs):
         geom_logger.exception('Could not extract features for %s:', filename)
 
 
-def geometric_features(buildings, graph_dir, attributes, statistics, **parameters):
+def get_method(graph_dir, method, **parameters):
+    if method == 'statistics':
+        return lambda building: statistics_features(
+            os.path.join(graph_dir, building + '.txt'),
+            **parameters
+        )
+    elif method == 'histogram':
+        return lambda building: statistics_features(
+            os.path.join(graph_dir, building + '.txt'),
+            parameters['attributes'],
+            method,
+            **parameters['parameters']
+        )
+    else:
+        raise NotImplementedError(
+            '{} is not implemented'.format(method)
+        )
+
+
+def geometric_features(buildings, graph_dir, **kwargs):
     geom_logger.info(
-        'Getting geometric features for buildings %s in %s based %s and %s',
+        'Getting geometric features for buildings %s in %s using %s with parameters %s',
         buildings,
         graph_dir,
-        attributes,
-        statistics
+        kwargs['method'],
+        kwargs['parameters']
     )
     return {
-        graph: np.array(
-            features(
-                os.path.join(graph_dir, graph + '.txt'),
-                attributes,
-                statistics,
-                **parameters
-            )
+        building: np.array(
+            get_method(
+                graph_dir,
+                kwargs['method'],
+                **kwargs['parameters']
+            )(building)
         )
-        for graph in tqdm(
+        for building in tqdm(
             buildings,
             desc='Geometric features'
         )
