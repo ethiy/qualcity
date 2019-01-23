@@ -69,8 +69,6 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
     if feat_type == 'geometric':
         features = geometric_features.geometric_features(buildings, **kwargs)
     elif feat_type == 'altimetric':
-        if 'margins' in kwargs.keys():
-            kwargs['margins'] = ast.literal_eval(kwargs['margins'])
         features = altimetric_features.altimetric_features(buildings, **kwargs)        
     elif feat_type == 'radiometric':
         features = radiometric_features.radiometric_features(buildings, **kwargs)
