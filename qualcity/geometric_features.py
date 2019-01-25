@@ -79,7 +79,7 @@ def get_adjacency_matrix(lines):
     return np.array(
         [
             [int(bit) for bit in line.split(" ")]
-            for line in lines[len(lines) // 2:-1]
+            for line in lines[len(lines) // 2:]
         ]
     )
 
@@ -222,15 +222,17 @@ def statistics_features(filename, attributes, functions, **kwargs):
         geom_logger.info('Getting lines in %s...', filename)
         lines = get_lines(filename)
         geom_logger.info('Finished getting lines in %s...', filename)
-        return functools.reduce(
-            lambda _list, attr: _list + attribute_statistics(
-                lines,
-                attr,
-                functions,
-                **kwargs
-            ),
-            attributes,
-            [len(lines) // 2]
+        return np.array(
+            functools.reduce(
+                lambda _list, attr: _list + attribute_statistics(
+                    lines,
+                    attr,
+                    functions,
+                    **kwargs
+                ),
+                attributes,
+                [len(lines) // 2]
+            )
         )
     except Exception:
         geom_logger.exception('Could not extract features for %s:', filename)
@@ -249,6 +251,8 @@ def get_method(graph_dir, method, **parameters):
             method,
             **parameters['parameters']
         )
+    elif method == 'graph':
+        return lambda building: read(os.path.join(graph_dir, building + '.txt'))
     else:
         raise NotImplementedError(
             '{} is not implemented'.format(method)
@@ -261,16 +265,14 @@ def geometric_features(buildings, graph_dir, **kwargs):
         buildings,
         graph_dir,
         kwargs['method'],
-        kwargs['parameters']
+        kwargs['parameters'] if 'parameters' in kwargs.keys() else {}
     )
     return {
-        building: np.array(
-            get_method(
-                graph_dir,
-                kwargs['method'],
-                **kwargs['parameters']
-            )(building)
-        )
+        building: get_method(
+            graph_dir,
+            kwargs['method'],
+            **kwargs['parameters'] if 'parameters' in kwargs.keys() else {}
+        )(building)
         for building in tqdm(
             buildings,
             desc='Geometric features'
@@ -292,22 +294,27 @@ def read(filename):
     geom_logger.debug('The graph structure in %s : %s...', lines, G)
     nx.set_node_attributes(
         G,
-        {idx: faces[idx][0] for idx in range(len(faces))},
+        {idx: faces[face_id][0] for (idx, face_id) in enumerate(faces)},
         'degree'
     )
     nx.set_node_attributes(
         G,
-        {idx: faces[idx][1] for idx in range(len(faces))},
+        {face_id: faces[face_id][1] for (idx, face_id) in enumerate(faces)},
         'area'
     )
     nx.set_node_attributes(
         G,
-        {idx: faces[idx][2] for idx in range(len(faces))},
+        {face_id: faces[face_id][2] for (idx, face_id) in enumerate(faces)},
+        'circumference'
+    )
+    nx.set_node_attributes(
+        G,
+        {face_id: faces[face_id][3] for (idx, face_id) in enumerate(faces)},
         'centroid'
     )
     nx.set_node_attributes(
         G,
-        {idx: faces[idx][3] for idx in range(len(faces))},
+        {face_id: faces[face_id][4] for (idx, face_id) in enumerate(faces)},
         'normal'
     )
     return G
