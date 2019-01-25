@@ -399,16 +399,15 @@ def radiometric_features(
         ortho_ext,
         ortho_infos
     )
-    method = get_method(
-        vector_dir,
-        ortho_infos,
-        parameters['method'],
-        **parameters['parameters']
-    )
     return {
         building:
         np.concatenate(
-            method(building).reshape(1, -1),
+            get_method(
+                vector_dir,
+                ortho_infos,
+                parameters['method'],
+                **parameters['parameters']
+            )(building).reshape(1, -1),
             axis=-1
         )
         for building in tqdm(
