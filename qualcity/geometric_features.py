@@ -13,6 +13,7 @@ from tqdm import tqdm
 import numpy as np
 
 import networkx as nx
+import grakel
 
 from . import utils
 
@@ -252,7 +253,10 @@ def get_method(graph_dir, method, **parameters):
             **parameters['parameters']
         )
     elif method == 'graph':
-        return lambda building: read(os.path.join(graph_dir, building + '.txt'))
+        return lambda building: extract_graph(
+            os.path.join(graph_dir, building + '.txt'),
+            **parameters
+        )
     else:
         raise NotImplementedError(
             '{} is not implemented'.format(method)
@@ -278,6 +282,82 @@ def geometric_features(buildings, graph_dir, **kwargs):
             desc='Geometric features'
         )
     }
+
+
+def get_edges(lines):
+    geom_logger.info('Read pairs from lines %s.', lines)
+    geom_logger.info('Computing adjacency matrix...')
+    adjacency_matrix = get_adjacency_matrix(lines)
+    return [
+        (i, j)
+        for i, j in zip(
+            *np.where(adjacency_matrix == 1)
+        )
+        if i != j
+    ]
+
+
+def get_node_attributes(faces):
+    return {
+        index: np.concatenate(
+            [
+                np.array(
+                    faces[face_id][:len(NODE_ATTRIBUTES)]
+                )
+            ] + list(faces[face_id][len(NODE_ATTRIBUTES):])
+        )
+        for (index, face_id)
+        in enumerate(faces)
+    }
+
+
+def get_edge_attributes(edges, faces):
+    face_indexing = dict(enumerate(faces))
+    return {
+        edge: np.array(
+            [
+                np.linalg.norm(
+                    faces[face_indexing[edge[0]]][
+                        len(NODE_ATTRIBUTES) + attribute_index
+                    ]
+                    -
+                    faces[face_indexing[edge[1]]][
+                        len(NODE_ATTRIBUTES) + attribute_index
+                    ]
+                )
+                for attribute_index in range(len(EDGE_ATTRIBUTES))
+            ]
+        )
+        for edge in edges
+    }
+
+
+def extract_graph(filename, node_attributes=True, edge_attributes=True):
+    geom_logger.info('Read %s and construct corresponding graph.', filename)
+    geom_logger.info('Getting lines in %s...', filename)
+    lines = get_lines(filename)
+    geom_logger.info('Getting edges...')
+    edges = get_edges(lines)
+    if not node_attributes:
+        return [edges]
+    else:
+        geom_logger.info('Getting facets...')
+        faces = dict(get_faces(lines))
+        geom_logger.debug('Facets in %s : %s...', lines, faces)
+        geom_logger.info('Extracting node attributes.')
+        node_attributes = get_node_attributes(faces)
+        if not edge_attributes:
+            return (
+                edges,
+                node_attributes
+            )
+        else:
+            geom_logger.info('Extracting edge attributes.')
+            return (
+                edges,
+                node_attributes,
+                get_edge_attributes(edges, faces)
+            )
 
 
 def read(filename):
