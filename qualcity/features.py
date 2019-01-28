@@ -76,7 +76,8 @@ def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)
         )
-    utils.cache_features(cache_dir, feat_type, kwargs, features)
+    if ('method', 'graph') not in kwargs.items():
+        utils.cache_features(cache_dir, feat_type, kwargs, features)
     return features
 
 
@@ -97,7 +98,10 @@ def fetch_features(buildings, cache_dir, **feature_types):
 
 
 def compute_kernel(features, **kernel_args):
-    return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+    if 'classe' not in kernel_args['algorithm'].keys():
+        return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+    else:
+        return utils.resolve(kernel_args['algorithm']['classe'])(**kernel_args['algorithm']['parameters']).fit_transform(features)
 
 
 def get_features(buildings, cache_dir, **feature_configs):
