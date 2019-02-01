@@ -20,7 +20,7 @@ from . import utils
 geom_logger = logging.getLogger(__name__)
 
 NODE_ATTRIBUTES = ['degree', 'area', 'circumference']
-EDGE_ATTRIBUTES = ['centroid', 'angle']
+EDGE_ATTRIBUTES = ['centroid', 'normal']
 
 
 def read_features(line):
@@ -194,17 +194,17 @@ def attribute_statistics(lines, geom_attrib, functions, **kwargs):
             get_relations(faces, adjacency_matrix),
             **kwargs
         ),
-        'angle':
+        'normal':
         lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
-            'angle',
+            'normal',
             functions,
             **kwargs
         ),
-        'angle_with_relations':
+        'normal_with_relations':
         lambda faces, functions, **kwargs: edge_statistics(
             dict(faces),
-            'angle',
+            'normal',
             functions,
             get_relations(faces, adjacency_matrix),
             **kwargs
