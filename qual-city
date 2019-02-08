@@ -34,7 +34,7 @@ import qualcity.utils
 import qualcity.config
 
 
-logger = logging.getLogger('city')
+logger = logging.getLogger('qualcity')
 
 def config_logger(arguments):
     if not arguments['logger']:
