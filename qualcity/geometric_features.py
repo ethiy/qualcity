@@ -316,6 +316,12 @@ def get_node_attributes(faces, attributes):
                 if attribute in EDGE_ATTRIBUTES
             ],
             list()
+        ) if (len(attributes) > 1 or not attributes) else (
+            faces[face_id][
+                NODE_ATTRIBUTES.index(attributes[0])
+            ] if attributes[0] in NODE_ATTRIBUTES else faces[face_id][
+                len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attributes[0])
+            ]
         )
         
         for (idx, face_id)
@@ -369,7 +375,7 @@ def extract_graph(filename, node_attributes=[], edge_attributes=[]):
     lines = get_lines(filename)
     geom_logger.info('Getting edges...')
     edges = get_edges(lines)
-    if not node_attributes:
+    if not node_attributes and not edge_attributes:
         return [edges]
     else:
         geom_logger.info('Getting facets...')
