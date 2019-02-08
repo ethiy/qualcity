@@ -98,10 +98,24 @@ def fetch_features(buildings, cache_dir, **feature_types):
 
 
 def compute_kernel(features, **kernel_args):
-    if 'classe' not in kernel_args['algorithm'].keys():
-        return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+    if 'algorithm' in kernel_args.keys():
+        if 'classe' not in kernel_args['algorithm'].keys():
+            return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+        else:
+            return utils.resolve(kernel_args['algorithm']['classe'])(**kernel_args['algorithm']['parameters']).fit_transform(features)
     else:
-        return utils.resolve(kernel_args['algorithm']['classe'])(**kernel_args['algorithm']['parameters']).fit_transform(features)
+        return sum(
+            [
+                compute_kernel(
+                    [
+                        feature[kernel_format]
+                        for feature in features
+                    ],
+                    **parameters
+                )
+                for (kernel_format, parameters) in kernel_args.items()
+            ]
+        )
 
 
 def get_features(buildings, cache_dir, **feature_configs):
@@ -123,16 +137,15 @@ def get_features(buildings, cache_dir, **feature_configs):
     elif list(feature_configs['format'].keys()) == ['kernel']:
         return (
             'kernel',
-            functools.reduce(
-                operator.add, 
+            sum(
                 [
                     compute_kernel(
-                    [
-                        feature_dicts[feat_type][building]
-                        for building in buildings
-                    ],
-                    **parameters
-                )
+                        [
+                            feature_dicts[feat_type][building]
+                            for building in buildings
+                        ],
+                        **parameters
+                    )
                     for (feat_type, parameters) in feature_configs['format']['kernel'].items()
                 ]
             )

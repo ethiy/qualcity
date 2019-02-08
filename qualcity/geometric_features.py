@@ -253,7 +253,7 @@ def get_method(graph_dir, method, **parameters):
             **parameters['parameters']
         )
     elif method == 'graph':
-        return lambda building: extract_graph(
+        return lambda building: graph_features(
             os.path.join(graph_dir, building + '.txt'),
             **parameters
         )
@@ -297,42 +297,73 @@ def get_edges(lines):
     ]
 
 
-def get_node_attributes(faces):
+def get_node_attributes(faces, attributes):
     return {
-        index: np.concatenate(
+        idx: [
+            faces[face_id][
+                NODE_ATTRIBUTES.index(attribute)
+            ]
+            for attribute in attributes
+            if attribute in NODE_ATTRIBUTES
+        ] + sum(
             [
-                np.array(
-                    faces[face_id][:len(NODE_ATTRIBUTES)]
+                list(
+                    faces[face_id][
+                        len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
+                    ]
                 )
-            ] + list(faces[face_id][len(NODE_ATTRIBUTES):])
+                for attribute in attributes
+                if attribute in EDGE_ATTRIBUTES
+            ],
+            list()
         )
-        for (index, face_id)
+        
+        for (idx, face_id)
         in enumerate(faces)
     }
 
 
-def get_edge_attributes(edges, faces):
+def get_edge_attributes(edges, faces, attributes):
     face_indexing = dict(enumerate(faces))
     return {
-        edge: np.array(
-            [
-                np.linalg.norm(
-                    faces[face_indexing[edge[0]]][
-                        len(NODE_ATTRIBUTES) + attribute_index
-                    ]
-                    -
-                    faces[face_indexing[edge[1]]][
-                        len(NODE_ATTRIBUTES) + attribute_index
-                    ]
-                )
-                for attribute_index in range(len(EDGE_ATTRIBUTES))
+        edge: [
+            np.linalg.norm(
+                faces[face_indexing[edge[0]]][
+                    len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
+                ]
+                -
+                faces[face_indexing[edge[1]]][
+                    len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
+                ]
+            )
+            for attribute in attributes
+        ] if len(attributes) > 1 else np.linalg.norm(
+            faces[face_indexing[edge[0]]][
+                len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attributes[0])
+            ]
+            -
+            faces[face_indexing[edge[1]]][
+                len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attributes[0])
             ]
         )
         for edge in edges
     }
 
 
-def extract_graph(filename, node_attributes=True, edge_attributes=True):
+def graph_features(filename, **parameters):
+    if list(parameters.keys()) == ['list']:
+        return {
+            graph_format:
+            extract_graph(filename, **format_parameters)
+            for graph_format, format_parameters in parameters['list'].items()
+        }
+    else:
+        raise NotImplementedError(
+            '{} is not implemented'.format(parameters)
+        )
+
+
+def extract_graph(filename, node_attributes=[], edge_attributes=[]):
     geom_logger.info('Read %s and construct corresponding graph.', filename)
     geom_logger.info('Getting lines in %s...', filename)
     lines = get_lines(filename)
@@ -345,18 +376,15 @@ def extract_graph(filename, node_attributes=True, edge_attributes=True):
         faces = dict(get_faces(lines))
         geom_logger.debug('Facets in %s : %s...', lines, faces)
         geom_logger.info('Extracting node attributes.')
-        node_attributes = get_node_attributes(faces)
+        node_features = get_node_attributes(faces, node_attributes)
         if not edge_attributes:
-            return (
-                edges,
-                node_attributes
-            )
+            return (edges, node_features)
         else:
             geom_logger.info('Extracting edge attributes.')
             return (
                 edges,
-                node_attributes,
-                get_edge_attributes(edges, faces)
+                node_features,
+                get_edge_attributes(edges, faces, edge_attributes)
             )
 
 

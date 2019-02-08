@@ -1,5 +1,5 @@
 cache:
-    /home/ethiy/Data/Assembled/____
+    /home/ethiy/Data/Assembled/__
 
 labels:
     labels_path:
@@ -12,31 +12,30 @@ labels:
 
 features:
     types:
-        # geometric:
-        #     graph_dir:
-        #        /home/ethiy/Data/Assembled/facet_graphs
-        #     method: 
-        #         histogram
-        #     parameters:
-        #         parameters:
-        #             bins: 10
-        #         attributes:
-        #             - degree
-        #             - angle_with_relations
-        #             - centroid_with_relations
-        #             - area
-        #             - circumference
-        altimetric:
-            model_dir:
-                /home/ethiy/Data/Assembled/raster_projections
-            dsm_dir: '/home/ethiy/Data/Assembled/DSM'
-            model_ext: tiff
-            dsm_ext: geotiff
-            method: histogram
-            margins: !!python/tuple [0,0]
+        geometric:
+            graph_dir:
+               /home/ethiy/Data/Assembled/facet_graphs
+            method: 
+                graph
             parameters:
-                resolution: 20
-                max_amplitude: 50
+                list:
+                    graph_1:
+                        node_attributes: 
+                            - normal
+                    graph_2:
+                        node_attributes: 
+                            - area
+        # altimetric:
+        #     model_dir:
+        #         /home/ethiy/Data/Assembled/raster_projections
+        #     dsm_dir: '/home/ethiy/Data/Assembled/DSM'
+        #     model_ext: tiff
+        #     dsm_ext: geotiff
+        #     method: histogram
+        #     margins: !!python/tuple [0,0]
+        #     parameters:
+        #         resolution: 20
+        #         max_amplitude: 50
         # radiometric:
         #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
         #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
@@ -48,16 +47,31 @@ features:
         #         weight: (True, True, True)
     format:
         kernel:
-            # geometric:
+            geometric:
+                graph_1:
+                    algorithm:
+                        classe:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: lovasz_theta
+                            n_jobs: 8
+                            normalize: True
+                graph_2:
+                    algorithm:
+                        classe:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: lovasz_theta
+                            normalize: True
+                            n_jobs: 8
+
+            # altimetric:
             #     algorithm:
             #         sklearn.metrics.pairwise.rbf_kernel
             #     parameters:
-            #         gamma: 0.001
-            altimetric:
-                algorithm:
-                    sklearn.metrics.pairwise.rbf_kernel
-                parameters:
-                    gamma: 0.05
+            #         gamma: 0.05
             # radiometric:
             #     algorithm:
             #         sklearn.metrics.pairwise.rbf_kernel
@@ -89,7 +103,7 @@ processing:
                     sklearn.svm.SVC
                 parameters:
                     kernel: precomputed
-                    C: 10
+                    C: 0.1
                     probability: True
                     class_weight: balanced
                 strategy:
