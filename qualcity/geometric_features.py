@@ -21,6 +21,10 @@ geom_logger = logging.getLogger(__name__)
 
 NODE_ATTRIBUTES = ['degree', 'area', 'circumference']
 EDGE_ATTRIBUTES = ['centroid', 'normal']
+EDGE_ATTRIBUTES_METRICS = {
+    'centroid': lambda x, y: np.linalg.norm(x - y),
+    'normal': np.dot
+}
 
 
 def read_features(line):
@@ -132,11 +136,10 @@ def edge_statistics(faces, attribute, functions, relations=[], **kwargs):
         ]
     return utils.stats(
         [
-            np.linalg.norm(
+            EDGE_ATTRIBUTES_METRICS[attribute](
                 faces[idx][
                     len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
-                ]
-                -
+                ],
                 faces[_idx][
                     len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
                 ]
@@ -333,21 +336,19 @@ def get_edge_attributes(edges, faces, attributes):
     face_indexing = dict(enumerate(faces))
     return {
         edge: [
-            np.linalg.norm(
+            EDGE_ATTRIBUTES_METRICS[attribute](
                 faces[face_indexing[edge[0]]][
                     len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
-                ]
-                -
+                ],
                 faces[face_indexing[edge[1]]][
                     len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attribute)
                 ]
             )
             for attribute in attributes
-        ] if len(attributes) > 1 else np.linalg.norm(
+        ] if len(attributes) > 1 else EDGE_ATTRIBUTES_METRICS[attributes[0]](
             faces[face_indexing[edge[0]]][
                 len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attributes[0])
-            ]
-            -
+            ],
             faces[face_indexing[edge[1]]][
                 len(NODE_ATTRIBUTES) + EDGE_ATTRIBUTES.index(attributes[0])
             ]
