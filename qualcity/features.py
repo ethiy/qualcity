@@ -77,15 +77,20 @@ def compute_kernel(features, **kernel_args):
 
 def get_features(buildings, cache_dir, **feature_configs):
     feature_logger.info('Getting features...')
-    feature_dicts = compute_features(buildings, cache_dir, **feature_configs['types'])
+    modalities_features = compute_features(buildings, cache_dir, **feature_configs['types'])
     if list(feature_configs['format'].keys()) == ['vector']:
         return (
             'vector',
             [
                 np.concatenate(
                     [
-                        feature_dict[building]
-                        for feature_dict in feature_dicts.values()
+                        np.concatenate(
+                            [
+                                modality_feature[building]
+                                for modality_feature in modality_features.values()
+                            ]
+                        )
+                        for modality_features in modalities_features.values()
                     ]
                 )
                 for building in buildings
@@ -98,7 +103,7 @@ def get_features(buildings, cache_dir, **feature_configs):
                 [
                     compute_kernel(
                         [
-                            feature_dicts[feat_type][building]
+                            modalities_features[feat_type][building]
                             for building in buildings
                         ],
                         **parameters
