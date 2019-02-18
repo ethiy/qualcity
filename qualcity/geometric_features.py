@@ -358,16 +358,11 @@ def get_edge_attributes(edges, faces, attributes):
 
 
 def graph_features(filename, **parameters):
-    if list(parameters.keys()) == ['list']:
-        return {
-            graph_format:
-            extract_graph(filename, **format_parameters)
-            for graph_format, format_parameters in parameters['list'].items()
-        }
-    else:
-        raise NotImplementedError(
-            '{} is not implemented'.format(parameters)
-        )
+    return {
+        graph_format:
+        extract_graph(filename, **format_parameters)
+        for graph_format, format_parameters in parameters.items()
+    }
 
 
 def extract_graph(filename, node_attributes=[], edge_attributes=[]):
