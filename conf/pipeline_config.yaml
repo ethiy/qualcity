@@ -113,7 +113,7 @@ features:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
                         gamma: 0.05
-            altimetric:
+            radiometric:
                 gradient:
                     type: callable
                     algorithm:
