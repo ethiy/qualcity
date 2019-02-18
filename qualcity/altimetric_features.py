@@ -13,6 +13,9 @@ from tqdm import tqdm
 
 import numpy as np
 
+import torch
+from kymatio import Scattering2D
+
 from . import GeoRaster
 from . import utils
 
@@ -59,6 +62,13 @@ def dsm_residual(model_name, margins, dsm_bboxes):
 
 
 def rmse(model_dir, model_ext, building, dsm_bboxes, margins):
+    alti_logger.info(
+        'Computing the RMSE of the dsm residual for %s with (margins %s) with instersecting '
+        + 'DSM in %s',
+        building,
+        margins,
+        dsm_bboxes
+    )
     return np.sqrt(
         np.mean(
             np.square(
@@ -70,6 +80,48 @@ def rmse(model_dir, model_ext, building, dsm_bboxes, margins):
             )
         )
     )
+
+
+def histogram(model_dir, model_ext, building, dsm_bboxes, margins, resolution=20, max_amplitude=50):
+    alti_logger.info(
+        'Computing the histogram of the dsm residual for %s with (margins %s) with instersecting DSM in %s',
+        building,
+        margins,
+        dsm_bboxes
+    )
+    return np.histogram(
+        dsm_residual(
+            os.path.join(model_dir, building + '.' + model_ext),
+            margins,
+            dsm_bboxes
+        ).flatten(),
+        np.linspace(-max_amplitude, max_amplitude, resolution)
+    )[0]
+
+
+def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling=max, J=3):
+    alti_logger.info(
+        'Computing the scattering of the dsm residual for %s with (margins %s) with instersecting '
+        + 'DSM in %s',
+        building,
+        margins,
+        dsm_bboxes
+    )
+    residual = torch.unsqueeze(
+        torch.unsqueeze(
+            torch.from_numpy(
+                dsm_residual(
+                    os.path.join(model_dir, building + '.' + model_ext),
+                    margins,
+                    dsm_bboxes
+                )
+            ),
+            0
+        ),
+        0
+    ).cuda()
+    scatterer = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda()
+    return scatterer.forward(residual).cpu().squeeze()
 
 
 def partition(residuals, resolution):
@@ -278,10 +330,10 @@ def compute_features(buildings, cache_dir, cache_args, model_dir, model_ext, dsm
             )
             for building in tqdm(
                 [
-                building
-                for building in buildings
-                if cached_features[building] is None
-            ],
+                    building
+                    for building in buildings
+                    if cached_features[building] is None
+                ],
                 desc='Altimetric features using ' + method
             )
         }

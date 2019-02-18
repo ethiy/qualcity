@@ -55,12 +55,26 @@ def compute_features(buildings, cache_dir, **feature_types):
 
 
 def compute_kernel(features, **kernel_args):
-    if kernel_args['type'] == 'callable':
-        return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
-    elif kernel_args['type'] == 'classe':
-        return utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)
+    if 'algorithm' in kernel_args.keys():
+        if kernel_args['type'] == 'callable':
+            return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+        elif kernel_args['type'] == 'classe':
+            return utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)
+        else:
+            raise NotImplementedError('Unknown feature format')
     else:
-        raise NotImplementedError('Unknown feature format')
+        return sum(
+            [
+                compute_kernel(
+                    [
+                        feature[kernel_format]
+                        for feature in features
+                    ],
+                    **parameters
+                )
+                for (kernel_format, parameters) in kernel_args.items()
+            ]
+        )
 
 
 def get_features(buildings, cache_dir, **feature_configs):
