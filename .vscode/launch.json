@@ -11,9 +11,9 @@
             "program": "${workspaceRoot}/qual-city",
             "args": [
                 "pipeline",
-                "/home/ethiy/Workspace/GitHub/qualcity/conf/pipeline_config.yaml",
+                "/home/ethiy/Workspace/Projects/qualcity/conf/pipeline_config.yaml",
                 "logger",
-                "/home/ethiy/Workspace/GitHub/qualcity/conf/basic_log_conf.yaml"
+                "/home/ethiy/Workspace/Projects/qualcity/conf/basic_log_conf.yaml"
             ]
         },
         {
