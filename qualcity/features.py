@@ -85,7 +85,6 @@ def get_features(buildings, cache_dir, **feature_configs):
             ]
         )
     elif list(feature_configs['format'].keys()) == ['kernel']:
-        print(feature_configs['format']['kernel']['altimetric']['rmse'])
         return (
             'kernel',
             sum(
