@@ -30,7 +30,7 @@ def get_modality_features(buildings, feat_type, cache_dir, **kwargs):
     elif feat_type == 'altimetric':
         features = altimetric_features.altimetric_features(buildings, cache_dir, **kwargs)        
     elif feat_type == 'radiometric':
-        features = radiometric_features.radiometric_features(buildings, **kwargs)
+        features = radiometric_features.radiometric_features(buildings, cache_dir, **kwargs)
     else:
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)

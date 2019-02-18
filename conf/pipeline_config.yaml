@@ -43,15 +43,16 @@ features:
                   parameters:
                       resolution: 20
                       max_amplitude: 50
-        # radiometric:
-        #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
-        #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
-        #     ortho_ext: 'geotiff'
-        #     vector_ext: 'shp'
-        #     method: gradient
-        #     parameters:
-        #         resolution: 20
-        #         weight: (True, True, True)
+        radiometric:
+            vector_dir: /home/ethiy/Data/Assembled/vector_projections
+            ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            methods:
+                - method: gradient
+                  parameters:
+                      resolution: 20
+                      weight: (True, True, True)
     format:
         kernel:
             # geometric:
@@ -112,11 +113,13 @@ features:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
                         gamma: 0.05
-            # radiometric:
-            #     algorithm:
-            #         sklearn.metrics.pairwise.rbf_kernel
-            #     parameters:
-            #         gamma: 0.001
+            altimetric:
+                gradient:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.05
 processing:
     # visualization:
     #     dimension_reduction:

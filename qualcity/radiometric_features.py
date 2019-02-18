@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import shapely.ops
 
 from . import GeoBuilding, GeoRaster
+from . import utils
 
 radio_logger = logging.getLogger(__name__)
 
@@ -366,8 +367,56 @@ def get_method(vector_dir, ortho_infos, method, **method_args):
         )
 
 
+def compute_features(buildings, cache_dir, cache_args, vector_dir, vector_ext, ortho_infos, method, **method_args):
+    cache_args.update(
+        {
+            'vector_dir': vector_dir,
+            'vector_ext': vector_ext,
+            'method': method,
+            'parameters': method_args
+        }
+    )
+    cached_features = utils.fetch_features(
+        buildings,
+        'radiometric',
+        cache_dir,
+        **cache_args
+    )
+
+    features = {
+        building:
+        np.concatenate(
+            get_method(
+                vector_dir,
+                ortho_infos,
+               method,
+                **method_args
+            )(building).reshape(1, -1),
+            axis=-1
+        )
+        for building in tqdm(
+            [
+                building
+                for building in buildings
+                if cached_features[building] is None
+            ],
+            desc='Radiometric features using ' + method
+        )
+    }
+    utils.cache_features(
+        cache_dir,
+        'altimetric',
+        cache_args,
+        features
+    )
+    cached_features.update(features)
+    return cached_features
+
+
+
 def radiometric_features(
     buildings,
+    cache_dir,
     vector_dir,
     ortho_dir,
     ortho_ext='geotiff',
@@ -400,18 +449,19 @@ def radiometric_features(
         ortho_infos
     )
     return {
-        building:
-        np.concatenate(
-            get_method(
-                vector_dir,
-                ortho_infos,
-                parameters['method'],
-                **parameters['parameters']
-            )(building).reshape(1, -1),
-            axis=-1
-        )
-        for building in tqdm(
+        method['method']: 
+        compute_features(
             buildings,
-            desc='Radiometric features'
+            cache_dir,
+            {
+                'ortho_dir': ortho_dir,
+                'ortho_ext': ortho_ext
+            },
+            vector_dir,
+            vector_ext,
+            ortho_infos,
+            method['method'],
+            **method['parameters'] if 'parameters' in method.keys() else {},
         )
+        for method in parameters['methods']
     }
