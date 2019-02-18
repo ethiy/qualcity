@@ -54,9 +54,7 @@ def build_classifier(**classifier_args):
 
 
 def data_split(features, labels, **separation_args):
-    if not separation_args:
-        return np.arange(len(features))
-    elif 'train_test_split' in separation_args:
+    if 'train_test_split' in separation_args:
         return tuple(
             sklearn.model_selection.train_test_split(
                 np.arange(len(features)),
@@ -901,16 +899,7 @@ def classify(form, features, labels, buildings, label_names, cache_dir, cache_co
             )
         ]
     else:
-        predictions, proba_predictions, train_cm, test_cm = train_test(
-            form,
-            features,
-            None,
-            buildings,
-            label_names,
-            [],
-            indices,
-            **class_args
-        )
+        raise NotImplementedError('Unknown configureation')
     save_prediction(
         predictions,
         proba_predictions,
