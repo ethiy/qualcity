@@ -55,24 +55,12 @@ def compute_features(buildings, cache_dir, **feature_types):
 
 
 def compute_kernel(features, **kernel_args):
-    if 'algorithm' in kernel_args.keys():
-        if 'classe' not in kernel_args['algorithm'].keys():
-            return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
-        else:
-            return utils.resolve(kernel_args['algorithm']['classe'])(**kernel_args['algorithm']['parameters']).fit_transform(features)
+    if kernel_args['type'] == 'callable':
+        return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+    elif kernel_args['type'] == 'classe':
+        return utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)
     else:
-        return sum(
-            [
-                compute_kernel(
-                    [
-                        feature[kernel_format]
-                        for feature in features
-                    ],
-                    **parameters
-                )
-                for (kernel_format, parameters) in kernel_args.items()
-            ]
-        )
+        raise NotImplementedError('Unknown feature format')
 
 
 def get_features(buildings, cache_dir, **feature_configs):
@@ -97,18 +85,20 @@ def get_features(buildings, cache_dir, **feature_configs):
             ]
         )
     elif list(feature_configs['format'].keys()) == ['kernel']:
+        print(feature_configs['format']['kernel']['altimetric']['rmse'])
         return (
             'kernel',
             sum(
                 [
                     compute_kernel(
                         [
-                            modalities_features[feat_type][building]
+                            modalities_features[feat_type][method][building]
                             for building in buildings
                         ],
                         **parameters
                     )
-                    for (feat_type, parameters) in feature_configs['format']['kernel'].items()
+                    for feat_type, methods_parameters in feature_configs['format']['kernel'].items()
+                    for method, parameters in methods_parameters.items()
                 ]
             )
         )

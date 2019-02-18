@@ -100,10 +100,18 @@ features:
                 #             n_jobs: 1
 
             altimetric:
-                algorithm:
-                    sklearn.metrics.pairwise.rbf_kernel
-                parameters:
-                    gamma: 0.05
+                rmse:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.05
+                histogram:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.05
             # radiometric:
             #     algorithm:
             #         sklearn.metrics.pairwise.rbf_kernel
@@ -126,9 +134,8 @@ processing:
     #             - ^
     classification:
         data_separation:
-            cross_validation:
-                parameters:
-                    n_splits: 10
+            bipartite:
+                threshold: 454
         training:
             model:
                 algorithm:
