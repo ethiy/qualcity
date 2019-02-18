@@ -26,7 +26,7 @@ feature_logger = logging.getLogger(__name__)
 
 def get_modality_features(buildings, feat_type, cache_dir, **kwargs):
     if feat_type == 'geometric':
-        features = geometric_features.geometric_features(buildings, **kwargs)
+        features = geometric_features.geometric_features(buildings, cache_dir, **kwargs)
     elif feat_type == 'altimetric':
         features = altimetric_features.altimetric_features(buildings, cache_dir, **kwargs)        
     elif feat_type == 'radiometric':

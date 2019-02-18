@@ -242,51 +242,6 @@ def statistics_features(filename, attributes, functions, **kwargs):
         geom_logger.exception('Could not extract features for %s:', filename)
 
 
-def get_method(graph_dir, method, **parameters):
-    if method == 'statistics':
-        return lambda building: statistics_features(
-            os.path.join(graph_dir, building + '.txt'),
-            **parameters
-        )
-    elif method == 'histogram':
-        return lambda building: statistics_features(
-            os.path.join(graph_dir, building + '.txt'),
-            parameters['attributes'],
-            method,
-            **parameters['parameters']
-        )
-    elif method == 'graph':
-        return lambda building: graph_features(
-            os.path.join(graph_dir, building + '.txt'),
-            **parameters
-        )
-    else:
-        raise NotImplementedError(
-            '{} is not implemented'.format(method)
-        )
-
-
-def geometric_features(buildings, graph_dir, **kwargs):
-    geom_logger.info(
-        'Getting geometric features for buildings %s in %s using %s with parameters %s',
-        buildings,
-        graph_dir,
-        kwargs['method'],
-        kwargs['parameters'] if 'parameters' in kwargs.keys() else {}
-    )
-    return {
-        building: get_method(
-            graph_dir,
-            kwargs['method'],
-            **kwargs['parameters'] if 'parameters' in kwargs.keys() else {}
-        )(building)
-        for building in tqdm(
-            buildings,
-            desc='Geometric features'
-        )
-    }
-
-
 def get_edges(lines):
     geom_logger.info('Read pairs from lines %s.', lines)
     geom_logger.info('Computing adjacency matrix...')
@@ -390,41 +345,87 @@ def extract_graph(filename, node_attributes=[], edge_attributes=[]):
             )
 
 
-def read(filename):
-    geom_logger.info('Read %s and construct corresponding graph.', filename)
-    geom_logger.info('Getting lines in %s...', filename)
-    lines = get_lines(filename)
-    geom_logger.info('Finished getting lines in %s...', filename)
 
-    geom_logger.info('Getting facets...')
-    faces = dict(get_faces(lines))
-    geom_logger.debug('Facets in %s : %s...', lines, faces)
-    geom_logger.info('Getting the graph structure...')
-    G = get_graph(lines)
-    geom_logger.debug('The graph structure in %s : %s...', lines, G)
-    nx.set_node_attributes(
-        G,
-        {idx: faces[face_id][0] for (idx, face_id) in enumerate(faces)},
-        'degree'
+def get_method(graph_dir, method, **parameters):
+    if method == 'statistics':
+        return lambda building: statistics_features(
+            os.path.join(graph_dir, building + '.txt'),
+            **parameters
+        )
+    elif method == 'histogram':
+        return lambda building: statistics_features(
+            os.path.join(graph_dir, building + '.txt'),
+            parameters['attributes'],
+            method,
+            **parameters['parameters']
+        )
+    elif method == 'graph':
+        return lambda building: graph_features(
+            os.path.join(graph_dir, building + '.txt'),
+            **parameters
+        )
+    else:
+        raise NotImplementedError(
+            '{} is not implemented'.format(method)
+        )
+
+
+def compute_features(buildings, cache_dir, graph_dir, method, **method_args):
+    cache_args = {
+        'graph_dir': graph_dir,
+        'method': method,
+        'parameters': method_args
+    }
+    cached_features = {building: None for building in buildings}
+    if method != 'graph':
+        cached_features = utils.fetch_features(
+            buildings,
+            'geometric',
+            cache_dir,
+            **cache_args
+        )
+    features = {
+        building:
+        get_method(
+            graph_dir,
+            method,
+            **method_args
+        )(building)
+        for building in tqdm(
+            [
+                building
+                for building in buildings
+                if cached_features[building] is None
+            ],
+            desc='Geometric features using ' + method
+        )
+    }
+    if method != 'graph':
+        utils.cache_features(
+            cache_dir,
+            'geomteric',
+            cache_args,
+            features
+        )
+    cached_features.update(features)
+    return cached_features
+
+
+def geometric_features(buildings, cache_dir, graph_dir, **kwargs):
+    geom_logger.info(
+        'Getting geometric features for buildings %s in %s using %s',
+        buildings,
+        graph_dir,
+        kwargs['methods']
     )
-    nx.set_node_attributes(
-        G,
-        {face_id: faces[face_id][1] for (idx, face_id) in enumerate(faces)},
-        'area'
-    )
-    nx.set_node_attributes(
-        G,
-        {face_id: faces[face_id][2] for (idx, face_id) in enumerate(faces)},
-        'circumference'
-    )
-    nx.set_node_attributes(
-        G,
-        {face_id: faces[face_id][3] for (idx, face_id) in enumerate(faces)},
-        'centroid'
-    )
-    nx.set_node_attributes(
-        G,
-        {face_id: faces[face_id][4] for (idx, face_id) in enumerate(faces)},
-        'normal'
-    )
-    return G
+    return {
+        method['method']: 
+        compute_features(
+            buildings,
+            cache_dir,
+            graph_dir,
+            method['method'],
+            **method['parameters'] if 'parameters' in method.keys() else {},
+        )
+        for method in kwargs['methods']
+    }

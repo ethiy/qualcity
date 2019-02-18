@@ -413,7 +413,6 @@ def compute_features(buildings, cache_dir, cache_args, vector_dir, vector_ext, o
     return cached_features
 
 
-
 def radiometric_features(
     buildings,
     cache_dir,
