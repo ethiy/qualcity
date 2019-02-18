@@ -15,6 +15,8 @@ import unicodedata
 import numpy as np
 import statistics
 
+from tqdm import tqdm
+
 utils_logger = logging.getLogger(__name__)
 
 
@@ -261,3 +263,32 @@ def read_feature(cache_dir, cachename):
         ) as cache_file:
         line = cache_file.readline()
     return np.fromstring(line, sep=',')
+
+
+
+def fetch_features(buildings, feat_type, cache_dir, **kwargs):
+    ledger = cache_ledger(cache_dir, 'features')
+    return {
+        building: read_cached_feature(
+            cache_dir,
+            dict(
+                [
+                    (
+                        'type',
+                        feat_type
+                    ),
+                    (
+                        'building',
+                        building
+                    )
+                ]
+                +
+                list(kwargs.items())
+            ),
+            ledger
+        )
+        for building in tqdm(
+            buildings,
+            desc='Cached ' + feat_type + ' features using ' + kwargs['method']
+        )
+    } 

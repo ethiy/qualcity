@@ -14,6 +14,7 @@ from tqdm import tqdm
 import numpy as np
 
 from . import GeoRaster
+from . import utils
 
 alti_logger = logging.getLogger(__name__)
 
@@ -200,14 +201,103 @@ def get_method(model_dir, model_ext, dsm_bboxes, margins, method, **method_args)
             dsm_bboxes,
             margins
         )
+    elif method == 'histogram': 
+        return lambda building: histogram(
+            model_dir,
+            model_ext,
+            building,
+            dsm_bboxes,
+            margins,
+            **method_args
+        )
+    elif method == 'scattering':
+        return lambda building: scatter(
+            model_dir,
+            model_ext,
+            building,
+            dsm_bboxes,
+            margins,
+            **method_args
+        )
     else:
         raise NotImplementedError(
             '{} is not implemented'.format(method)
         )
 
 
+def compute_features(buildings, cache_dir, cache_args, model_dir, model_ext, dsm_bboxes, margins, method, **method_args):
+    alti_logger.info(
+        'Getting the features with method %s for buildings in %s wrt'
+        + ' %s applying parameters %s',
+        method,
+        model_dir,
+        dsm_bboxes,
+        method_args,
+    )
+    cache_args.update(
+        {
+            'model_dir': model_dir,
+            'model_ext': model_ext,
+            'margins': margins,
+            'method': method,
+            'parameters': method_args
+        }
+    )
+    cached_features = utils.fetch_features(
+        buildings,
+        'altimetric',
+        cache_dir,
+        **cache_args
+    )
+    if method == 'histogram_custom':
+        features = histogram_features(
+            [
+                building
+                for building in buildings
+                if cached_features[building] is None
+            ],
+            model_dir,
+            model_ext,
+            dsm_bboxes,
+            margins,
+            **method_args
+        )
+    else:
+        features = {
+            building:
+            np.concatenate(
+                get_method(
+                    model_dir,
+                    model_ext,
+                    dsm_bboxes,
+                    margins,
+                    method,
+                    **method_args
+                )(building).reshape(1, -1),
+                axis=-1
+            )
+            for building in tqdm(
+                [
+                building
+                for building in buildings
+                if cached_features[building] is None
+            ],
+                desc='Altimetric features using ' + method
+            )
+        }
+    utils.cache_features(
+        cache_dir,
+        'altimetric',
+        cache_args,
+        features
+    )
+    cached_features.update(features)
+    return cached_features
+
+
 def altimetric_features(
     buildings,
+    cache_dir,
     model_dir,
     dsm_dir,
     dsm_ext='geotiff',
@@ -240,32 +330,21 @@ def altimetric_features(
         dsm_ext,
         dsm_bboxes
     )
-    if parameters['method'] == 'histogram':
-        return histogram_features(
+    return {
+        method['method']: 
+        compute_features(
             buildings,
+            cache_dir,
+            {
+                'dsm_dir': dsm_dir,
+                'dsm_ext': dsm_ext
+            },
             model_dir,
             model_ext,
             dsm_bboxes,
             margins,
-            **parameters['parameters']
+            method['method'],
+            **method['parameters'] if 'parameters' in method.keys() else {},
         )
-    else:
-        method = get_method(
-            model_dir,
-            model_ext,
-            dsm_bboxes,
-            margins,
-            parameters['method'],
-            **parameters['parameters'] if 'parameters' in parameters.keys() else {}
-        )
-        return {
-            building:
-            np.concatenate(
-                method(building).reshape(1, -1),
-                axis=-1
-            )
-            for building in tqdm(
-                buildings,
-                desc='Altimetric features'
-            )
-        }
+        for method in parameters['methods']
+    }

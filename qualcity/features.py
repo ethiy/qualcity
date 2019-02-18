@@ -24,70 +24,27 @@ from . import utils
 feature_logger = logging.getLogger(__name__)
 
 
-def attributes(buildings, feat_type, cache_dir, **kwargs):
-    ledger = utils.cache_ledger(cache_dir, 'features')
-    cached_features = {
-        building: utils.read_cached_feature(
-            cache_dir,
-            dict(
-                [
-                    (
-                        'type',
-                        feat_type
-                    ),
-                    (
-                        'building',
-                        building
-                    )
-                ]
-                +
-                list(kwargs.items())
-            ),
-            ledger
-        )
-        for building in tqdm.tqdm(
-            buildings,
-            desc='Cached ' + feat_type + ' features'
-        )
-    }
-    cached_features.update(
-        compute_attributes(
-            [
-                building
-                for building in buildings
-                if cached_features[building] is None
-            ],
-            feat_type,
-            cache_dir,
-            **kwargs
-        )
-    )
-    return cached_features
-
-
-def compute_attributes(buildings, feat_type, cache_dir, **kwargs):
+def get_modality_features(buildings, feat_type, cache_dir, **kwargs):
     if feat_type == 'geometric':
         features = geometric_features.geometric_features(buildings, **kwargs)
     elif feat_type == 'altimetric':
-        features = altimetric_features.altimetric_features(buildings, **kwargs)        
+        features = altimetric_features.altimetric_features(buildings, cache_dir, **kwargs)        
     elif feat_type == 'radiometric':
         features = radiometric_features.radiometric_features(buildings, **kwargs)
     else:
         raise NotImplementedError(
             'Attribute type {} not implemented'.format(feat_type)
         )
-    if ('method', 'graph') not in kwargs.items():
-        utils.cache_features(cache_dir, feat_type, kwargs, features)
     return features
 
 
-def fetch_features(buildings, cache_dir, **feature_types):
+def compute_features(buildings, cache_dir, **feature_types):
     feature_logger.info(
         'Fetching features of modalities %s in dictionnary...',
         feature_types.keys()
     )
     return {
-        feat_type: attributes(
+        feat_type: get_modality_features(
             buildings,
             feat_type,
             cache_dir,
@@ -120,7 +77,7 @@ def compute_kernel(features, **kernel_args):
 
 def get_features(buildings, cache_dir, **feature_configs):
     feature_logger.info('Getting features...')
-    feature_dicts = fetch_features(buildings, cache_dir, **feature_configs['types'])
+    feature_dicts = compute_features(buildings, cache_dir, **feature_configs['types'])
     if list(feature_configs['format'].keys()) == ['vector']:
         return (
             'vector',
