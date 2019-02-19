@@ -57,24 +57,23 @@ def compute_features(buildings, cache_dir, **feature_types):
 def compute_kernel(features, **kernel_args):
     if 'algorithm' in kernel_args.keys():
         if kernel_args['type'] == 'callable':
-            return utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])
+            return {None: utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])}
         elif kernel_args['type'] == 'classe':
-            return utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)
+            return {None: utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)}
         else:
             raise NotImplementedError('Unknown feature format')
     else:
-        return sum(
-            [
-                compute_kernel(
-                    [
-                        feature[kernel_format]
-                        for feature in features
-                    ],
-                    **parameters
-                )
-                for (kernel_format, parameters) in kernel_args.items()
-            ]
-        )
+        return {
+            kernel_format:
+            compute_kernel(
+                [
+                    feature[kernel_format]
+                    for feature in features
+                ],
+                **parameters
+            )[None]
+            for (kernel_format, parameters) in kernel_args.items()
+        }
 
 
 def get_features(buildings, cache_dir, **feature_configs):
@@ -99,19 +98,25 @@ def get_features(buildings, cache_dir, **feature_configs):
             ]
         )
     elif list(feature_configs['format'].keys()) == ['kernel']:
+        kernels_per_config = {
+            (feat_type, method):
+            compute_kernel(
+                [
+                    modalities_features[feat_type][method][building]
+                    for building in buildings
+                ],
+                **parameters
+            )
+            for feat_type, methods_parameters in feature_configs['format']['kernel'].items()
+            for method, parameters in methods_parameters.items()
+        }
         return (
             'kernel',
             sum(
                 [
-                    compute_kernel(
-                        [
-                            modalities_features[feat_type][method][building]
-                            for building in buildings
-                        ],
-                        **parameters
-                    )
-                    for feat_type, methods_parameters in feature_configs['format']['kernel'].items()
-                    for method, parameters in methods_parameters.items()
+                    kernel
+                    for (feat_type, method), attributes in kernels_per_config.items()
+                    for attribute, kernel in attributes.items()
                 ]
             )
         )
