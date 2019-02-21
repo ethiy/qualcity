@@ -33,7 +33,7 @@ from . import utils
 learning_logger = logging.getLogger(__name__)
 
 
-def build_classifier(**classifier_args):
+def build_classifier(fuser=None, **classifier_args):
     learning_logger.info('Building a classifier...')
 
     if 'filename' in classifier_args:
@@ -50,6 +50,9 @@ def build_classifier(**classifier_args):
         if 'strategy' in classifier_args.keys():
             learning_logger.info('Adding strategy: %s', classifier_args['strategy'])
             model = utils.resolve(classifier_args['strategy'])(model)
+        if fuser is not None:
+            learning_logger.info('Adding fuser: %s', fuser)
+            model = fuser(model)
         return model
 
 
@@ -57,7 +60,7 @@ def data_split(features, labels, **separation_args):
     if 'train_test_split' in separation_args:
         return tuple(
             sklearn.model_selection.train_test_split(
-                np.arange(len(features)),
+                np.arange(len(labels)),
                 **separation_args['train_test_split']['parameters']
             )
         )
@@ -66,12 +69,12 @@ def data_split(features, labels, **separation_args):
             sklearn.model_selection.StratifiedKFold(
                 **separation_args['cross_validation']['parameters']
             ).split(
-                np.zeros(len(features)),
+                np.zeros(len(labels)),
                 list(zip(*labels))[0] if isinstance(labels, tuple) else labels
             )
         )
     elif 'bipartite' in separation_args:
-        return (np.arange(separation_args['bipartite']['threshold']), np.arange(separation_args['bipartite']['threshold'], len(features)))
+        return (np.arange(separation_args['bipartite']['threshold']), np.arange(separation_args['bipartite']['threshold'], len(labels)))
     else:
         learning_logger.error(
             'Separation %s not implemented.',
@@ -258,9 +261,9 @@ def test(model, buildings, features, ground_truth, label_names, reportname, **te
     )
 
 
-def train(features, ground_truth, label_names, reportname, **train_args):
+def train(features, fuser, ground_truth, label_names, reportname, **train_args):
     learning_logger.info('Training...')
-    model = build_classifier(**train_args['model'])
+    model = build_classifier(fuser, **train_args['model'])
 
     if ground_truth is None:
         return (model, None)
@@ -273,7 +276,7 @@ def train(features, ground_truth, label_names, reportname, **train_args):
     elif isinstance(label_names, list):
         learning_logger.info('Fitting and predicting multilabels...')
         predicted = model.fit(features, np.array(ground_truth)).predict(
-            np.array(features)
+            features
         )
         return (model, report(predicted, ground_truth, label_names, reportname))
     elif isinstance(label_names, dict):
@@ -307,6 +310,7 @@ def train(features, ground_truth, label_names, reportname, **train_args):
                     fam,
                     *train(
                         np.array(features)[fam_indexes] if train_args['form'] == 'vector' else features[fam_indexes][:, fam_indexes],
+                        fuser,
                         [errors[idx] for idx in fam_indexes],
                         label_names[fam],
                         **train_args
@@ -659,6 +663,7 @@ def plot_confusion_matrix(
 def train_test(
     form,
     features,
+    fuser,
     labels,
     buildings,
     label_names,
@@ -720,7 +725,7 @@ def train_test(
         preds = predict(
             model,
             [buildings[idx] for idx in train_indices],
-            np.array(features)[train_indices] if form == 'vector' else features[train_indices][:, train_indices],
+            np.array(features)[train_indices] if form == 'vector' else [feature[train_indices][:, train_indices] for feature in features],
             label_names
         )
         with open(
@@ -749,7 +754,8 @@ def train_test(
         if isinstance(label_names, dict):
             class_args['form'] = form
         model, train_cm = train(
-            np.array(features)[train_indices] if form == 'vector' else features[train_indices][:, train_indices],
+            np.array(features)[train_indices] if form == 'vector' else [feature[train_indices][:, train_indices] for feature in features],
+            fuser,
             None if labels is None else [labels[idx] for idx in train_indices],
             label_names,
             os.path.join(
@@ -793,7 +799,7 @@ def train_test(
     predictions, test_cm = test(
         model,
         [buildings[idx] for idx in test_indices],
-        np.array(features)[test_indices] if form == 'vector' else features[test_indices][:, train_indices],
+        np.array(features)[test_indices] if form == 'vector' else [feature[test_indices][:, train_indices] for feature in features],
         None if labels is None else [labels[idx] for idx in test_indices],
         label_names,
         os.path.join(
@@ -812,7 +818,7 @@ def train_test(
         predict_proba(
             model,
             [buildings[index] for index in test_indices],
-            np.array(features)[test_indices] if form == 'vector' else features[test_indices][:, train_indices],
+            np.array(features)[test_indices] if form == 'vector' else [feature[test_indices][:, train_indices] for feature in features],
             label_names
         ),
         train_cm,
@@ -820,7 +826,7 @@ def train_test(
     )
 
 
-def classify(form, features, labels, buildings, label_names, cache_dir, cache_config, **class_args):
+def classify(form, features, fuser, labels, buildings, label_names, cache_dir, cache_config, **class_args):
     learning_logger.info('Classification process starting...')
     reportname = 'report-' + time.ctime()
     indices = data_split(
@@ -843,6 +849,7 @@ def classify(form, features, labels, buildings, label_names, cache_dir, cache_co
         predictions, proba_predictions, train_cm, test_cm = train_test(
             form,
             features,
+            fuser,
             labels,
             buildings,
             label_names,
@@ -861,6 +868,7 @@ def classify(form, features, labels, buildings, label_names, cache_dir, cache_co
                     lambda cv_idx, idxes: train_test(
                         form,
                         features,
+                        fuser,
                         labels,
                         buildings,
                         label_names,
@@ -914,3 +922,14 @@ def classify(form, features, labels, buildings, label_names, cache_dir, cache_co
     if train_cm is not None and test_cm is not None:
         for cm in [train_cm, test_cm]:
             plot_confusion_matrix(cm, label_names)
+
+
+def fuse(form, **fusion_args):
+    if form == 'vector':
+        return lambda classifier: classifier
+    elif form == 'kernel':
+        return lambda classifier: utils.resolve(
+            fusion_args[form]['algorithm']
+        )(estimator= classifier, **fusion_args[form]['parameters'])
+    else:
+        raise NotImplementedError('{} not implemented'.format(form))

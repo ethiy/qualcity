@@ -154,6 +154,7 @@ def process(form, features, labels, buildings, label_names, cache_file, cache_co
     qualcity.learning.classify(
         form,
         features,
+        qualcity.learning.fuse(form, **process_args['fusion']),
         labels,
         buildings,
         label_names,

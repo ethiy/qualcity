@@ -112,13 +112,11 @@ def get_features(buildings, cache_dir, **feature_configs):
         }
         return (
             'kernel',
-            sum(
-                [
-                    kernel
-                    for (feat_type, method), attributes in kernels_per_config.items()
-                    for attribute, kernel in attributes.items()
-                ]
-            )
+            [
+                kernel
+                for (feat_type, method), attributes in kernels_per_config.items()
+                for attribute, kernel in attributes.items()
+            ]
         )
     else:
         raise NotImplementedError('Unknown feature format')

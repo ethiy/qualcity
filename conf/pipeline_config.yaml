@@ -12,24 +12,24 @@ labels:
 
 features:
     types:
-        # geometric:
-        #     graph_dir:
-        #        /home/ethiy/Data/Assembled/facet_graphs
-        #     methods:
-        #         - method: graph
-        #           parameters:
-        #               graph_1:
-        #                   edge_attributes: 
-        #                       - normal
-        #               graph_2:
-        #                   edge_attributes: 
-        #                       - centroid
-        #               graph_3:
-        #                   node_attributes: 
-        #                       - area
-        #               graph_4:
-        #                   node_attributes: 
-        #                       - circumference
+        geometric:
+            graph_dir:
+               /home/ethiy/Data/Assembled/facet_graphs
+            methods:
+                - method: graph
+                  parameters:
+                      graph_1:
+                          edge_attributes: 
+                              - normal
+                      graph_2:
+                          edge_attributes: 
+                              - centroid
+                      graph_3:
+                          node_attributes: 
+                              - area
+                      graph_4:
+                          node_attributes: 
+                              - circumference
         altimetric:
             model_dir:
                 /home/ethiy/Data/Assembled/raster_projections
@@ -54,63 +54,63 @@ features:
         #               resolution: 20
         #               weight: (True, True, True)
     format:
-        vector:
-            # geometric:
-            #     graph:
-            #         graph_1:
-            #             type: classe
-            #             algorithm: grakel.GraphKernel
-            #             parameters:
-            #                 kernel: 
-            #                     name: random_walk
-            #                     lamda: .017
-            #                     kernel_type: geometric
-            #                     method_type: fast
-            #                 n_jobs: 8
-            #                 normalize: True
-            #         graph_2:
-            #             type: classe
-            #             algorithm: grakel.GraphKernel
-            #             parameters:
-            #                 kernel:
-            #                     - name: core_framework
-            #                     - name: random_walk
-            #                       lamda: .017
-            #                       kernel_type: geometric
-            #                       method_type: fast
-            #                       n_jobs: 8
-            #                 normalize: True
-            #         graph_3:
-            #             type: classe
-            #             algorithm:
-            #                 grakel.GraphKernel
-            #             parameters:
-            #                 kernel: 
-            #                     name: svm_theta
-            #                 normalize: True
-            #                 n_jobs: 1
-            #         graph_4:
-            #             type: classe
-            #             algorithm:
-            #                 grakel.GraphKernel
-            #             parameters:
-            #                 kernel: 
-            #                     name: svm_theta
-            #                 normalize: True
-            #                 n_jobs: 1
-            # altimetric:
-            #     rmse:
-            #         type: callable
-            #         algorithm:
-            #             sklearn.metrics.pairwise.rbf_kernel
-            #         parameters:
-            #             gamma: 0.05
-            #     histogram:
-            #         type: callable
-            #         algorithm:
-            #             sklearn.metrics.pairwise.rbf_kernel
-            #         parameters:
-            #             gamma: 0.05
+        kernel:
+            geometric:
+                graph:
+                    graph_1:
+                        type: classe
+                        algorithm: grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: random_walk
+                                lamda: .017
+                                kernel_type: geometric
+                                method_type: fast
+                            n_jobs: 8
+                            normalize: True
+                    graph_2:
+                        type: classe
+                        algorithm: grakel.GraphKernel
+                        parameters:
+                            kernel:
+                                - name: core_framework
+                                - name: random_walk
+                                  lamda: .017
+                                  kernel_type: geometric
+                                  method_type: fast
+                                  n_jobs: 8
+                            normalize: True
+                    graph_3:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: svm_theta
+                            normalize: True
+                            n_jobs: 1
+                    graph_4:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: svm_theta
+                            normalize: True
+                            n_jobs: 1
+            altimetric:
+                rmse:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.05
+                histogram:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.05
             # radiometric:
             #     gradient:
             #         type: callable
@@ -134,13 +134,13 @@ processing:
     #             - o
     #             - ^
     fusion:
-        vector:
-        #     algorithm:
-        #         MKLpy.algorithms.EasyMKL
-        #     parameters:
-        #         max_iter: 100
-        #         lam: .1
-        #         multiclass_strategy: ova
+        kernel:
+            algorithm:
+                MKLpy.algorithms.EasyMKL
+            parameters:
+                max_iter: 100
+                lam: .1
+                multiclass_strategy: ova
     classification:
         data_separation:
             cross_validation:
@@ -154,13 +154,13 @@ processing:
                 parameters:
                     # n_estimators: 1000
                     # max_depth: 4
-                    # kernel: precomputed
+                    kernel: precomputed
                     C: .5
                     probability: True
                     class_weight: balanced
-                strategy:
-                    # MKLpy.multiclass.OneVsRestMKLClassifier
-                    sklearn.multiclass.OneVsRestClassifier
+                # strategy:
+                #     MKLpy.multiclass.OneVsRestMKLClassifier
+                    # sklearn.multiclass.OneVsRestClassifier
         testing:
             predictions:
                 filename: predictions-2
