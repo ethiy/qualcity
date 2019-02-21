@@ -185,7 +185,8 @@ def label_names(config, labels):
                 'Valid': None,
                 'Building': qualcity.labels.LABELS(
                     config['LoD'],
-                    ['Building']
+                    ['Building'],
+                    drop=True
                 ),
                 'Facet': qualcity.labels.LABELS(
                     config['LoD'],
@@ -194,7 +195,8 @@ def label_names(config, labels):
             } if config['hierarchical']
             else qualcity.labels.LABELS(
                 config['LoD'],
-                ['Building', 'Facet']
+                ['Building', 'Facet'],
+                drop=True
             )
         )
     else:

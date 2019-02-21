@@ -81,9 +81,9 @@ CLASSES = {
 INV_CLASSES = {v: k for k, v in CLASSES.items()}
 
 
-def LABELS(LoD, family):
+def LABELS(LoD, family, drop=False):
     return (
-        (LoD > 0) * ('Building' in family) * BUILDING_ERROR_LIST
+        (LoD > 0) * ('Building' in family) * (BUILDING_ERROR_LIST[:-1] if (LoD > 1) and drop else BUILDING_ERROR_LIST)
         +
         (LoD > 1) * ('Facet' in family) * FACET_ERROR_LIST
     )
@@ -416,7 +416,7 @@ def errors(error_dict, hierarchical=True, depth=2, LoD=2, threshold=5):
                 )
         else:
             return 'Unqualifiable' if unq > 0 else (
-                (LoD > 0) * bul_array
+                (LoD > 0) * (bul_array[:-1] if (LoD > 1) else bul_array)
                 +
                 (LoD > 1) * fac_array
             )
