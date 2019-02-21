@@ -27,9 +27,9 @@ features:
                       graph_3:
                           node_attributes: 
                               - area
-                      graph_4:
-                          node_attributes: 
-                              - circumference
+                    #   graph_4:
+                    #       node_attributes: 
+                    #           - circumference
         altimetric:
             model_dir:
                 /home/ethiy/Data/Assembled/raster_projections
@@ -63,7 +63,7 @@ features:
                         parameters:
                             kernel: 
                                 name: random_walk
-                                lamda: .017
+                                lamda: .015
                                 kernel_type: geometric
                                 method_type: fast
                             n_jobs: 8
@@ -75,10 +75,10 @@ features:
                             kernel:
                                 - name: core_framework
                                 - name: random_walk
-                                  lamda: .017
+                                  lamda: .015
                                   kernel_type: geometric
                                   method_type: fast
-                                  n_jobs: 8
+                                #   n_jobs: 8
                             normalize: True
                     graph_3:
                         type: classe
@@ -89,28 +89,28 @@ features:
                                 name: svm_theta
                             normalize: True
                             n_jobs: 1
-                    graph_4:
-                        type: classe
-                        algorithm:
-                            grakel.GraphKernel
-                        parameters:
-                            kernel: 
-                                name: svm_theta
-                            normalize: True
-                            n_jobs: 1
+                    # graph_4:
+                    #     type: classe
+                    #     algorithm:
+                    #         grakel.GraphKernel
+                    #     parameters:
+                    #         kernel: 
+                    #             name: svm_theta
+                    #         normalize: True
+                    #         n_jobs: 1
             altimetric:
                 rmse:
                     type: callable
                     algorithm:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
-                        gamma: 0.05
+                        gamma: 1
                 histogram:
                     type: callable
                     algorithm:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
-                        gamma: 0.05
+                        gamma: 0.005
             # radiometric:
             #     gradient:
             #         type: callable
@@ -155,11 +155,11 @@ processing:
                     # n_estimators: 1000
                     # max_depth: 4
                     kernel: precomputed
-                    C: .5
+                    C: .05
                     probability: True
                     class_weight: balanced
-                # strategy:
-                #     MKLpy.multiclass.OneVsRestMKLClassifier
+                strategy:
+                    MKLpy.multiclass.OneVsRestMKLClassifier
                     # sklearn.multiclass.OneVsRestClassifier
         testing:
             predictions:

@@ -47,12 +47,12 @@ def build_classifier(fuser=None, **classifier_args):
             classifier_args['algorithm'],
             classifier_args['parameters']
         )
-        if 'strategy' in classifier_args.keys():
-            learning_logger.info('Adding strategy: %s', classifier_args['strategy'])
-            model = utils.resolve(classifier_args['strategy'])(model)
         if fuser is not None:
             learning_logger.info('Adding fuser: %s', fuser)
             model = fuser(model)
+        if 'strategy' in classifier_args.keys():
+            learning_logger.info('Adding strategy: %s', classifier_args['strategy'])
+            model = utils.resolve(classifier_args['strategy'])(model)
         return model
 
 
