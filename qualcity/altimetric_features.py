@@ -99,7 +99,7 @@ def histogram(model_dir, model_ext, building, dsm_bboxes, margins, resolution=20
     )[0]
 
 
-def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling=max, J=3):
+def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling, J=3):
     alti_logger.info(
         'Computing the scattering of the dsm residual for %s with (margins %s) with instersecting '
         + 'DSM in %s',
@@ -119,10 +119,17 @@ def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling=max, J=
             0
         ),
         0
-    ).cuda()
-    scatterer = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda()
-    return scatterer.forward(residual).cpu().squeeze()
-
+    ).float().cuda()
+    scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda().forward(residual).cpu().numpy()
+    return np.array(
+        [
+            utils.resolve(function)(
+                scattered_residual,
+                axis=(3, 4)
+            ).flatten()
+            for function in pooling
+        ]
+    ).flatten('F')
 
 def partition(residuals, resolution):
     alti_logger.info(
