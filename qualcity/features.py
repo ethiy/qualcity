@@ -113,7 +113,10 @@ def get_features(buildings, cache_dir, **feature_configs):
         return (
             'kernel',
             [
-                kernel
+                (
+                    (feat_type, method, attribute),
+                    kernel
+                )
                 for (feat_type, method), attributes in kernels_per_config.items()
                 for attribute, kernel in attributes.items()
             ]
