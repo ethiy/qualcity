@@ -119,8 +119,11 @@ def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling, J=3):
             0
         ),
         0
-    ).float().cuda()
-    scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda().forward(residual).cpu().numpy()
+    ).float()
+    try:
+        scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda().forward(residual.cuda()).cpu().numpy()
+    except RuntimeError:
+        scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).forward(residual).cpu().numpy()
     return np.array(
         [
             utils.resolve(function)(
