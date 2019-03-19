@@ -68,7 +68,7 @@ def scalar_product(lvector, rvector):
     )
 
 
-def correlation(lvector, rvector):
+def cosine_similarity(lvector, rvector):
     return (
         scalar_product(lvector, rvector) / (
             math.hypot(*lvector) * math.hypot(*rvector)
@@ -78,7 +78,7 @@ def correlation(lvector, rvector):
 
 
 def angle(lvector, rvector):
-    return math.acos(correlation(lvector, rvector))
+    return math.acos(cosine_similarity(lvector, rvector))
 
 
 def find_building(building, ortho_infos, clip, margins):
@@ -243,6 +243,58 @@ def brute(
             for channel in range(ortho.shape[-1])
         ]
 
+    
+def image_gradient(image, line, column):
+    return zip(
+        (
+            image[line + 1, column] + image[line - 1, column] - 2 * image[line, column]
+        ),
+        (
+            image[line, column + 1] + image[line, column - 1] - 2 * image[line, column]
+        )
+    )
+
+
+def distance_per_channel(vector, channels, metric):
+    return [
+        metric(
+            channel,
+            vector
+        )
+        for channel in channels
+    ]
+
+
+def discrepancies_per_channel(line, geo_image):
+    return zip(
+        *[
+            distance_per_channel(
+                normal(line),
+                image_gradient(geo_image.image, i, j),
+                cosine_similarity
+            )
+            for i, j in geo_image.intersection(
+                shapely.geometry.LineString(
+                    line
+                )
+            )
+        ]
+    )
+
+
+def weighted_histogram(values, bins, weights, weight=(True, True, True)):
+    return np.histogram(
+        np.abs(np.array(values)),
+        bins=bins,
+        range=(-1, 1)
+    )[0] * (
+        (weights[0] * weight[0] + 1 - weight[0])
+        /
+        (weights[1] * weight[1] + 1 - weight[1])
+        *
+        (weights[2] * weight[2] + 1 - weight[2])
+    )
+
 
 def gradient(
     vector_dir,
@@ -285,48 +337,17 @@ def gradient(
                 [
                     np.concatenate(
                         [
-                            np.histogram(
-                                np.abs(np.array(channel)),
-                                bins=bins,
-                                range=(-1, 1)
-                            )[0]
-                            *
-                            (norm(line) * weight[0] + 1 - weight[0])
-                            /
-                            (line_string.length * weight[1] + 1 - weight[1])
-                            *
-                            (vector_building.area * weight[2] + 1 - weight[2])
-                            for channel in zip(
-                                *[
-                                    [
-                                        correlation(
-                                            channel_gradient,
-                                            normal(line)
-                                        )
-                                        for channel_gradient in zip(
-                                            (
-                                                ortho.image[i + 1, j]
-                                                +
-                                                ortho.image[i - 1, j]
-                                                -
-                                                2 * ortho.image[i, j]
-                                            ),
-                                            (
-                                                ortho.image[i, j + 1]
-                                                +
-                                                ortho.image[i, j - 1]
-                                                -
-                                                2 * ortho.image[i, j]
-                                            )
-                                        )
-                                    ]
-                                    for i, j in ortho.intersection(
-                                        shapely.geometry.LineString(
-                                            line
-                                        )
-                                    )
-                                ]
+                            weighted_histogram(
+                                channel_discrepancies,
+                                bins,
+                                (
+                                    norm(line),
+                                    line_string.length,
+                                    vector_building.area
+                                ),
+                                weight=(True, True, True)
                             )
+                            for channel_discrepancies in discrepancies_per_channel(line, ortho)
                         ]
                     )
                     for line in get_lines(line_string.coords[:])
