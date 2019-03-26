@@ -426,7 +426,7 @@ def compute_features(buildings, cache_dir, cache_args, vector_dir, vector_ext, o
     }
     utils.cache_features(
         cache_dir,
-        'altimetric',
+        'radiometric',
         cache_args,
         features
     )
