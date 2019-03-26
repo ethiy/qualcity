@@ -15,8 +15,10 @@ import numpy as np
 
 from tqdm import tqdm
 
-import matplotlib.pyplot as plt
 import shapely.ops
+
+import torch
+from kymatio import Scattering2D
 
 from . import GeoBuilding, GeoRaster
 from . import utils
@@ -358,6 +360,105 @@ def gradient(
     )
 
 
+def edges_pixels(ortho, building_vector):
+    return [
+        (i, j)
+        for line_string in building_vector.geometry.boundary
+        for line in get_lines(line_string.coords[:])
+        for i, j in ortho.intersection(
+            shapely.geometry.LineString(
+                line
+            )
+        )
+    ]
+
+
+def edgeless(ortho, edges_pixels):
+    result = ortho.image
+    result[list(zip(*edges_pixels))] = np.zeros(3)
+    return result
+
+
+def get_mask(shape, edges_pixels):
+    mask = np.zeros(shape)
+    mask[list(zip(*edges_pixels))] = np.full(3, 255)
+    return mask
+
+def mask_channel(ortho, edges_pixels):
+    return np.dstack(
+        (
+            ortho.image,
+            get_mask(ortho.image.shape,edges_pixels)
+        )
+    )
+
+
+def scatter(
+    vector_dir,
+    building,
+    ortho_infos,
+    pooling,
+    fusion,
+    clip=False,
+    J=3
+):
+    vector_building = GeoBuilding.GeoBuilding.from_file(
+        os.path.join(
+            vector_dir,
+            building
+        )
+    )
+    ortho = find_building(
+        vector_building,
+        ortho_infos,
+        clip=clip,
+        margins=(2, 2)
+    )
+    if fusion == 'deletion':
+        proxy = torch.unsqueeze(
+            torch.from_numpy(
+                np.moveaxis(
+                    edgeless(
+                        ortho,
+                        edges_pixels(ortho, vector_building)
+                    ),
+                    -1,
+                    0
+                )
+            ),
+            0
+        ).float()
+    elif fusion == 'channel':
+        proxy = torch.unsqueeze(
+            torch.from_numpy(
+                np.moveaxis(
+                    mask_channel(
+                        ortho,
+                        edges_pixels(ortho, vector_building)
+                    ),
+                    -1,
+                    0
+                )
+            ),
+            0
+        ).float()
+    else:
+        raise NotImplementedError('{} not implemented'.format(fusion))
+    try:
+        scattered = Scattering2D(J=J, shape=tuple(proxy.size()[2:])).cuda().forward(proxy.cuda()).cpu().numpy()
+    except RuntimeError:
+        scattered = Scattering2D(J=J, shape=tuple(proxy.size()[2:])).forward(proxy).cpu().numpy()
+    return np.array(
+        [
+            utils.resolve(function)(
+                scattered,
+                axis=(3, 4)
+            ).flatten()
+            for function in pooling
+        ]
+    ).flatten('F')
+
+
 def get_method(vector_dir, ortho_infos, method, **method_args):
     radio_logger.info(
         'Getting the method %s for feature computation for buildings in %s wrt'
@@ -375,8 +476,14 @@ def get_method(vector_dir, ortho_infos, method, **method_args):
             **method_args
         )
     elif method == 'gradient':
-        method_args['weight'] = ast.literal_eval(method_args['weight'])
         return lambda building: gradient(
+            vector_dir,
+            building,
+            ortho_infos,
+            **method_args
+        )
+    elif method == 'scattering':
+        return lambda building: scatter(
             vector_dir,
             building,
             ortho_infos,
