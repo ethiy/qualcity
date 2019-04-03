@@ -373,10 +373,13 @@ def edges_pixels(ortho, building_vector):
     ]
 
 
-def edgeless(ortho, edges_pixels):
-    result = ortho.image
-    result[list(zip(*edges_pixels))] = np.zeros(3)
-    return result
+def edgeless(ortho, edges_pixels, resize=None):
+    full_size = ortho.image
+    full_size[list(zip(*edges_pixels))] = np.zeros(3)
+    if resize is None:
+        return full_size
+    else:
+        rrrr
 
 
 def get_mask(shape, edges_pixels):
@@ -384,13 +387,17 @@ def get_mask(shape, edges_pixels):
     mask[list(zip(*edges_pixels))] = np.full(3, 255)
     return mask
 
-def mask_channel(ortho, edges_pixels):
-    return np.dstack(
+def mask_channel(ortho, edges_pixels, resize=None):
+    full_size = np.dstack(
         (
             ortho.image,
             get_mask(ortho.image.shape,edges_pixels)
         )
     )
+    if resize is None:
+        return full_size
+    else:
+        rrrr
 
 
 def scatter(
@@ -420,7 +427,8 @@ def scatter(
                 np.moveaxis(
                     edgeless(
                         ortho,
-                        edges_pixels(ortho, vector_building)
+                        edges_pixels(ortho, vector_building),
+                        resize
                     ),
                     -1,
                     0
@@ -434,7 +442,8 @@ def scatter(
                 np.moveaxis(
                     mask_channel(
                         ortho,
-                        edges_pixels(ortho, vector_building)
+                        edges_pixels(ortho, vector_building),
+                        resize
                     ),
                     -1,
                     0
