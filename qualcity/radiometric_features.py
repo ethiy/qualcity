@@ -400,12 +400,25 @@ def mask_channel(ortho, edges_pixels, resize=None):
         rrrr
 
 
+def pooler(pooling_functions):
+    return lambda x : np.array(
+        [
+            utils.resolve(function)(
+                x,
+                axis=(3, 4)
+            ).flatten()
+            for function in pooling_functions
+        ]
+    ).flatten('F')
+
+
 def scatter(
     vector_dir,
     building,
     ortho_infos,
-    pooling,
     fusion,
+    resize=None,
+    pooling=None,
     clip=False,
     J=3
 ):
@@ -457,15 +470,8 @@ def scatter(
         scattered = Scattering2D(J=J, shape=tuple(proxy.size()[2:])).cuda().forward(proxy.cuda()).cpu().numpy()
     except RuntimeError:
         scattered = Scattering2D(J=J, shape=tuple(proxy.size()[2:])).forward(proxy).cpu().numpy()
-    return np.array(
-        [
-            utils.resolve(function)(
-                scattered,
-                axis=(3, 4)
-            ).flatten()
-            for function in pooling
-        ]
-    ).flatten('F')
+    extractor = pooler(pooling) if pooling is not None else lambda x: x
+    return extractor(scattered)
 
 
 def get_method(vector_dir, ortho_infos, method, **method_args):
