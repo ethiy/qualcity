@@ -17,6 +17,8 @@ from tqdm import tqdm
 
 import shapely.ops
 
+import skimage.transform as sktr
+
 import torch
 from kymatio import Scattering2D
 
@@ -379,7 +381,7 @@ def edgeless(ortho, edges_pixels, resize=None):
     if resize is None:
         return full_size
     else:
-        rrrr
+        return sktr.resize(full_size, resize)
 
 
 def get_mask(shape, edges_pixels):
@@ -397,7 +399,7 @@ def mask_channel(ortho, edges_pixels, resize=None):
     if resize is None:
         return full_size
     else:
-        rrrr
+        return sktr.resize(full_size, resize)
 
 
 def pooler(pooling_functions):
