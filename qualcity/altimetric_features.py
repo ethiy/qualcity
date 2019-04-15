@@ -12,12 +12,14 @@ import functools
 from tqdm import tqdm
 
 import numpy as np
+import skimage.transform as sktr
 
 import torch
 from kymatio import Scattering2D
 
 from . import GeoRaster
 from . import utils
+from .radiometric_features import pooler
 
 alti_logger = logging.getLogger(__name__)
 
@@ -99,7 +101,7 @@ def histogram(model_dir, model_ext, building, dsm_bboxes, margins, resolution=20
     )[0]
 
 
-def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling, J=3):
+def scatter(model_dir, model_ext, building, dsm_bboxes, margins, resize=None, pooling=None, J=3):
     alti_logger.info(
         'Computing the scattering of the dsm residual for %s with (margins %s) with instersecting '
         + 'DSM in %s',
@@ -107,14 +109,21 @@ def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling, J=3):
         margins,
         dsm_bboxes
     )
+    residual = dsm_residual(
+        os.path.join(model_dir, building + '.' + model_ext),
+        margins,
+        dsm_bboxes
+    )
+    if resize is not None:
+        normalizer = np.abs(residual).max()
+        residual = sktr.resize(
+            residual / normalizer,
+            resize
+        ) * normalizer
     residual = torch.unsqueeze(
         torch.unsqueeze(
             torch.from_numpy(
-                dsm_residual(
-                    os.path.join(model_dir, building + '.' + model_ext),
-                    margins,
-                    dsm_bboxes
-                )
+                residual
             ),
             0
         ),
@@ -124,15 +133,8 @@ def scatter(model_dir, model_ext, building, dsm_bboxes, margins, pooling, J=3):
         scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).cuda().forward(residual.cuda()).cpu().numpy()
     except RuntimeError:
         scattered_residual = Scattering2D(J=J, shape=tuple(residual.size()[2:])).forward(residual).cpu().numpy()
-    return np.array(
-        [
-            utils.resolve(function)(
-                scattered_residual,
-                axis=(3, 4)
-            ).flatten()
-            for function in pooling
-        ]
-    ).flatten('F')
+    extractor = pooler(pooling) if pooling is not None else lambda x: x
+    return extractor(scattered_residual)
 
 def partition(residuals, resolution):
     alti_logger.info(
