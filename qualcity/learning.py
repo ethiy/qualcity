@@ -533,6 +533,7 @@ def report(predicted, ground_truth, label_names, cachename):
         with open(cachename, 'a+') as cachefile:
             cachefile.write('Confusion matrix for: ' + ', '.join(label_names) + '\n')
             cachefile.write(np.array2string(cm) + '\n')
+            cachefile.write(sklearn.metrics.classification_report(ground_truth, predicted))
         return cm
     else:
         raise LookupError('Labels %s not supported', label_names)
