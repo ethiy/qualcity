@@ -11,5 +11,6 @@ pyyaml >=3.12
 scipy >= 1.0.1
 torch >=0.4
 kymatio
-GraKel
+grakel-dev
 MKLpy
+scikit-image
