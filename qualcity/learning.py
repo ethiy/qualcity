@@ -544,7 +544,7 @@ def plot_confusion_matrix(
     label_names,
     figure=None,
     axes=None,
-    normalize=False,
+    recall=None,
     max_l=8
 ):
     if isinstance(label_names, dict):
@@ -563,7 +563,7 @@ def plot_confusion_matrix(
             tuple(label_names.keys()),
             figure,
             figure.add_subplot(specs[0, 0]),
-            normalize,
+            recall,
             max_l
         )
         confusion_matrix.pop(None)
@@ -576,7 +576,7 @@ def plot_confusion_matrix(
                     figure.add_subplot(specs[row, column])
                     for column in range(len(cms))
                 ],
-                normalize,
+                recall,
                 max_l
             )
     elif isinstance(confusion_matrix, list):
@@ -591,7 +591,7 @@ def plot_confusion_matrix(
                 ('Valid', label_names[column]),
                 figure,
                 axes[column],
-                normalize,
+                recall,
                 max_l
             )
     else:
@@ -599,16 +599,27 @@ def plot_confusion_matrix(
         learning_logger.info('Plotting confusion matrix...')
         learning_logger.debug('Confusiong matrix is: %s', confusion_matrix)
         number_of_elements = np.sum(confusion_matrix)
-        if normalize:
-            learning_logger.info('Normalizing confusion matrix')
-            confusion_matrix = (
+        title = 'Confusion matrix'
+        if recall is True:
+            title += ', Recall'
+            learning_logger.info('Normalizing confusion matrix -> recall')
+            confusion_matrix = 100 * (
                 confusion_matrix.astype('float')
                 /
                 confusion_matrix.sum(axis=1)[:, np.newaxis]
             )
+        elif recall is False:
+            title += ', Precision'
+            learning_logger.info('Normalizing confusion matrix -> precision')
+            confusion_matrix = 100 * (
+                confusion_matrix.astype('float')
+                /
+                confusion_matrix.sum(axis=0)[np.newaxis, :]
+            )
+        else:
+            learning_logger.info('Unnormalized confusion matrix')
 
-        learning_logger.debug(
-            'Confusion matrix to be plotted: %s',
+        learning_logger.info(
             confusion_matrix
         )
 
@@ -632,7 +643,7 @@ def plot_confusion_matrix(
             ax.text(
                 j,
                 i,
-                format(confusion_matrix[i, j], '.2f' if normalize else 'd'),
+                format(confusion_matrix[i, j], '.2f' if recall is not None else 'd'),
                 horizontalalignment="center",
                 color="white" if confusion_matrix[i, j] > middle else "black"
             )
@@ -659,6 +670,7 @@ def plot_confusion_matrix(
         ax.set_xticklabels(ticks)
         ax.set_ylabel('True label')
         ax.set_xlabel('Predicted label')
+        ax.set_title(title)
 
 
 def train_test(
@@ -909,8 +921,14 @@ def classify(form, features, fuser, labels, buildings, label_names, cache_dir, c
         )
     )
     if train_cm is not None and test_cm is not None:
-        for cm in [train_cm, test_cm]:
-            plot_confusion_matrix(cm, label_names)
+        learning_logger.info('Training ratios...')
+        plot_confusion_matrix(train_cm, label_names)
+        plot_confusion_matrix(train_cm, label_names, recall=True)
+        plot_confusion_matrix(train_cm, label_names, recall=False)
+        learning_logger.info('Test ratios...')
+        plot_confusion_matrix(test_cm, label_names)
+        plot_confusion_matrix(train_cm, label_names, recall=True)
+        plot_confusion_matrix(train_cm, label_names, recall=False)
 
 
 def fuse(form, **fusion_args):
