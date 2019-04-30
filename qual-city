@@ -239,6 +239,8 @@ def main():
     if form == 'kernel':
         features_config, features = zip(*features)
         print(features_config)
+        logger.info('Feature configuration:')
+        logger.info(features_config)
     logger.debug(features)
     logger.info('Features safely loaded.')
 
