@@ -46,7 +46,7 @@ setup(
     author='Oussama Ennafii [IGN :: LaSTIG]',
     author_email='oussama.ennafii@ign.fr',
     license='License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(exclude=['tests', 'ressources/tests']),
     install_requires=requirements(),
     include_package_data=True,
     zip_safe=False
