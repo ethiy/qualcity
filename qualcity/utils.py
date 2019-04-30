@@ -252,6 +252,16 @@ def read_cached_feature(cache_dir, config, cachebook):
     return read_feature(cache_dir, cachedname_[0]) if len(cachedname_) else None
 
 
+def sum_dictionaries(dicts):
+    return dict(
+        functools.reduce(
+            lambda llist, rdict: llist + list(rdict.items()),
+            dicts,
+            []
+        )
+    )
+
+
 def read_feature(cache_dir, cachename):
     with open(
         os.path.join(

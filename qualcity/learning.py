@@ -884,20 +884,8 @@ def classify(form, features, fuser, labels, buildings, label_names, cache_dir, c
                 enumerate(indices)
             )
         )
-        predictions = dict(
-            functools.reduce(
-                lambda llist, rdict: llist + list(rdict.items()),
-                z_predictions,
-                []
-            )
-        )
-        proba_predictions = dict(
-            functools.reduce(
-                lambda llist, rdict: llist + list(rdict.items()),
-                z_proba_predictions,
-                []
-            )
-        )
+        predictions = utils.sum_dictionaries(z_predictions)
+        proba_predictions = utils.sum_dictionaries(z_proba_predictions)
 
         train_cm, test_cm = [
             summarize_cv(cms, label_names, train, cv)
