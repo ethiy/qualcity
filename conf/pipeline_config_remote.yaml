@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13_elancourt+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -12,7 +12,7 @@ labels:
 
 features:
     types:
-        # geometric:
+        geometric:
         #     graph_dir:
         #        /home/ubuntu/Data/Assembled/facet_graphs
         #     methods:
@@ -36,19 +36,19 @@ features:
         #             #   graph_5:
         #             #       node_attributes: 
         #             #           - normal
-        #         # - method: statistics
-        #         #   parameters:
-        #         #     attributes:
-        #         #         - normal_with_relations
-        #         #         - centroid_with_relations
-        #         #         - area
-        #         #         - circumference
-        #         #         - degree
-        #         #     functions:
-        #         #         - mean
-        #         #         - median
-        #         #         - max
-        #         #         - min
+                - method: statistics
+                  parameters:
+                    attributes:
+                        - normal_with_relations
+                        - centroid_with_relations
+                        - area
+                        - circumference
+                        - degree
+                    functions:
+                        - mean
+                        - median
+                        - max
+                        - min
         # altimetric:
         #     model_dir:
         #         /home/ubuntu/Data/Assembled/raster_projections
