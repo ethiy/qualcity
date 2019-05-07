@@ -13,9 +13,9 @@ labels:
 features:
     types:
         geometric:
-        #     graph_dir:
-        #        /home/ubuntu/Data/Assembled/facet_graphs
-        #     methods:
+            graph_dir:
+               /home/ubuntu/Data/Assembled/facet_graphs
+            methods:
         #         - method: graph
         #           parameters:
         #             #   graph_1:
