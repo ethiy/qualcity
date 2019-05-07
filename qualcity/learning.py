@@ -596,8 +596,8 @@ def plot_confusion_matrix(
             )
     else:
         figure, ax = plt.subplots() if axes is None else (figure, axes)
-        learning_logger.info('Plotting confusion matrix...')
-        learning_logger.debug('Confusiong matrix is: %s', confusion_matrix)
+        learning_logger.info('Plotting confusion matrix for %s ...', label_names)
+        learning_logger.info('Confusiong matrix is: %s', confusion_matrix)
         number_of_elements = np.sum(confusion_matrix)
         title = 'Confusion matrix'
         if recall is True:
