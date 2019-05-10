@@ -61,7 +61,7 @@ def compute_kernel(features, **kernel_args):
         elif kernel_args['type'] == 'classe':
             return {None: utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)}
         else:
-            raise NotImplementedError('Unknown feature format')
+            raise NotImplementedError('Unknown kernel function type')
     else:
         return {
             kernel_format:
@@ -76,9 +76,59 @@ def compute_kernel(features, **kernel_args):
         }
 
 
+def reduce_features(features, **dim_reduction_args):
+    feature_logger.info('Reducing features in %s with arguments %s', features, dim_reduction_args)
+    if 'algorithm' in dim_reduction_args.keys():
+        feature_logger.info('Features size: %s', features.shape)
+        reduced_features = utils.resolve(dim_reduction_args['algorithm'])(**dim_reduction_args['parameters']).fit_transform(features)
+        feature_logger.info('Reduced features size: %s', reduced_features.shape)
+        return reduced_features
+    else:
+        return features
+
+
+def reduce_dimension_features(modalities_features, buildings, **options):
+    feature_logger.info('Reducing features in %s for buildings in %s using %s', modalities_features, buildings, options)
+    reduced_features = {
+        feat_type:
+        {
+            method:
+            reduce_features(
+                np.array(
+                    [
+                        modalities_features[feat_type][method][building]
+                        for building in buildings
+                    ]
+                ),
+                **parameters if parameters is not None else {}
+            )
+            for method, parameters in methods_parameters.items()
+        }
+        for feat_type, methods_parameters in options.items()
+    }
+    feature_logger.info('Returning reduced features as dictionaries')
+    return {
+        feat_type:
+        {
+            method:
+            {
+                building: feature
+                for building, feature in zip(buildings, features)
+            }
+            for method, features in methods_features.items()
+        }
+        for feat_type, methods_features in reduced_features.items()
+    }
+
+
 def get_features(buildings, cache_dir, **feature_configs):
     feature_logger.info('Getting features...')
     modalities_features = compute_features(buildings, cache_dir, **feature_configs['types'])
+    feature_logger.info('features fetched.')
+    if 'dimension_reduction' in feature_configs.keys():
+        feature_logger.info('Reducing dimensions...')
+        modalities_features = reduce_dimension_features(modalities_features, buildings, **feature_configs['dimension_reduction'])
+        feature_logger.info('Dimensions reduced.')
     if list(feature_configs['format'].keys()) == ['vector']:
         return (
             'vector',
