@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13_elancourt+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
     depth: 3
     LoD: 2
     hierarchical: False
