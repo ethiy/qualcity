@@ -101,14 +101,18 @@ features:
     dimension_reduction:
         altimetric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
         radiometric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
     format:
         vector:
         # kernel:

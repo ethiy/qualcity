@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -71,39 +71,48 @@ features:
                         - numpy.max
                         - numpy.min
                         - numpy.std
-        # radiometric:
-        #     vector_dir: /home/ubuntu/Data/Assembled/vector_projections
-        #     ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
-        #     ortho_ext: 'geotiff'
-        #     vector_ext: 'shp'
-        #     methods:
-        #         # - method: gradient
-        #         #   parameters:
-        #         #       resolution: 20
-        #         #       weight: !!python/tuple [True, True, True]
-        #         - method:
-        #             scattering
-        #           parameters:
-        #               clip: False
-        #               fusion:
-        #                 deletion
-        #                 # channel
-        #                 # siamese
-        #               J: 3
-        #             #   resize:
-        #             #       !!python/tuple [32, 32]
-        #               pooling:
-        #                   - numpy.median
-        #                   - numpy.mean
-        #                   - numpy.max
-        #                   - numpy.min
-        #                   - numpy.std
+        radiometric:
+            vector_dir: /home/ubuntu/Data/Assembled/vector_projections
+            ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            methods:
+                # - method: gradient
+                #   parameters:
+                #       resolution: 20
+                #       weight: !!python/tuple [True, True, True]
+                - method:
+                    scattering
+                  parameters:
+                      clip: False
+                      fusion:
+                        # deletion
+                        channel
+                        # siamese
+                      J: 3
+                    #   resize:
+                    #       !!python/tuple [32, 32]
+                      pooling:
+                          - numpy.median
+                          - numpy.mean
+                          - numpy.max
+                          - numpy.min
+                          - numpy.std
     dimension_reduction:
         altimetric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
+        radiometric:
+            scattering:
+                algorithm: sklearn.decomposition.KernelPCA
+                parameters:
+                    n_components: 20
+                    kernel: rbf
+                    gamma: .001
     format:
         vector:
         # kernel:

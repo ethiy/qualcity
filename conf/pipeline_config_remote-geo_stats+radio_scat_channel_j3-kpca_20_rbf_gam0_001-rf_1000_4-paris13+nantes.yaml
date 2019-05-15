@@ -86,8 +86,8 @@ features:
                   parameters:
                       clip: False
                       fusion:
-                        deletion
-                        # channel
+                        # deletion
+                        channel
                         # siamese
                       J: 3
                     #   resize:
@@ -106,9 +106,11 @@ features:
         #             n_components: 20
         radiometric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
     format:
         vector:
         # kernel:
