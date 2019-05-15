@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -49,55 +49,55 @@ features:
                         - median
                         - max
                         - min
-        # altimetric:
-        #     model_dir:
-        #         /home/ubuntu/Data/Assembled/raster_projections
-        #     dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
-        #     model_ext: tiff
-        #     dsm_ext: geotiff
-        #     margins: !!python/tuple [0,0]
-        #     methods:
-        #         # - method: rmse
-        #         - method: histogram
-        #           parameters:
-        #               resolution: 20
-        #               max_amplitude: 50
-        #         # - method: scattering
-        #         #   parameters:
-        #         #       J: 3
-        #         #       pooling:
-        #         #         - numpy.median
-        #         #         - numpy.mean
-        #         #         - numpy.max
-        #         #         - numpy.min
-        #         #         - numpy.std
+        altimetric:
+            model_dir:
+                /home/ubuntu/Data/Assembled/raster_projections
+            dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
+            model_ext: tiff
+            dsm_ext: geotiff
+            margins: !!python/tuple [0,0]
+            methods:
+                # - method: rmse
+                - method: histogram
+                  parameters:
+                      resolution: 20
+                      max_amplitude: 50
+                # - method: scattering
+                #   parameters:
+                #       J: 3
+                #       pooling:
+                #         - numpy.median
+                #         - numpy.mean
+                #         - numpy.max
+                #         - numpy.min
+                #         - numpy.std
         # radiometric:
         #     vector_dir: /home/ubuntu/Data/Assembled/vector_projections
         #     ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
         #     ortho_ext: 'geotiff'
         #     vector_ext: 'shp'
         #     methods:
-        #         # - method: gradient
-        #         #   parameters:
-        #         #       resolution: 20
-        #         #       weight: !!python/tuple [True, True, True]
-        #         - method:
-        #             scattering
+        #         - method: gradient
         #           parameters:
-        #               clip: False
-        #               fusion:
-        #                 deletion
-        #                 # channel
-        #                 # siamese
-        #               J: 3
-        #             #   resize:
-        #             #       !!python/tuple [32, 32]
-        #               pooling:
-        #                   - numpy.median
-        #                   - numpy.mean
-        #                   - numpy.max
-        #                   - numpy.min
-        #                   - numpy.std
+        #               resolution: 20
+        #               weight: !!python/tuple [True, True, True]
+        #         # - method:
+        #         #     scattering
+        #         #   parameters:
+        #         #       clip: False
+        #         #       fusion:
+        #         #         deletion
+        #         #         # channel
+        #         #         # siamese
+        #         #       J: 3
+        #         #     #   resize:
+        #         #     #       !!python/tuple [32, 32]
+        #         #       pooling:
+        #         #           - numpy.median
+        #         #           - numpy.mean
+        #         #           - numpy.max
+        #         #           - numpy.min
+        #         #           - numpy.std
     format:
         # vector:
         kernel:
@@ -107,7 +107,7 @@ features:
                     algorithm:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
-                        gamma: .001
+                        gamma: 0.001
         #         graph:
         #             # graph_1:
         #             #     type: classe
@@ -172,19 +172,19 @@ features:
         #             #             with_attributes: True
         #             #         normalize: True
         #             #         n_jobs: 8
-            # altimetric:
-            #     # histogram:
-            #     #     type: callable
-            #     #     algorithm:
-            #     #         sklearn.metrics.pairwise.rbf_kernel
-            #     #     parameters:
-            #     #         gamma: 0.001
-            #     scattering:
-            #         type: callable
-            #         algorithm:
-            #             sklearn.metrics.pairwise.rbf_kernel
-            #         parameters:
-            #             gamma: 0.01
+            altimetric:
+                histogram:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.001
+                # scattering:
+                #     type: callable
+                #     algorithm:
+                #         sklearn.metrics.pairwise.rbf_kernel
+                #     parameters:
+                #         gamma: 0.01
             # radiometric:
             #     gradient:
             #         type: callable
@@ -230,7 +230,7 @@ processing:
                     # n_estimators: 1000
                     # max_depth: 4
                     kernel: precomputed
-                    C: .1
+                    C: 1
                     probability: True
                     class_weight: balanced
                 strategy:

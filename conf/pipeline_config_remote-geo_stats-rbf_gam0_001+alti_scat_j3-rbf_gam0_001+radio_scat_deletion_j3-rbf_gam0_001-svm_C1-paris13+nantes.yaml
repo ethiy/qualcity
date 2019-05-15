@@ -49,28 +49,28 @@ features:
                         - median
                         - max
                         - min
-        # altimetric:
-        #     model_dir:
-        #         /home/ubuntu/Data/Assembled/raster_projections
-        #     dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
-        #     model_ext: tiff
-        #     dsm_ext: geotiff
-        #     margins: !!python/tuple [0,0]
-        #     methods:
-        #         # - method: rmse
-        #         - method: histogram
-        #           parameters:
-        #               resolution: 20
-        #               max_amplitude: 50
-                # - method: scattering
+        altimetric:
+            model_dir:
+                /home/ubuntu/Data/Assembled/raster_projections
+            dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
+            model_ext: tiff
+            dsm_ext: geotiff
+            margins: !!python/tuple [0,0]
+            methods:
+                # - method: rmse
+                # - method: histogram
                 #   parameters:
-                #       J: 3
-                #       pooling:
-                #         - numpy.median
-                #         - numpy.mean
-                #         - numpy.max
-                #         - numpy.min
-                #         - numpy.std
+                #       resolution: 20
+                #       max_amplitude: 50
+                - method: scattering
+                  parameters:
+                      J: 3
+                      pooling:
+                        - numpy.median
+                        - numpy.mean
+                        - numpy.max
+                        - numpy.min
+                        - numpy.std
         radiometric:
             vector_dir: /home/ubuntu/Data/Assembled/vector_projections
             ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
@@ -172,19 +172,19 @@ features:
         #             #             with_attributes: True
         #             #         normalize: True
         #             #         n_jobs: 8
-            # altimetric:
-            #     histogram:
-            #         type: callable
-            #         algorithm:
-            #             sklearn.metrics.pairwise.rbf_kernel
-            #         parameters:
-            #             gamma: 0.001
-                # scattering:
+            altimetric:
+                # histogram:
                 #     type: callable
                 #     algorithm:
                 #         sklearn.metrics.pairwise.rbf_kernel
                 #     parameters:
-                #         gamma: 0.01
+                #         gamma: 0.001
+                scattering:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.001
             radiometric:
                 # gradient:
                 #     type: callable
@@ -236,7 +236,7 @@ processing:
                     # n_estimators: 1000
                     # max_depth: 4
                     kernel: precomputed
-                    C: .1
+                    C: 1
                     probability: True
                     class_weight: balanced
                 strategy:

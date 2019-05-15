@@ -230,7 +230,7 @@ processing:
                     # n_estimators: 1000
                     # max_depth: 4
                     kernel: precomputed
-                    C: .1
+                    C: 1
                     probability: True
                     class_weight: balanced
                 strategy:
