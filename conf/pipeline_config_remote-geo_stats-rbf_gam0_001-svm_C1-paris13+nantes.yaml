@@ -107,7 +107,7 @@ features:
                     algorithm:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
-                        gamma: .01
+                        gamma: .001
         #         graph:
         #             # graph_1:
         #             #     type: classe
