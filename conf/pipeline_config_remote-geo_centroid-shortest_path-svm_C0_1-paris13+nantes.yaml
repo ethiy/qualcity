@@ -1,9 +1,9 @@
 cache:
-    /home/ethiy/Data/Assembled/cache_svm
+    /home/ubuntu/Data/Assembled/cache_svm
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -14,7 +14,7 @@ features:
     types:
         geometric:
             graph_dir:
-               /home/ethiy/Data/Assembled/facet_graphs
+               /home/ubuntu/Data/Assembled/facet_graphs
             methods:
                 - method: graph
                   parameters:
@@ -51,8 +51,8 @@ features:
                 #         - min
         # altimetric:
         #     model_dir:
-        #         /home/ethiy/Data/Assembled/raster_projections
-        #     dsm_dir: '/home/ethiy/Data/Assembled/DSM'
+        #         /home/ubuntu/Data/Assembled/raster_projections
+        #     dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
         #     model_ext: tiff
         #     dsm_ext: geotiff
         #     margins: !!python/tuple [0,0]
@@ -72,8 +72,8 @@ features:
         #         #         - numpy.min
         #         #         - numpy.std
         # radiometric:
-        #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
-        #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
+        #     vector_dir: /home/ubuntu/Data/Assembled/vector_projections
+        #     ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
         #     ortho_ext: 'geotiff'
         #     vector_ext: 'shp'
         #     methods:
