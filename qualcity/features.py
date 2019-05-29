@@ -25,6 +25,12 @@ feature_logger = logging.getLogger(__name__)
 
 
 def get_modality_features(buildings, feat_type, cache_dir, **kwargs):
+    feature_logger.info(
+        'Fetching features of modality %s with cache in %s and arguments %s',
+        feat_type,
+        cache_dir,
+        kwargs
+    )
     if feat_type == 'geometric':
         features = geometric_features.geometric_features(buildings, cache_dir, **kwargs)
     elif feat_type == 'altimetric':
@@ -55,14 +61,19 @@ def compute_features(buildings, cache_dir, **feature_types):
 
 
 def compute_kernel(features, **kernel_args):
+    feature_logger.info('Computing kernel for features in %s with arguments %s', features, kernel_args)
     if 'algorithm' in kernel_args.keys():
         if kernel_args['type'] == 'callable':
+            feature_logger.info('Computing callable kernel')
             return {None: utils.resolve(kernel_args['algorithm'])(features,**kernel_args['parameters'])}
         elif kernel_args['type'] == 'classe':
+            feature_logger.info('Computing classe kernel')
             return {None: utils.resolve(kernel_args['algorithm'])(**kernel_args['parameters']).fit_transform(features)}
         else:
+            feature_logger.error('Not implemented!')
             raise NotImplementedError('Unknown kernel function type')
     else:
+        feature_logger.info('Computing kernels per configuration...')
         return {
             kernel_format:
             compute_kernel(
@@ -84,6 +95,7 @@ def reduce_features(features, **dim_reduction_args):
         feature_logger.info('Reduced features size: %s', reduced_features.shape)
         return reduced_features
     else:
+        feature_logger.info('No reduction!')
         return features
 
 
