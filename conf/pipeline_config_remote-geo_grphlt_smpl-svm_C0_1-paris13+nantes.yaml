@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -162,7 +162,7 @@ features:
                         parameters:
                             kernel:
                                 name: graphlet_sampling
-                                k: 3
+                                k: 4
                             n_jobs: 8
                             normalize: True
                     # graph_subgraph_matching_centroid:

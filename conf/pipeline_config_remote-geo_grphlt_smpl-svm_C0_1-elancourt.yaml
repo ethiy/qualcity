@@ -162,7 +162,7 @@ features:
                         parameters:
                             kernel:
                                 name: graphlet_sampling
-                                k: 3
+                                k: 4
                             n_jobs: 8
                             normalize: True
                     # graph_subgraph_matching_centroid:
