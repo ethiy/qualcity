@@ -30,18 +30,18 @@ features:
                     #   graph_let_sampling:
                     #       node_attributes: 
                     #           - degree
-                      graph_subgraph_matching_centroid:
-                          edge_attributes: 
-                              - centroid
-                      graph_subgraph_matching_normal:
-                          edge_attributes: 
-                              - normal
-                    #   graph_propagation_centroid:
-                    #       node_attributes: 
+                    #   graph_subgraph_matching_centroid:
+                    #       edge_attributes: 
                     #           - centroid
-                    #   graph_propagation_normal:
-                    #       node_attributes: 
+                    #   graph_subgraph_matching_normal:
+                    #       edge_attributes: 
                     #           - normal
+                      graph_propagation_area:
+                          node_attributes: 
+                              - area
+                      graph_propagation_circumference:
+                          node_attributes: 
+                              - circumference
                     #   graph_mult_laplacian_normal:
                     #       node_attributes: 
                     #           - normal
@@ -165,42 +165,42 @@ features:
                     #             k: 3
                     #         n_jobs: 8
                     #         normalize: True
-                    graph_subgraph_matching_centroid:
-                        type: classe
-                        algorithm: grakel.GraphKernel
-                        parameters:
-                            kernel:
-                                name: subgraph_matching
-                            n_jobs: 8
-                            normalize: True
-                    graph_subgraph_matching_normal:
-                        type: classe
-                        algorithm: grakel.GraphKernel
-                        parameters:
-                            kernel:
-                                name: subgraph_matching
-                            n_jobs: 8
-                            normalize: True
-                    # graph_propagation_centroid:
+                    # graph_subgraph_matching_centroid:
                     #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
+                    #     algorithm: grakel.GraphKernel
                     #     parameters:
-                    #         kernel: 
-                    #             name: propagation
-                    #             with_attributes: True
-                    #         normalize: True
+                    #         kernel:
+                    #             name: subgraph_matching
                     #         n_jobs: 8
-                    # graph_propagation_normal:
+                    #         normalize: True
+                    # graph_subgraph_matching_normal:
                     #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
+                    #     algorithm: grakel.GraphKernel
                     #     parameters:
-                    #         kernel: 
-                    #             name: propagation
-                    #             with_attributes: True
-                    #         normalize: True
+                    #         kernel:
+                    #             name: subgraph_matching
                     #         n_jobs: 8
+                    #         normalize: True
+                    graph_propagation_area:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_circumference:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
                     # graph_mult_laplacian_normal:
                     #     type: classe
                     #     algorithm:

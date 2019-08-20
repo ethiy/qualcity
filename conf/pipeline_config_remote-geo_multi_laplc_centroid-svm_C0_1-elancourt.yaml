@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -18,9 +18,9 @@ features:
             methods:
                 - method: graph
                   parameters:
-                      graph_rdm_walk:
-                          node_attributes: 
-                              - degree
+                    #   graph_rdm_walk:
+                    #       node_attributes: 
+                    #           - degree
                     #   graph_lovasz_theta:
                     #       node_attributes: 
                     #           - degree
@@ -42,9 +42,9 @@ features:
                     #   graph_propagation_normal:
                     #       node_attributes: 
                     #           - normal
-                    #   graph_mult_laplacian_normal:
-                    #       node_attributes: 
-                    #           - normal
+                      graph_mult_laplacian_centroid:
+                          node_attributes: 
+                              - centroid
                     #   graph_hopper_bridge_centroid:
                     #       node_attributes: 
                     #           - centroid
@@ -130,16 +130,16 @@ features:
                     parameters:
                         gamma: .001
                 graph:
-                    graph_rdm_walk:
-                        type: classe
-                        algorithm: grakel.GraphKernel
-                        parameters:
-                            kernel:
-                                name: random_walk
-                                with_labels: False
-                                lamda: .001
-                            n_jobs: 8
-                            normalize: True
+                    # graph_rdm_walk:
+                    #     type: classe
+                    #     algorithm: grakel.GraphKernel
+                    #     parameters:
+                    #         kernel:
+                    #             name: random_walk
+                    #             with_labels: False
+                    #             lamda: .001
+                    #         n_jobs: 8
+                    #         normalize: True
                     # graph_lovasz_theta:
                     #     type: classe
                     #     algorithm: grakel.GraphKernel
@@ -201,15 +201,15 @@ features:
                     #             with_attributes: True
                     #         normalize: True
                     #         n_jobs: 8
-                    # graph_mult_laplacian_normal:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: multiscale_laplacian
-                    #         normalize: True
-                    #         n_jobs: 8
+                    graph_mult_laplacian_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: multiscale_laplacian
+                            normalize: True
+                            n_jobs: 8
                     # graph_hopper_linear_centroid:
                     #     type: classe
                     #     algorithm:

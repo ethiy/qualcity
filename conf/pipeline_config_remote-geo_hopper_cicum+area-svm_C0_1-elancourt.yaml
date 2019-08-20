@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -36,27 +36,27 @@ features:
                     #   graph_subgraph_matching_normal:
                     #       edge_attributes: 
                     #           - normal
-                      graph_propagation_centroid:
-                          node_attributes: 
-                              - centroid
-                      graph_propagation_normal:
-                          node_attributes: 
-                              - normal
+                    #   graph_propagation_centroid:
+                    #       node_attributes: 
+                    #           - centroid
+                    #   graph_propagation_normal:
+                    #       node_attributes: 
+                    #           - normal
                     #   graph_mult_laplacian_normal:
                     #       node_attributes: 
                     #           - normal
-                    #   graph_hopper_bridge_centroid:
-                    #       node_attributes: 
-                    #           - centroid
-                    #   graph_hopper_linear_centroid:
-                    #       node_attributes: 
-                    #           - centroid
-                    #   graph_hopper_bridge_normal:
-                    #       node_attributes: 
-                    #           - normal
-                    #   graph_hopper_linear_normal:
-                    #       node_attributes: 
-                    #           - normal
+                      graph_hopper_bridge_area:
+                          node_attributes: 
+                              - area
+                      graph_hopper_linear_area:
+                          node_attributes: 
+                              - area
+                      graph_hopper_bridge_circumference:
+                          node_attributes: 
+                              - circumference
+                      graph_hopper_linear_circumference:
+                          node_attributes: 
+                              - circumference
                 - method: statistics
                   parameters:
                     attributes:
@@ -181,26 +181,26 @@ features:
                     #             name: subgraph_matching
                     #         n_jobs: 8
                     #         normalize: True
-                    graph_propagation_centroid:
-                        type: classe
-                        algorithm:
-                            grakel.GraphKernel
-                        parameters:
-                            kernel: 
-                                name: propagation
-                                with_attributes: True
-                            normalize: True
-                            n_jobs: 8
-                    graph_propagation_normal:
-                        type: classe
-                        algorithm:
-                            grakel.GraphKernel
-                        parameters:
-                            kernel: 
-                                name: propagation
-                                with_attributes: True
-                            normalize: True
-                            n_jobs: 8
+                    # graph_propagation_centroid:
+                    #     type: classe
+                    #     algorithm:
+                    #         grakel.GraphKernel
+                    #     parameters:
+                    #         kernel: 
+                    #             name: propagation
+                    #             with_attributes: True
+                    #         normalize: True
+                    #         n_jobs: 8
+                    # graph_propagation_normal:
+                    #     type: classe
+                    #     algorithm:
+                    #         grakel.GraphKernel
+                    #     parameters:
+                    #         kernel: 
+                    #             name: propagation
+                    #             with_attributes: True
+                    #         normalize: True
+                    #         n_jobs: 8
                     # graph_mult_laplacian_normal:
                     #     type: classe
                     #     algorithm:
@@ -210,46 +210,46 @@ features:
                     #             name: multiscale_laplacian
                     #         normalize: True
                     #         n_jobs: 8
-                    # graph_hopper_linear_centroid:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: graph_hopper
-                    #             kernel_type: linear
-                    #         normalize: True
-                    #         n_jobs: 8
-                    # graph_hopper_bridge_centroid:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: graph_hopper
-                    #             kernel_type: bridge
-                    #         normalize: True
-                    #         n_jobs: 8
-                    # graph_hopper_linear_normal:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: graph_hopper
-                    #             kernel_type: linear
-                    #         normalize: True
-                    #         n_jobs: 8
-                    # graph_hopper_bridge_normal:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: graph_hopper
-                    #             kernel_type: bridge
-                    #         normalize: True
-                    #         n_jobs: 8
+                    graph_hopper_linear_area:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_area:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_circumference:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_circumference:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
             # altimetric:
             #     # histogram:
             #     #     type: callable
