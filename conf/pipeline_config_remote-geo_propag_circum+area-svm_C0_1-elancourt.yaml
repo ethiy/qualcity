@@ -36,11 +36,9 @@ features:
                     #   graph_subgraph_matching_normal:
                     #       edge_attributes: 
                     #           - normal
-                      graph_propagation_area:
+                      graph_propagation_area_circumference:
                           node_attributes: 
                               - area
-                      graph_propagation_circumference:
-                          node_attributes: 
                               - circumference
                     #   graph_mult_laplacian_normal:
                     #       node_attributes: 
@@ -181,17 +179,7 @@ features:
                     #             name: subgraph_matching
                     #         n_jobs: 8
                     #         normalize: True
-                    graph_propagation_area:
-                        type: classe
-                        algorithm:
-                            grakel.GraphKernel
-                        parameters:
-                            kernel: 
-                                name: propagation
-                                with_attributes: True
-                            normalize: True
-                            n_jobs: 8
-                    graph_propagation_circumference:
+                    graph_propagation_area_circumference:
                         type: classe
                         algorithm:
                             grakel.GraphKernel
