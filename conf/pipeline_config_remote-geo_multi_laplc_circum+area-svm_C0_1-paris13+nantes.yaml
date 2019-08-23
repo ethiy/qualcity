@@ -42,9 +42,10 @@ features:
                     #   graph_propagation_normal:
                     #       node_attributes: 
                     #           - normal
-                      graph_mult_laplacian_centroid:
+                      graph_mult_laplacian_circumference_area:
                           node_attributes: 
-                              - centroid
+                              - circumference
+                              - area
                     #   graph_hopper_bridge_centroid:
                     #       node_attributes: 
                     #           - centroid
@@ -201,17 +202,13 @@ features:
                     #             with_attributes: True
                     #         normalize: True
                     #         n_jobs: 8
-                    graph_mult_laplacian_centroid:
+                    graph_mult_laplacian_circumference_area:
                         type: classe
                         algorithm:
                             grakel.GraphKernel
                         parameters:
                             kernel: 
                                 name: multiscale_laplacian
-                                gamma: .1
-                                L: 2
-                                N: 10
-                                P: 5
                             normalize: True
                             n_jobs: 8
                     # graph_hopper_linear_centroid:
