@@ -36,10 +36,17 @@ features:
                     #   graph_subgraph_matching_normal:
                     #       edge_attributes: 
                     #           - normal
-                      graph_propagation_area_circumference:
+                      graph_propagation_area_circumference_degree:
                           node_attributes: 
                               - area
                               - circumference
+                              - degree
+                      graph_propagation_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_propagation_normal:
+                          node_attributes: 
+                              - normal
                     #   graph_mult_laplacian_normal:
                     #       node_attributes: 
                     #           - normal
@@ -179,7 +186,27 @@ features:
                     #             name: subgraph_matching
                     #         n_jobs: 8
                     #         normalize: True
-                    graph_propagation_area_circumference:
+                    graph_propagation_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_normal:
                         type: classe
                         algorithm:
                             grakel.GraphKernel

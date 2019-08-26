@@ -186,7 +186,7 @@ features:
                     #             name: subgraph_matching
                     #         n_jobs: 8
                     #         normalize: True
-                    graph_propagation_area_circumference:
+                    graph_propagation_area_circumference_degree:
                         type: classe
                         algorithm:
                             grakel.GraphKernel

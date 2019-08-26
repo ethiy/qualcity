@@ -45,14 +45,28 @@ features:
                     #   graph_mult_laplacian_normal:
                     #       node_attributes: 
                     #           - normal
-                      graph_hopper_bridge_area_circumference:
+                      graph_hopper_bridge_area_circumference_degree:
                           node_attributes: 
                               - area
                               - circumference
-                      graph_hopper_linear_area_circumference:
+                              - degree
+                      graph_hopper_linear_area_circumference_degree:
                           node_attributes: 
                               - area
                               - circumference
+                              - degree
+                      graph_hopper_bridge_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_linear_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_bridge_normal:
+                          node_attributes: 
+                              - normal
+                      graph_hopper_linear_normal:
+                          node_attributes: 
+                              - normal
                 - method: statistics
                   parameters:
                     attributes:
@@ -206,7 +220,7 @@ features:
                     #             name: multiscale_laplacian
                     #         normalize: True
                     #         n_jobs: 8
-                    graph_hopper_linear_area_circumference:
+                    graph_hopper_linear_area_circumference_degree:
                         type: classe
                         algorithm:
                             grakel.GraphKernel
@@ -216,7 +230,47 @@ features:
                                 kernel_type: linear
                             normalize: True
                             n_jobs: 8
-                    graph_hopper_bridge_area_circumference:
+                    graph_hopper_bridge_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_centroid:
                         type: classe
                         algorithm:
                             grakel.GraphKernel
