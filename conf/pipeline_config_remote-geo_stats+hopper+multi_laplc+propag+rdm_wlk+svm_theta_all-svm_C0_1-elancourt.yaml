@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -18,33 +18,26 @@ features:
             methods:
                 - method: graph
                   parameters:
-                    #   graph_rdm_walk:
-                    #       node_attributes: 
-                    #           - degree
-                    #   graph_lovasz_theta:
-                    #       node_attributes: 
-                    #           - degree
-                    #   graph_svm_theta:
-                    #       node_attributes: 
-                    #           - degree
-                    #   graph_let_sampling:
-                    #       node_attributes: 
-                    #           - degree
-                    #   graph_subgraph_matching_centroid:
-                    #       edge_attributes: 
-                    #           - centroid
-                    #   graph_subgraph_matching_normal:
-                    #       edge_attributes: 
-                    #           - normal
-                    #   graph_propagation_centroid:
-                    #       node_attributes: 
-                    #           - centroid
-                    #   graph_propagation_normal:
-                    #       node_attributes: 
-                    #           - normal
-                    #   graph_mult_laplacian_normal:
-                    #       node_attributes: 
-                    #           - normal
+                      graph_rdm_walk:
+                          node_attributes: 
+                              - degree
+                      graph_svm_theta:
+                          node_attributes: 
+                              - degree
+                      graph_mult_laplacian_normal:
+                          node_attributes: 
+                              - normal
+                      graph_propagation_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_propagation_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_propagation_normal:
+                          node_attributes: 
+                              - normal
                       graph_hopper_bridge_area_circumference_degree:
                           node_attributes: 
                               - area
@@ -140,86 +133,63 @@ features:
                     parameters:
                         gamma: .001
                 graph:
-                    # graph_rdm_walk:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: random_walk
-                    #             with_labels: False
-                    #             lamda: .001
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_lovasz_theta:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: lovasz_theta
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_svm_theta:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: svm_theta
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_let_sampling:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: graphlet_sampling
-                    #             k: 3
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_subgraph_matching_centroid:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: subgraph_matching
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_subgraph_matching_normal:
-                    #     type: classe
-                    #     algorithm: grakel.GraphKernel
-                    #     parameters:
-                    #         kernel:
-                    #             name: subgraph_matching
-                    #         n_jobs: 8
-                    #         normalize: True
-                    # graph_propagation_centroid:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: propagation
-                    #             with_attributes: True
-                    #         normalize: True
-                    #         n_jobs: 8
-                    # graph_propagation_normal:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: propagation
-                    #             with_attributes: True
-                    #         normalize: True
-                    #         n_jobs: 8
-                    # graph_mult_laplacian_normal:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: multiscale_laplacian
-                    #         normalize: True
-                    #         n_jobs: 8
+                    graph_rdm_walk:
+                        type: classe
+                        algorithm: grakel.GraphKernel
+                        parameters:
+                            kernel:
+                                name: random_walk
+                                with_labels: False
+                                lamda: .001
+                            n_jobs: 8
+                            normalize: True
+                    graph_svm_theta:
+                        type: classe
+                        algorithm: grakel.GraphKernel
+                        parameters:
+                            kernel:
+                                name: svm_theta
+                            n_jobs: 8
+                            normalize: True
+                    graph_mult_laplacian_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: multiscale_laplacian
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
                     graph_hopper_linear_area_circumference_degree:
                         type: classe
                         algorithm:
