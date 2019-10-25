@@ -1,0 +1,283 @@
+cache:
+    /home/ubuntu/Data/Assembled/cache_svm
+
+labels:
+    labels_path:
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
+    depth: 3
+    LoD: 2
+    hierarchical: False
+    filetype: csv
+    threshold: 10
+
+features:
+    types:
+        geometric:
+            graph_dir:
+               /home/ubuntu/Data/Assembled/facet_graphs
+            methods:
+                - method: graph
+                  parameters:
+                      graph_propagation_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_propagation_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_propagation_normal:
+                          node_attributes: 
+                              - normal
+                      graph_hopper_bridge_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_hopper_linear_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_hopper_bridge_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_linear_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_bridge_normal:
+                          node_attributes: 
+                              - normal
+                      graph_hopper_linear_normal:
+                          node_attributes: 
+                              - normal
+                # - method: statistics
+                #   parameters:
+                #     attributes:
+                #         - normal_with_relations
+                #         - centroid_with_relations
+                #         - area
+                #         - circumference
+                #         - degree
+                #     functions:
+                #         - mean
+                #         - median
+                #         - max
+                #         - min
+        # altimetric:
+        #     model_dir:
+        #         /home/ubuntu/Data/Assembled/raster_projections
+        #     dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
+        #     model_ext: tiff
+        #     dsm_ext: geotiff
+        #     margins: !!python/tuple [0,0]
+        #     methods:
+        #         # - method: rmse
+        #         # - method: histogram
+        #         #   parameters:
+        #         #       resolution: 20
+        #         #       max_amplitude: 50
+        #         - method: scattering
+        #           parameters:
+        #               J: 3
+        #               pooling:
+        #                 - numpy.median
+        #                 - numpy.mean
+        #                 - numpy.max
+        #                 - numpy.min
+        #                 - numpy.std
+        radiometric:
+            vector_dir: /home/ubuntu/Data/Assembled/vector_projections
+            ortho_dir: '/home/ubuntu/Data/Assembled/Orthoimages'
+            ortho_ext: 'geotiff'
+            vector_ext: 'shp'
+            methods:
+                # - method: gradient
+                #   parameters:
+                #       resolution: 20
+                #       weight: !!python/tuple [True, True, True]
+                - method:
+                    scattering
+                  parameters:
+                      clip: False
+                      fusion:
+                        deletion
+                        # channel
+                        # siamese
+                      J: 3
+                    #   resize:
+                    #       !!python/tuple [32, 32]
+                      pooling:
+                          - numpy.median
+                          - numpy.mean
+                          - numpy.max
+                          - numpy.min
+                          - numpy.std
+    format:
+        # vector:
+        kernel:
+            geometric:
+                # statistics:
+                #     type: callable
+                #     algorithm:
+                #         sklearn.metrics.pairwise.rbf_kernel
+                #     parameters:
+                #         gamma: .001
+                graph:
+                    graph_propagation_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+            # altimetric:
+            #     # histogram:
+            #     #     type: callable
+            #     #     algorithm:
+            #     #         sklearn.metrics.pairwise.rbf_kernel
+            #     #     parameters:
+            #     #         gamma: 0.001
+            #     scattering:
+            #         type: callable
+            #         algorithm:
+            #             sklearn.metrics.pairwise.rbf_kernel
+            #         parameters:
+            #             gamma: 0.001
+            radiometric:
+                scattering:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.001
+processing:
+    # visualization:
+    #     dimension_reduction:
+    #         algorithm: sklearn.decomposition.PCA
+    #         parameters:
+    #             n_components: 3
+    #     style:
+    #         colors:
+    #             - g
+    #             - r
+    #             - b
+    #         markers:
+    #             - ','
+    #             - o
+    #             - ^
+    fusion:
+        # vector:
+        kernel:
+            algorithm:
+                MKLpy.algorithms.EasyMKL
+            parameters:
+                max_iter: 100
+                lam: .5
+                multiclass_strategy: ova
+    classification:
+        data_separation:
+            cross_validation:
+                parameters:
+                    n_splits: 10
+        training:
+            model:
+                algorithm:
+                    # sklearn.ensemble.RandomForestClassifier
+                    sklearn.svm.SVC
+                parameters:
+                    # n_estimators: 1000
+                    # max_depth: 4
+                    kernel: precomputed
+                    C: .1
+                    probability: True
+                    class_weight: balanced
+                strategy:
+                    MKLpy.multiclass.OneVsRestMKLClassifier
+                    # sklearn.multiclass.OneVsRestClassifier
+        testing:
+            predictions:
+                filename: predictions-2
