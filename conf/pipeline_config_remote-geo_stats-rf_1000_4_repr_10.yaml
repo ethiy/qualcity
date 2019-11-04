@@ -64,19 +64,19 @@ features:
                         - median
                         - max
                         - min
-        altimetric:
-            model_dir:
-                /home/ubuntu/Data/Assembled/raster_projections
-            dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
-            model_ext: tiff
-            dsm_ext: geotiff
-            margins: !!python/tuple [0,0]
-            methods:
-                # - method: rmse
-                - method: histogram
-                  parameters:
-                      resolution: 20
-                      max_amplitude: 50
+        # altimetric:
+        #     model_dir:
+        #         /home/ubuntu/Data/Assembled/raster_projections
+        #     dsm_dir: '/home/ubuntu/Data/Assembled/DSM'
+        #     model_ext: tiff
+        #     dsm_ext: geotiff
+        #     margins: !!python/tuple [0,0]
+        #     methods:
+        #         # - method: rmse
+        #         - method: histogram
+        #           parameters:
+        #               resolution: 20
+        #               max_amplitude: 50
                 # - method: scattering
                 #   parameters:
                 #       J: 3
@@ -262,7 +262,7 @@ processing:
         data_separation:
             train_test_split:
                 parameters:
-                    train_size: .01
+                    train_size: .1
         training:
             model:
                 algorithm:
