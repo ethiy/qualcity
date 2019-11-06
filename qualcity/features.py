@@ -142,6 +142,8 @@ def get_features(buildings, cache_dir, **feature_configs):
         modalities_features = reduce_dimension_features(modalities_features, buildings, **feature_configs['dimension_reduction'])
         feature_logger.info('Dimensions reduced.')
     if list(feature_configs['format'].keys()) == ['vector']:
+        features_config, _modalities_features = zip(*list(modalities_features.items()))
+        print(features_config)
         return (
             'vector',
             [
@@ -153,7 +155,7 @@ def get_features(buildings, cache_dir, **feature_configs):
                                 for modality_feature in modality_features.values()
                             ]
                         )
-                        for modality_features in modalities_features.values()
+                        for modality_features in _modalities_features
                     ]
                 )
                 for building in buildings
