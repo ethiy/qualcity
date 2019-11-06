@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -101,14 +101,18 @@ features:
     dimension_reduction:
         altimetric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
         radiometric:
             scattering:
-                algorithm: sklearn.decomposition.PCA
+                algorithm: sklearn.decomposition.KernelPCA
                 parameters:
                     n_components: 20
+                    kernel: rbf
+                    gamma: .001
     format:
         vector:
         # kernel:
@@ -230,7 +234,7 @@ processing:
     classification:
         data_separation:
             bipartite:
-                threshold: 1997
+                threshold: 1219
         training:
             model:
                 algorithm:
