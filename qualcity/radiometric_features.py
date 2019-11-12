@@ -555,6 +555,7 @@ def compute_features(buildings, cache_dir, cache_args, vector_dir, vector_ext, o
         features
     )
     cached_features.update(features)
+    print(list(cached_features.values())[0].shape)
     return cached_features
 
 

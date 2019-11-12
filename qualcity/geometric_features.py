@@ -408,6 +408,7 @@ def compute_features(buildings, cache_dir, graph_dir, method, **method_args):
             features
         )
     cached_features.update(features)
+    print(list(cached_features.values())[0].shape)
     return cached_features
 
 

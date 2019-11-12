@@ -356,6 +356,7 @@ def compute_features(buildings, cache_dir, cache_args, model_dir, model_ext, dsm
         features
     )
     cached_features.update(features)
+    print(list(cached_features.values())[0].shape)
     return cached_features
 
 
