@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small-paris_13+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -108,70 +108,70 @@ features:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
                         gamma: 0.001
-        #         graph:
-        #             # graph_1:
-        #             #     type: classe
-        #             #     algorithm: grakel.GraphKernel
-        #             #     parameters:
-        #             #         kernel:
-        #             #             name: pyramid_match
-        #             #             # name: random_walk
-        #             #             # lamda: .015
-        #             #             # kernel_type: geometric
-        #             #             # method_type: fast
-        #             #             # k: 4
-        #             #         n_jobs: 8
-        #             #         normalize: True
-        #             # graph_2:
-        #             #     type: classe
-        #             #     algorithm: grakel.GraphKernel
-        #             #     parameters:
-        #             #         kernel:
-        #             #             name: subgraph_matching
-        #             #             # kernel_type: !!python/tuple ['gaussian', 0.05]
-        #             #         n_jobs: 8
-        #             #         normalize: True
-        #             # graph_3:
-        #             #     type: classe
-        #             #     algorithm:
-        #             #         grakel.GraphKernel
-        #             #     parameters:
-        #             #         kernel: 
-        #             #             name: graph_hopper
-        #             #             kernel_type: linear
-        #             #         normalize: True
-        #             #         n_jobs: 8
-        #             graph_4:
-        #                 type: classe
-        #                 algorithm:
-        #                     grakel.GraphKernel
-        #                 parameters:
-        #                     kernel: 
-        #                         name: multiscale_laplacian
-        #                         # kernel_type: !!python/tuple ['gaussian', 0.05]
-        #                     normalize: True
-        #                     n_jobs: 8
-        #             # graph_6:
-        #             #     type: classe
-        #             #     algorithm:
-        #             #         grakel.GraphKernel
-        #             #     parameters:
-        #             #         kernel: 
-        #             #             name: graph_hopper
-        #             #             kernel_type: bridge
-        #             #             # kernel_type: !!python/tuple ['gaussian', 0.05]
-        #             #         normalize: True
-        #             #         n_jobs: 8
-        #             # graph_5:
-        #             #     type: classe
-        #             #     algorithm:
-        #             #         grakel.GraphKernel
-        #             #     parameters:
-        #             #         kernel: 
-        #             #             name: propagation
-        #             #             with_attributes: True
-        #             #         normalize: True
-        #             #         n_jobs: 8
+                # graph:
+                #     # graph_1:
+                #     #     type: classe
+                #     #     algorithm: grakel.GraphKernel
+                #     #     parameters:
+                #     #         kernel:
+                #     #             name: pyramid_match
+                #     #             # name: random_walk
+                #     #             # lamda: .015
+                #     #             # kernel_type: geometric
+                #     #             # method_type: fast
+                #     #             # k: 4
+                #     #         n_jobs: 8
+                #     #         normalize: True
+                #     # graph_2:
+                #     #     type: classe
+                #     #     algorithm: grakel.GraphKernel
+                #     #     parameters:
+                #     #         kernel:
+                #     #             name: subgraph_matching
+                #     #             # kernel_type: !!python/tuple ['gaussian', 0.05]
+                #     #         n_jobs: 8
+                #     #         normalize: True
+                #     # graph_3:
+                #     #     type: classe
+                #     #     algorithm:
+                #     #         grakel.GraphKernel
+                #     #     parameters:
+                #     #         kernel: 
+                #     #             name: graph_hopper
+                #     #             kernel_type: linear
+                #     #         normalize: True
+                #     #         n_jobs: 8
+                #     graph_4:
+                #         type: classe
+                #         algorithm:
+                #             grakel.GraphKernel
+                #         parameters:
+                #             kernel: 
+                #                 name: multiscale_laplacian
+                #                 # kernel_type: !!python/tuple ['gaussian', 0.05]
+                #             normalize: True
+                #             n_jobs: 8
+                #     # graph_6:
+                #     #     type: classe
+                #     #     algorithm:
+                #     #         grakel.GraphKernel
+                #     #     parameters:
+                #     #         kernel: 
+                #     #             name: graph_hopper
+                #     #             kernel_type: bridge
+                #     #             # kernel_type: !!python/tuple ['gaussian', 0.05]
+                #     #         normalize: True
+                #     #         n_jobs: 8
+                #     # graph_5:
+                #     #     type: classe
+                #     #     algorithm:
+                #     #         grakel.GraphKernel
+                #     #     parameters:
+                #     #         kernel: 
+                #     #             name: propagation
+                #     #             with_attributes: True
+                #     #         normalize: True
+                #     #         n_jobs: 8
             # altimetric:
             #     # histogram:
             #     #     type: callable
@@ -184,20 +184,14 @@ features:
             #         algorithm:
             #             sklearn.metrics.pairwise.rbf_kernel
             #         parameters:
-            #             gamma: 0.01
+            #             gamma: 0.001
             radiometric:
-                # gradient:
-                #     type: callable
-                #     algorithm:
-                #         sklearn.metrics.pairwise.rbf_kernel
-                #     parameters:
-                #         gamma: 0.001
-                scattering:
+                gradient:
                     type: callable
                     algorithm:
                         sklearn.metrics.pairwise.rbf_kernel
                     parameters:
-                        gamma: 0.01
+                        gamma: 0.001
 processing:
     # visualization:
     #     dimension_reduction:
