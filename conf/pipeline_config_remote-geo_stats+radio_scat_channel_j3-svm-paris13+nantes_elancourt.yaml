@@ -218,9 +218,8 @@ processing:
                 multiclass_strategy: ova
     classification:
         data_separation:
-            cross_validation:
-                parameters:
-                    n_splits: 10
+            bipartite:
+                threshold: 1141
         training:
             model:
                 algorithm:
