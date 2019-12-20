@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_elancourt_no_small-paris_13+nantes_no_small_shufl.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13_elancourt+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -218,8 +218,9 @@ processing:
                 multiclass_strategy: ova
     classification:
         data_separation:
-            bipartite:
-                threshold: 1937
+            cross_validation:
+                parameters:
+                    n_splits: 10
         training:
             model:
                 algorithm:

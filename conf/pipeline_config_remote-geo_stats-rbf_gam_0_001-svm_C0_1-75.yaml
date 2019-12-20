@@ -3,7 +3,7 @@ cache:
 
 labels:
     labels_path:
-        /home/ubuntu/Data/Assembled/ground_truth_paris_13+nantes_no_small_shufl-elancourt_no_small.csv
+        /home/ubuntu/Data/Assembled/ground_truth_paris_13_elancourt+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -99,15 +99,15 @@ features:
         #                   - numpy.min
         #                   - numpy.std
     format:
-        vector:
-        # kernel:
-        #     geometric:
-        #         # statistics:
-        #         #     type: callable
-        #         #     algorithm:
-        #         #         sklearn.metrics.pairwise.rbf_kernel
-        #         #     parameters:
-        #         #         gamma: 1
+        # vector:
+        kernel:
+            geometric:
+                statistics:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: 0.001
         #         graph:
         #             # graph_1:
         #             #     type: classe
@@ -208,33 +208,34 @@ processing:
     #             - o
     #             - ^
     fusion:
-        vector:
-        # kernel:
-        #     algorithm:
-        #         MKLpy.algorithms.EasyMKL
-        #     parameters:
-        #         max_iter: 100
-        #         lam: .5
-        #         multiclass_strategy: ova
+        # vector:
+        kernel:
+            algorithm:
+                MKLpy.algorithms.EasyMKL
+            parameters:
+                max_iter: 100
+                lam: .5
+                multiclass_strategy: ova
     classification:
         data_separation:
-            bipartite:
-                threshold: 1141
+            cross_validation:
+                parameters:
+                    n_splits: 4
         training:
             model:
                 algorithm:
-                    sklearn.ensemble.RandomForestClassifier
-                    # sklearn.svm.SVC
+                    # sklearn.ensemble.RandomForestClassifier
+                    sklearn.svm.SVC
                 parameters:
-                    n_estimators: 1000
-                    max_depth: 4
-                    # kernel: precomputed
-                    # C: .1
-                    # probability: True
-                    # class_weight: balanced
+                    # n_estimators: 1000
+                    # max_depth: 4
+                    kernel: precomputed
+                    C: .1
+                    probability: True
+                    class_weight: balanced
                 strategy:
-                    # MKLpy.multiclass.OneVsRestMKLClassifier
-                    sklearn.multiclass.OneVsRestClassifier
+                    MKLpy.multiclass.OneVsRestMKLClassifier
+                    # sklearn.multiclass.OneVsRestClassifier
         testing:
             predictions:
                 filename: predictions-2
