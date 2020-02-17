@@ -1,9 +1,9 @@
 cache:
-    /home/ethiy/Data/Assembled/__
+    /home/ethiy/Data/Assembled/cache_svm
 
 labels:
     labels_path:
-        /home/ethiy/Data/Assembled/ground_truth_paris_13.csv
+        /home/ethiy/Data/Assembled/ground_truth_paris_13_elancourt+nantes_no_small_shufl.csv
     depth: 3
     LoD: 2
     hierarchical: False
@@ -18,99 +18,251 @@ features:
             methods:
                 - method: graph
                   parameters:
-                      graph_1:
-                          edge_attributes: 
+                      graph_rdm_walk:
+                          node_attributes: 
+                              - degree
+                      graph_svm_theta:
+                          node_attributes: 
+                              - degree
+                      graph_mult_laplacian_normal:
+                          node_attributes: 
                               - normal
-                      graph_2:
-                          edge_attributes: 
-                              - centroid
-                      graph_3:
+                      graph_propagation_area_circumference_degree:
                           node_attributes: 
                               - area
-                    #   graph_4:
-                    #       node_attributes: 
-                    #           - circumference
-        altimetric:
-            model_dir:
-                /home/ethiy/Data/Assembled/raster_projections
-            dsm_dir: '/home/ethiy/Data/Assembled/DSM'
-            model_ext: tiff
-            dsm_ext: geotiff
-            margins: !!python/tuple [0,0]
-            methods:
-                - method: rmse
-                - method: histogram
+                              - circumference
+                              - degree
+                      graph_propagation_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_propagation_normal:
+                          node_attributes: 
+                              - normal
+                      graph_hopper_bridge_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_hopper_linear_area_circumference_degree:
+                          node_attributes: 
+                              - area
+                              - circumference
+                              - degree
+                      graph_hopper_bridge_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_linear_centroid:
+                          node_attributes: 
+                              - centroid
+                      graph_hopper_bridge_normal:
+                          node_attributes: 
+                              - normal
+                      graph_hopper_linear_normal:
+                          node_attributes: 
+                              - normal
+                - method: statistics
                   parameters:
-                      resolution: 20
-                      max_amplitude: 50
+                    attributes:
+                        - normal_with_relations
+                        - centroid_with_relations
+                        - area
+                        - circumference
+                        - degree
+                    functions:
+                        - mean
+                        - median
+                        - max
+                        - min
+        # altimetric:
+        #     model_dir:
+        #         /home/ethiy/Data/Assembled/raster_projections
+        #     dsm_dir: '/home/ethiy/Data/Assembled/DSM'
+        #     model_ext: tiff
+        #     dsm_ext: geotiff
+        #     margins: !!python/tuple [0,0]
+        #     methods:
+        #         # - method: rmse
+        #         - method: histogram
+        #           parameters:
+        #               resolution: 20
+        #               max_amplitude: 50
+        #         # - method: scattering
+        #         #   parameters:
+        #         #       J: 3
+        #         #       pooling:
+        #         #         - numpy.median
+        #         #         - numpy.mean
+        #         #         - numpy.max
+        #         #         - numpy.min
+        #         #         - numpy.std
         # radiometric:
         #     vector_dir: /home/ethiy/Data/Assembled/vector_projections
         #     ortho_dir: '/home/ethiy/Data/Assembled/Orthoimages'
         #     ortho_ext: 'geotiff'
         #     vector_ext: 'shp'
         #     methods:
-        #         - method: gradient
+        #         # - method: gradient
+        #         #   parameters:
+        #         #       resolution: 20
+        #         #       weight: !!python/tuple [True, True, True]
+        #         - method:
+        #             scattering
         #           parameters:
-        #               resolution: 20
-        #               weight: (True, True, True)
+        #               clip: False
+        #               fusion:
+        #                 deletion
+        #                 # channel
+        #                 # siamese
+        #               J: 3
+        #             #   resize:
+        #             #       !!python/tuple [32, 32]
+        #               pooling:
+        #                   - numpy.median
+        #                   - numpy.mean
+        #                   - numpy.max
+        #                   - numpy.min
+        #                   - numpy.std
     format:
+        # vector:
         kernel:
             geometric:
+                statistics:
+                    type: callable
+                    algorithm:
+                        sklearn.metrics.pairwise.rbf_kernel
+                    parameters:
+                        gamma: .001
                 graph:
-                    graph_1:
-                        type: classe
-                        algorithm: grakel.GraphKernel
-                        parameters:
-                            kernel: 
-                                name: random_walk
-                                lamda: .015
-                                kernel_type: geometric
-                                method_type: fast
-                            n_jobs: 8
-                            normalize: True
-                    graph_2:
+                    graph_rdm_walk:
                         type: classe
                         algorithm: grakel.GraphKernel
                         parameters:
                             kernel:
-                                - name: core_framework
-                                - name: random_walk
-                                  lamda: .015
-                                  kernel_type: geometric
-                                  method_type: fast
-                                #   n_jobs: 8
+                                name: random_walk
+                                with_labels: False
+                                lamda: .001
+                            n_jobs: 8
                             normalize: True
-                    graph_3:
+                    graph_svm_theta:
+                        type: classe
+                        algorithm: grakel.GraphKernel
+                        parameters:
+                            kernel:
+                                name: svm_theta
+                            n_jobs: 8
+                            normalize: True
+                    graph_mult_laplacian_normal:
                         type: classe
                         algorithm:
                             grakel.GraphKernel
                         parameters:
                             kernel: 
-                                name: svm_theta
+                                name: multiscale_laplacian
                             normalize: True
-                            n_jobs: 1
-                    # graph_4:
-                    #     type: classe
-                    #     algorithm:
-                    #         grakel.GraphKernel
-                    #     parameters:
-                    #         kernel: 
-                    #             name: svm_theta
-                    #         normalize: True
-                    #         n_jobs: 1
-            altimetric:
-                rmse:
-                    type: callable
-                    algorithm:
-                        sklearn.metrics.pairwise.rbf_kernel
-                    parameters:
-                        gamma: 1
-                histogram:
-                    type: callable
-                    algorithm:
-                        sklearn.metrics.pairwise.rbf_kernel
-                    parameters:
-                        gamma: 0.005
+                            n_jobs: 8
+                    graph_propagation_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_propagation_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: propagation
+                                with_attributes: True
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_area_circumference_degree:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_normal:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_linear_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: linear
+                            normalize: True
+                            n_jobs: 8
+                    graph_hopper_bridge_centroid:
+                        type: classe
+                        algorithm:
+                            grakel.GraphKernel
+                        parameters:
+                            kernel: 
+                                name: graph_hopper
+                                kernel_type: bridge
+                            normalize: True
+                            n_jobs: 8
+            # altimetric:
+            #     # histogram:
+            #     #     type: callable
+            #     #     algorithm:
+            #     #         sklearn.metrics.pairwise.rbf_kernel
+            #     #     parameters:
+            #     #         gamma: 0.001
+            #     scattering:
+            #         type: callable
+            #         algorithm:
+            #             sklearn.metrics.pairwise.rbf_kernel
+            #         parameters:
+            #             gamma: 0.01
             # radiometric:
             #     gradient:
             #         type: callable
@@ -134,13 +286,15 @@ processing:
     #             - o
     #             - ^
     fusion:
+        # vector:
         kernel:
             algorithm:
                 MKLpy.algorithms.EasyMKL
             parameters:
                 max_iter: 100
-                lam: .1
+                lam: .5
                 multiclass_strategy: ova
+
     classification:
         data_separation:
             cross_validation:
@@ -155,7 +309,7 @@ processing:
                     # n_estimators: 1000
                     # max_depth: 4
                     kernel: precomputed
-                    C: .05
+                    C: .1
                     probability: True
                     class_weight: balanced
                 strategy:
